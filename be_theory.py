@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pylab as plt
-import pyhdust.phc as phc
 from utils import find_nearest
 import user_settings as flag
 
@@ -95,7 +94,6 @@ def t_tms_from_Xc(M, savefig=None, plot_fig=None, ttms_true=None, Xc=None):
     arr_age = []
     arr_Hfr = []
     arr_t_tc = []
-    cor = phc.gradColor(np.arange(len(st)), cmapn='inferno')
     iv = 2  # O que eh isto?
     arr_Xc = []
     for i in range(nm):
@@ -111,24 +109,11 @@ def t_tms_from_Xc(M, savefig=None, plot_fig=None, ttms_true=None, Xc=None):
 
         t_tc = age[0:iMS[0][0]] / max(age[0:iMS[0][0]])
         arr_t_tc.append(t_tc)
-    if plot_fig is True:
-        plt.plot(t_tc, X_c, color=cor[i], label=('%s' % st[i]))
+
 
 # ------------------------------------------------------------------------------
 # Interpolation
     k = find_nearest(mass, M)[1]
-
-    if plot_fig is True:
-        plt.plot(ttms_true, Xc, 'o')
-        plt.autoscale()
-        plt.minorticks_on()
-        plt.legend(fontsize=10, ncol=2, fancybox=False, frameon=False)
-
-# ------------------------------------------------------------------------------
-
-    if savefig is True:
-        pdfname = 'Xc_vs_Tsp.png'
-        plt.savefig(pdfname)
 
     return k, arr_t_tc, arr_Xc
 

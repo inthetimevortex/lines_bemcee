@@ -2,8 +2,7 @@ from PyAstronomy import pyasl
 import numpy as np
 import matplotlib.pylab as plt
 from be_theory import hfrac2tms
-from pyhdust.rotstars import beta, geneva_interp_fast
-from utils import griddataBAtlas, griddataBA
+from utils import beta, geneva_interp_fast, griddataBAtlas, griddataBA
 from lines_reading import check_list
 import corner
 import seaborn as sns

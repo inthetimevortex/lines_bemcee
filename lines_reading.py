@@ -1,7 +1,7 @@
 import numpy as np
 import math
 from glob import glob
-import pyhdust.beatlas as bat
+import utils as ut
 from operator import is_not
 from functools import partial
 import os
@@ -56,7 +56,7 @@ def read_BAphot2_xdr(lista_obs):
 
     # Read the grid models, with the interval of parameters.
     xdrPL = flag.folder_models + 'BAphot__UV2M_Ha_Hb_Hg_Hd.xdr'
-    ninfo, ranges, lbdarr, minfo, models = bat.readXDRsed(xdrPL, quiet=False)
+    ninfo, ranges, lbdarr, minfo, models = ut.readXDRsed(xdrPL, quiet=False)
     models = 1e-8 * models # erg/s/cm2/micron
     
     # Correction for negative parameter values (in cosi for instance)
@@ -145,7 +145,7 @@ def read_aara_xdr():
     xdrPL = flag.folder_models + 'aara_sed.xdr'  # 
 
 
-    listpar, lbdarr, minfo, models = bat.readBAsed(xdrPL, quiet=False)
+    listpar, lbdarr, minfo, models = ut.readBAsed(xdrPL, quiet=False)
 
     # F(lbd)] = 10^-4 erg/s/cm2/Ang
 
@@ -232,7 +232,7 @@ def read_befavor_xdr():
 
     # Read the grid models, with the interval of parameters.
     xdrPL = flag.folder_models + 'BeFaVOr.xdr'
-    listpar, lbdarr, minfo, models = bat.readBAsed(xdrPL, quiet=False)
+    listpar, lbdarr, minfo, models = ut.readBAsed(xdrPL, quiet=False)
     # [models] = [F(lbd)]] = 10^-4 erg/s/cm2/Ang
 
     for i in range(np.shape(minfo)[0]):
@@ -489,7 +489,7 @@ def read_beatlas_xdr():
 
     xdrPL = flag.folder_models + 'disk_flx.xdr'  # 'PL.xdr'
 
-    listpar, lbdarr, minfo, models = bat.readBAsed(xdrPL, quiet=False)
+    listpar, lbdarr, minfo, models = ut.readBAsed(xdrPL, quiet=False)
 
     # F(lbd)] = 10^-4 erg/s/cm2/Ang
 
@@ -531,7 +531,7 @@ def read_acol_xdr():
 
     xdrPL = flag.folder_models + 'acol_06.xdr'
 
-    listpar, lbdarr, minfo, models = bat.readBAsed(xdrPL, quiet=False)
+    listpar, lbdarr, minfo, models = ut.readBAsed(xdrPL, quiet=False)
 
     # Filter (removing bad models)
     for i in range(np.shape(minfo)[0]):
@@ -1173,7 +1173,7 @@ def read_line_spectra(models, lbdarr, linename):
         
     if flag.Sigma_Clip:
         #gives the line profiles in velocity space
-        vl, fx = spec.lineProf(wl, normal_flux, hwidth=2500., lbc=lbd_central)
+        vl, fx = ut.lineProf(wl, normal_flux, hwidth=2500., lbc=lbd_central)
         vel, fluxes = Sliding_Outlier_Removal(vl, fx, 50, 8, 15)
         wl = c*lbd_central/(c - vel)
     else:
@@ -1249,7 +1249,7 @@ def read_line_spectra(models, lbdarr, linename):
     #rmalize the flux of models to the continuum
     norm_model = np.zeros((len(models),len(lbdarr)))
     for i in range(len(models)):
-        norm_model[i] = spec.linfit(lbdarr, models[i][1:-1])
+        norm_model[i] = ut.linfit(lbdarr, models[i][1:-1])
     models = norm_model
 
 

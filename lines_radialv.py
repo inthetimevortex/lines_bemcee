@@ -29,7 +29,6 @@ from scipy.signal import correlate2d, correlate, fftconvolve
 from scipy.stats import chisquare
 from scipy.optimize import curve_fit
 from scipy.interpolate import griddata, interp1d
-from PyAstronomy import pyasl
 from scipy.ndimage.interpolation import shift
 
 def fwhm2sigma(fwhm):

@@ -8,10 +8,7 @@ import emcee
 import matplotlib as mpl
 from matplotlib import ticker
 from matplotlib import *
-import matplotlib.font_manager as fm
-from pyhdust.rotstars import geneva_interp, geneva_interp_fast
-from pyhdust import spectools as spec
-from utils import find_nearest,griddataBAtlas, griddataBA, kde_scipy, quantile
+from utils import find_nearest,griddataBAtlas, griddataBA, kde_scipy, quantile, geneva_interp_fast
 from be_theory import hfrac2tms
 import corner_HDR
 from pymc3.stats import hpd
@@ -359,7 +356,7 @@ def run_emcee(p0, sampler, nib, nimc, Ndim, Nwalk, file_name):
     print('\n')
     print("Burning-in ...")
     start_time = time.time()
-    pos, prob, state = sampler.run_mcmc(p0, nib)
+    pos, prob, state = sampler.run_mcmc(p0, nib, progress=True)
 
     print("--- %s minutes ---" % ((time.time() - start_time) / 60))
 
@@ -380,7 +377,7 @@ def run_emcee(p0, sampler, nib, nimc, Ndim, Nwalk, file_name):
     print('\n')
     print(75 * '=')
     print("Running MCMC ...")
-    pos, prob, state = sampler.run_mcmc(pos, nimc, rstate0=state)
+    pos, prob, state = sampler.run_mcmc(pos, nimc, rstate0=state, progress=True)
 
     # Print out the mean acceptance fraction.
     af = np.mean(sampler.acceptance_fraction)

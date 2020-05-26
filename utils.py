@@ -3,6 +3,276 @@ from scipy.interpolate import griddata
 import pyhdust.phc as phc
 from scipy.stats import gaussian_kde
 import user_settings as flag
+import struct as struct
+import constants as const
+import warnings as _warn
+
+def beta(par, is_ob=False):
+    r""" Calculate the :math:`\beta` value from Espinosa-Lara for a given 
+    rotation rate :math:`w_{\rm frac} = \Omega/\Omega_c`
+
+    If ``is_ob == True``, it consider the param as ob (instead of
+    :math:`w_{\rm frac}`). """
+
+    # Ekstrom et al. 2008, Eq. 9
+    if is_ob:
+        wfrac = (1.5 ** 1.5) * np.sqrt(2. * (par - 1.) / par ** 3)
+    else: 
+        wfrac = par
+
+    # avoid exceptions
+    if wfrac == 0:
+        return .25
+    elif wfrac == 1:
+        return 0.13535
+    elif wfrac < 0 or wfrac > 1:
+        _warn.warn('Invalid value of wfrac.')
+        return 0.
+
+    # Espinosa-Lara VLTI-School 2013 lecture, slide 18...
+    delt = 1.
+    omega1 = 0.
+    omega = wfrac
+    while delt >= 1e-5:
+        f = (3. / (2. + omega**2))**3 * omega**2 - wfrac**2
+        df = -108. * omega * (omega**2 - 1.) / (omega**2 + 2.)**4
+        omega1 = omega - f / df
+        delt = np.abs(omega1 - omega) / omega
+        omega = omega1
+
+    nthe = 100
+    theta = np.linspace(0, np.pi / 2, nthe + 1)[1:]
+    grav = np.zeros(nthe)
+    teff = np.zeros(nthe)
+    corr = np.zeros(nthe)
+    beta = 0.
+
+    for ithe in range(nthe):
+
+        delt = 1.
+        r1 = 0.
+        r = 1.
+        while delt >= 1e-5:
+            f = omega**2 * r**3 * \
+                np.sin(theta[ithe])**2 - (2. + omega**2) * r + 2.
+            df = 3. * omega**2 * r**2 * \
+                np.sin(theta[ithe])**2 - (2. + omega**2)
+            r1 = r - f / df
+            delt = np.abs(r1 - r) / r
+            r = r1
+
+        delt = 1.
+        n1 = 0.
+        ftheta = 1. / 3. * omega**2 * r**3 * np.cos(theta[ithe])**3 + \
+            np.cos(theta[ithe]) + np.log(np.tan(theta[ithe] / 2.))
+        n = theta[ithe]
+        while delt >= 1e-5:
+            f = np.cos(n) + np.log(np.tan(n / 2.)) - ftheta
+            df = -np.sin(n) + 1. / np.sin(n)
+            n1 = n - f / df
+            delt = abs(n1 - n) / n
+            n = n1
+
+        grav[ithe] = np.sqrt(1. / r**4 + omega**4 * r**2 * np.sin(
+            theta[ithe])**2 - 2. * omega**2 * np.sin(theta[ithe])**2 / r)
+
+        corr[ithe] = np.sqrt(np.tan(n) / np.tan(theta[ithe]))
+        teff[ithe] = corr[ithe] * grav[ithe]**0.25
+
+    u = ~np.isnan(teff)
+    coef = np.polyfit(np.log(grav[u]), np.log(teff[u]), 1)
+    beta = coef[0]
+
+    return beta
+
+def linfit(x, y, ssize=0.05, yerr=np.empty(0)):
+    '''
+    linfit() - retorna um array (y) normalizado, em posicoes de x
+
+    x eh importante, pois y pode ser nao igualmente amostrado.
+    x e y devem estar em ordem crescente.
+
+    ssize = % do tamanho de y; numero de pontos usados nas extremidades
+    para a media do contínuo. 'ssize' de .5 à 0 (exclusive).
+
+    OUTPUT: y, yerr (if given)
+
+    .. code:: python
+
+        #Example:
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import pyhdust.phc as phc
+        import pyhdust.spectools as spt
+
+        wv = np.linspace(6500, 6600, 101)
+        flx = (np.arange(101)[::-1])/100.+1+phc.normgauss(4, x=wv, 
+        xc=6562.79)*5
+
+        plt.plot(wv, flx)
+        normflx = spt.linfit(wv, flx)
+        plt.plot(wv, normflx, ls='--')
+
+        plt.xlabel(r'$\lambda$ ($\AA$)')
+        plt.ylabel('Flux (arb. unit)')
+
+    .. image:: _static/spt_linfit.png
+        :align: center
+        :width: 500
+    '''
+    ny = np.array(y)[:]
+    if ssize < 0 or ssize > .5:
+        _warn.warn('Invalid ssize value...', stacklevel=2)
+        ssize = 0
+    ssize = int(ssize * len(y))
+    if ssize == 0:
+        ssize = 1
+    medx0, medx1 = np.average(x[:ssize]), np.average(x[-ssize:])
+    if ssize > 9:
+        medy0, medy1 = np.median(ny[:ssize]), np.median(ny[-ssize:])
+    else:
+        medy0, medy1 = np.average(ny[:ssize]), np.average(ny[-ssize:])
+    new_y = medy0 + (medy1 - medy0) * (x - medx0) / (medx1 - medx0)
+    idx = np.where(new_y != 0)
+    ny[idx] = ny[idx] / new_y[idx]
+    if len(yerr) == 0.:
+        return ny
+    else:
+        yerr = yerr / np.average(new_y)
+        return ny, yerr
+
+
+def lineProf(x, flx, lbc, flxerr=np.empty(0), hwidth=1000., ssize=0.05):
+    '''
+    lineProf() - retorna um array (flx) normalizado e um array x em 
+    VELOCIDADES. `lbc` deve fornecido em mesma unidade de x para conversão 
+    lambda -> vel. Se vetor x jah esta em vel., usar funcao linfit().
+
+    x eh importante, pois y pode ser nao igualmente amostrado.
+    x e y devem estar em ordem crescente.
+
+    ssize = % do tamanho de y; numero de pontos usados nas extremidades
+    para a media do contínuo. 'ssize' de .5 à 0 (exclusive).
+
+    OUTPUT: vel (array), flx (array)
+    '''    
+    x = (x - lbc) / lbc * const.c * 1e-5  # km/s
+    idx = np.where(np.abs(x) <= 1.001 * hwidth)
+    if len(flxerr) == 0:
+        flux = linfit(x[idx], flx[idx], ssize=ssize)  # yerr=flxerr,
+        if len(x[idx]) == 0:
+            warn.warn('Wrong `lbc` in the lineProf function')
+        return x[idx], flux
+    else:
+        flux, flxerr = linfit(x[idx], flx[idx], yerr=flxerr[idx], ssize=ssize)
+        if len(x[idx]) == 0:
+            warn.warn('Wrong `lbc` in the lineProf function')
+        return x[idx], flux, flxerr
+
+def readpck(n, tp, ixdr, f):
+    """ Read XDR 
+
+    - n: length
+    - tp: type ('i', 'l', 'f', 'd')
+    - ixdr: counter
+    - f: file-object
+
+    :returns: ixdr (counter), np.array
+    """    
+    sz = dict(zip(['i', 'l', 'f', 'd'], [4, 4, 4, 8]))
+    s = sz[tp]
+    upck = '>{0}{1}'.format(n, tp)
+    return ixdr+n*s, np.array(struct.unpack(upck, f[ixdr:ixdr+n*s]))
+    
+
+def readXDRsed(xdrpath, quiet=False):
+    """  Read a XDR with a set of models.
+
+    The models' parameters (as well as their units) are defined at XDR 
+    creation.
+
+    INPUT: xdrpath
+
+    OUTPUT: ninfo, intervals, lbdarr, minfo, models
+
+    (xdr dimensions, params limits, lambda array (um), mods params, mods flux)
+    """
+    ixdr = 0
+    f = open(xdrpath, 'rb').read()
+    ixdr, ninfo = readpck(3, 'l', ixdr, f)
+    nq, nlbd, nm = ninfo
+    ixdr, intervals = readpck(nq*2, 'f', ixdr, f)
+    ixdr, lbdarr = readpck(nlbd, 'f', ixdr, f)
+    ixdr, listpar = readpck(nq*nm, 'f', ixdr, f)
+    ixdr, models = readpck(nlbd*nm, 'f', ixdr, f)
+    #
+    if ixdr == len(f):
+        if not quiet:
+            print('# XDR {0} completely read!'.format(xdrpath))
+    else:
+        _warn.warn('# XDR {0} not completely read!\n# length '
+            'difference is {1} /4'.format(xdrpath), (len(f)-ixdr) )
+    # 
+    return ( ninfo, intervals.reshape((nq, 2)), lbdarr, 
+        listpar.reshape((nm, nq)), models.reshape((nm, nlbd)) )
+
+
+def readBAsed(xdrpath, quiet=False):
+    """ Read **only** the BeAtlas SED release.
+
+    | Definitions:
+    | -photospheric models: sig0 (and other quantities) == 0.00
+    | -Parametric disk model default (`param` == True)
+    | -VDD-ST models: n excluded (alpha and R0 fixed. Confirm?)
+    | -The models flux are given in ergs/s/cm2/um. If ignorelum==True in the
+    |   XDR creation, F_lbda/F_bol unit will be given.
+
+    INPUT: xdrpath
+
+    | OUTPUT: listpar, lbdarr, minfo, models 
+    | (list of mods parameters, lambda array (um), mods index, mods flux)
+    """
+    f = open(xdrpath, 'rb').read()
+    ixdr = 0
+    # 
+    npxs = 3
+    upck = '>{0}l'.format(npxs)
+    header = np.array(struct.unpack(upck, f[ixdr:ixdr + npxs * 4]) )
+    ixdr += npxs * 4
+    nq, nlb, nm = header
+    # 
+    npxs = nq
+    upck = '>{0}l'.format(npxs)
+    header = np.array(struct.unpack(upck, f[ixdr:ixdr + npxs * 4]) )
+    ixdr += npxs * 4
+    # 
+    listpar = [[] for i in range(nq)]
+    for i in range(nq):
+        npxs = header[i]
+        upck = '>{0}f'.format(npxs)
+        listpar[i] = np.array(struct.unpack(upck, f[ixdr:ixdr + npxs * 4]) )
+        ixdr += npxs * 4
+    # 
+    npxs = nlb
+    upck = '>{0}f'.format(npxs)
+    lbdarr = np.array(struct.unpack(upck, f[ixdr:ixdr + npxs * 4]) )
+    ixdr += npxs * 4
+    # 
+    npxs = nm * (nq + nlb)
+    upck = '>{0}f'.format(npxs)
+    models = np.array(struct.unpack(upck, f[ixdr:ixdr + npxs * 4]) )
+    ixdr += npxs * 4
+    models = models.reshape((nm, -1))
+    # this will check if the XDR is finished.
+    if ixdr == len(f):
+        if not quiet:
+            print('# XDR {0} completely read!'.format(xdrpath))
+    else:
+        _warn.warn('# XDR {0} not completely read!\n# length '
+            'difference is {1}'.format(xdrpath, (len(f)-ixdr)/4) )
+    # 
+    return listpar, lbdarr, models[:, 0:nq], models[:, nq:]
+
 
 # ==============================================================================
 def kde_scipy(x, x_grid, bandwidth=0.2):
@@ -146,35 +416,31 @@ def find_neighbours(par, par_grid, ranges):
     return keep, out, inside_ranges, par_new, par_grid_new
 
 
-# ==============================================================================
-def geneva_interp_fast(Par, oblat, t, neighbours_only=True, isRpole=False):
+def geneva_interp_fast(Mstar, oblat, t, Zstr='014', silent=True):
     '''
     Interpolates Geneva stellar models, from grid of
     pre-computed interpolations.
 
     Usage:
-    Rpole, logL = geneva_interp_fast(Mstar, oblat, t,
-                                     neighbours_only=True, isRpole=False)
-    or
-    Mstar, logL = geneva_interp_fast(Rpole, oblat, t,
-                                     neighbours_only=True, isRpole=True)
-    (in this case, the option 'neighbours_only' will be set to 'False')
+    Rpole, logL, age = geneva_interp_fast(Mstar, oblat, t, Zstr='014')
 
     where t is given in tMS, and tar is the open tar file. For now, only
-    Z=0.014 is available.
+    Zstr='014' is available.
     '''
-    # from my_routines import find_neighbours
-    from scipy.interpolate import griddata
-
     # read grid
-    dir0 = flag.folder_defs +'/geneve_models/'
-    fname = 'geneva_interp_Z014.npz'
+    #dir0 = '{0}/refs/geneva_models/'.format(_hdtpath())
+    dir0 = flag.folder_defs + '/geneve_models/'
+    if Mstar <= 20.:
+        fname = 'geneva_interp_Z{:}.npz'.format(Zstr)
+    else:
+        fname = 'geneva_interp_Z{:}_highM.npz'.format(Zstr)
     data = np.load(dir0 + fname)
     Mstar_arr = data['Mstar_arr']
-    oblat_arr = data['oblat_arr']
+    oblat_arr =data['oblat_arr']
     t_arr = data['t_arr']
     Rpole_grid = data['Rpole_grid']
     logL_grid = data['logL_grid']
+    age_grid = data['age_grid']
 
     # build grid of parameters
     par_grid = []
@@ -185,67 +451,34 @@ def geneva_interp_fast(Par, oblat, t, neighbours_only=True, isRpole=False):
     par_grid = np.array(par_grid)
 
     # set input/output parameters
-    if isRpole:
-        Rpole = Par
-        par = np.array([Rpole, oblat, t])
-        Mstar_arr = par_grid[:, 0].copy()
-        par_grid[:, 0] = Rpole_grid.flatten()
-        neighbours_only = False
-    else:
-        Mstar = Par
-        par = np.array([Mstar, oblat, t])
-    # print(par)
+    par = np.array([Mstar, oblat, t])
 
     # set ranges
-    ranges = np.array([[par_grid[:, i].min(),
-                        par_grid[:, i].max()] for i in range(len(par))])
+    ranges = np.array([[par_grid[:, i].min(), par_grid[:, i].max()] for i in range(len(par))])
 
     # find neighbours
-    if neighbours_only:
-        keep, out, inside_ranges, par, par_grid = \
-            find_neighbours(par, par_grid, ranges)
-    else:
-        keep = np.array(len(par_grid) * [True])
-        # out = []
-        # check if inside ranges
-        count = 0
-        inside_ranges = True
-        while (inside_ranges is True) * (count < len(par)):
-            inside_ranges = (par[count] >= ranges[count, 0]) *\
-                (par[count] <= ranges[count, 1])
-            count += 1
+    keep, out, inside_ranges, par, par_grid = find_neighbours(par, par_grid, ranges)
 
     # interpolation method
     if inside_ranges:
         interp_method = 'linear'
     else:
-        print('Warning: parameters out of available range,' +
-              ' taking closest model.')
+        if not silent:
+            print('[geneva_interp_fast] Warning: parameters out of available range, taking closest model')
         interp_method = 'nearest'
 
     if len(keep[keep]) == 1:
         # coincidence
-        if isRpole:
-            Mstar = Mstar_arr[keep][0]
-            Par_out = Mstar
-        else:
-            Rpole = Rpole_grid.flatten()[keep][0]
-            Par_out = Rpole
+        Rpole = Rpole_grid.flatten()[keep][0]
         logL = logL_grid.flatten()[keep][0]
+        age = age_grid.flatten()[keep][0]
     else:
         # interpolation
-        if isRpole:
-            Mstar = griddata(par_grid[keep], Mstar_arr[keep], par,
-                             method=interp_method, rescale=True)[0]
-            Par_out = Mstar
-        else:
-            Rpole = griddata(par_grid[keep], Rpole_grid.flatten()[keep],
-                             par, method=interp_method, rescale=True)[0]
-            Par_out = Rpole
-        logL = griddata(par_grid[keep], logL_grid.flatten()[keep],
-                        par, method=interp_method, rescale=True)[0]
+        Rpole = griddata(par_grid[keep], Rpole_grid.flatten()[keep], par, method=interp_method, rescale=True)[0]
+        logL = griddata(par_grid[keep], logL_grid.flatten()[keep], par, method=interp_method, rescale=True)[0]
+        age = griddata(par_grid[keep], age_grid.flatten()[keep], par, method=interp_method, rescale=True)[0]
 
-    return Par_out, logL
+    return Rpole, logL, age
 
 
 # ==============================================================================
