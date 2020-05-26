@@ -5,7 +5,6 @@ import pyhdust.beatlas as bat
 from operator import is_not
 from functools import partial
 import os
-import pyfits
 from utils import bin_data, find_nearest
 from scipy.interpolate import griddata
 import atpy
@@ -1127,7 +1126,7 @@ def read_star_info(star, lista_obs, listpar):
 def read_espadons(fname):
 
     # read fits
-    hdr_list = pyfits.open(fname)
+    hdr_list = fits.open(fname)
     fits_data = hdr_list[0].data
     fits_header = hdr_list[0].header
     #read MJD
@@ -1174,7 +1173,7 @@ def read_line_spectra(models, lbdarr, linename):
         
     if flag.Sigma_Clip:
         #gives the line profiles in velocity space
-        vl, fx = spec.lineProf(wl, normal_flux, hwidth=2000., lbc=lbd_central)
+        vl, fx = spec.lineProf(wl, normal_flux, hwidth=2500., lbc=lbd_central)
         vel, fluxes = Sliding_Outlier_Removal(vl, fx, 50, 8, 15)
         wl = c*lbd_central/(c - vel)
     else:
@@ -1231,6 +1230,7 @@ def read_line_spectra(models, lbdarr, linename):
             bin_flux[i] = -np.inf
         elif len(index) == 1:
             bin_flux[i] = new_flux[index[0][0]]
+            sigma_new[i] = 0.017656218
         else: 
             # Calculating the mean flux in the box
             bin_flux[i] = np.sum(new_flux[index[0][0]:index[-1][0]])/len(new_flux[index[0][0]:index[-1][0]])
@@ -1277,9 +1277,10 @@ def read_line_spectra(models, lbdarr, linename):
     if flag.only_wings:
         plt.plot(waves, fluxes)
         point_a, point_b = plt.ginput(2)
+        plt.close()
         #H_peak = find_nearest2(lbdarr, lines_dict[linename])
         keep_a = find_nearest2(lbdarr, point_a[0])
-        keep_a = find_nearest2(lbdarr, point_b[0])
+        keep_b = find_nearest2(lbdarr, point_b[0])
         #keep_b = find_nearest2(lbdarr, lines_dict[linename] + 0.0009)
         #keep_b = find_nearest2(lbdarr, lines_dict[linename] + 0.0009)
         lbdarr1 = lbdarr[:keep_a]
@@ -1301,6 +1302,7 @@ def read_line_spectra(models, lbdarr, linename):
     if flag.only_centerline:
         plt.plot(waves, fluxes)
         point_a, point_b = plt.ginput(2)
+        plt.close()
         #H_peak = find_nearest2(lbdarr, lines_dict[linename])
         keep_a = find_nearest2(lbdarr, point_a[0])
         keep_a = find_nearest2(lbdarr, point_b[0])

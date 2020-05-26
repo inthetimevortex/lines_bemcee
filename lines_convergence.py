@@ -179,7 +179,7 @@ def plot_convergence(npy, file_name, file_npy_burnin,  lista_obs, linspace, para
                  orientation='horizontal',
                  facecolor="#67A9CF",
                  edgecolor="none",
-                 normed=True, histtype='barstacked')
+                 histtype='barstacked')
 
         ax2.xaxis.set_visible(False)
         ax2.yaxis.tick_right()

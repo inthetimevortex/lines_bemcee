@@ -55,7 +55,7 @@ incl_prior =    False # Uses a gaussian inclination prior
 
 
 normal_spectra =    True # True if the spectra is normalized (for lines), distance and e(b-v) are not computed
-only_wings =        False # Run emcee with only the wings
+only_wings =        True # Run emcee with only the wings
 only_centerline =   False # Run emcee with only the center of the line
 Sigma_Clip =        True # If you want telluric lines/outilier points removed
 remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too much absorption (in the wings)

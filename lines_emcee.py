@@ -15,7 +15,7 @@ from utils import find_nearest,griddataBAtlas, griddataBA, kde_scipy, quantile
 from be_theory import hfrac2tms
 import corner_HDR
 from pymc3.stats import hpd
-from lines_plot import print_output, par_errors, plot_fit_last, plot_residuals_new, print_output_means
+from lines_plot import print_output, par_errors, plot_residuals_new, print_output_means
 from lines_reading import read_iue, read_votable, read_star_info, read_line_spectra, read_observables, check_list, Sliding_Outlier_Removal
 from lines_convergence import plot_convergence
 from astropy.stats import SigmaClip
