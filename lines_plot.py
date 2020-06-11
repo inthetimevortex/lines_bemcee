@@ -5,6 +5,7 @@ from be_theory import hfrac2tms
 from utils import beta, geneva_interp_fast, griddataBAtlas, griddataBA
 from lines_reading import check_list
 import corner
+from constants import G, Msun, Rsun
 import seaborn as sns
 import user_settings as flag
 
@@ -52,9 +53,140 @@ def print_output(params_fit, errors_fit):
         print('Oblateness: ', oblat, ' +/- ', errors_fit[1]*W)
         print('Equatorial radius: ', oblat*Rpole, ' +/- ', errors_fit[1]*W*Rpole)
         print('Log Luminosity: ', logL) 
-        print('Beta: ', beta_par)
+        print('Beta: ', beta_par)    
 
+    
     return
+
+
+def print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels):
+    
+    fname = current_folder+fig_name+ '.txt'
+    
+    names = ['Mstar', 'W', 't/tms', 'i', 'Dist', 'E(B-V)', 'RV']
+    
+    file1 = open(fname, 'w')
+    L = ['\bbegin{table} \n',
+        '\centering \n',
+        '\bbegin{tabular}{ll} \n',
+        '\hline \n',
+        'Parameter  & Value \\\ \n', 
+        '\hline \n']
+    file1.writelines(L)
+    
+    params_to_print = []
+    print(errors_fit[0][1])
+    for i in range(len(params_fit)):
+        params_to_print.append(names[i] + '= {0:.2f} +{1:.2f} -{2:.2f}'.format(params_fit[i], errors_fit[i][0], errors_fit[i][1]))
+        file1.writelines(labels[i] + '& {0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}} \\\ \n'.format(params_fit[i], errors_fit[i][0], errors_fit[i][1]))
+    
+    
+    L = ['\hline \n',
+        '\end{tabular} \n'
+        '\end{table} \n']
+    
+    file1.writelines(L)
+    
+    L = ['\bbegin{table} \n',
+        '\centering \n',
+        '\bbegin{tabular}{ll} \n',
+        '\hline \n',
+        'Derived Parameters  & Value \\\ \n', 
+        '\hline \n']
+    file1.writelines(L)
+    
+    Mstar = params_fit[0]
+    Mstar_range = [Mstar + errors_fit[0][0], Mstar - errors_fit[0][1]]
+    
+    W = params_fit[1]
+    W_range = [W + errors_fit[1][0], W - errors_fit[1][1]]
+    
+    tms = params_fit[2]
+    tms_range = [tms + errors_fit[2][0], tms - errors_fit[2][1]]
+    
+    cosi = params_fit[3]
+    cosi_range = [cosi + errors_fit[3][0], cosi - errors_fit[3][1]]
+    
+    oblat = 1 + 0.5*(W**2) # Rimulo 2017
+    ob_max, ob_min = 1 + 0.5*(W_range[0]**2), 1 + 0.5*(W_range[1]**2)
+    oblat_range = [ob_max, ob_min]
+    
+    Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
+    
+    Rpole_range = [0., 100.]
+    logL_range = [0., 100000.]
+    
+    for mm in Mstar_range:
+        for oo in oblat_range:
+            for tt in tms_range:
+                Rpolet, logLt, _ = geneva_interp_fast(mm, oo, tt, Zstr='014')
+                if Rpolet > Rpole_range[0]:
+                    Rpole_range[0] = Rpolet
+                    #print('Rpole max is now = {}'.format(Rpole_range[0]))
+                if Rpolet < Rpole_range[1]:
+                    Rpole_range[1] = Rpolet
+                    #print('Rpole min is now = {}'.format(Rpole_range[1]))
+                if logLt > logL_range[0]:
+                    logL_range[0] = logLt
+                    #print('logL max is now = {}'.format(logL_range[0]))
+                if logLt < logL_range[1]:
+                    logL_range[1] = logLt
+                    #print('logL min is now = {}'.format(logL_range[1]))
+        
+    beta_range = [beta(oblat_range[0], is_ob=True), beta(oblat_range[1], is_ob=True)]
+        
+    beta_par = beta(oblat, is_ob=True)
+    
+    Req = oblat*Rpole
+    Req_max, Req_min = oblat_range[0]*Rpole_range[0], oblat_range[1]*Rpole_range[1]
+    
+    wcrit = np.sqrt(8. / 27. * G * Mstar * Msun / (Rpole * Rsun)**3)
+    vsini = W * wcrit * (Req * Rsun) * np.sin(cosi * np.pi/180.) * 1e-5
+    
+    vsini_range = [0., 10000.]
+    for mm in Mstar_range:
+        for rr in Rpole_range:
+            for oo in oblat_range:
+                for ww in W_range:
+                    for ii in cosi_range: 
+                        wcrit = np.sqrt(8. / 27. * G * mm * Msun / (rr * Rsun)**3)
+                        #print(wcrit)
+                        vsinit = ww * wcrit * (oo * rr * Rsun) * np.sin(ii * np.pi/180.) * 1e-5
+                        if vsinit > vsini_range[0]:
+                            vsini_range[0] = vsinit
+                            #print('vsini max is now = {}'.format(vsini_range[0]))
+
+                        if vsinit < vsini_range[1]:
+                            vsini_range[1] = vsinit
+                            #print('vsini min is now = {}'.format(vsini_range[1]))
+
+
+    
+    file1.writelines('Oblateness & {0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}} \\\ \n'.format(oblat, oblat_range[0] - oblat, oblat- oblat_range[1]))
+    params_to_print.append('Oblateness = {0:.2f} +{1:.2f} -{2:.2f}'.format(oblat, oblat_range[0] - oblat, oblat- oblat_range[1]))
+    file1.writelines('Equatorial radius & {0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}} \\\ \n'.format(Req, Req_max - Req, Req - Req_min))
+    params_to_print.append('Equatorial radius = {0:.2f} +{1:.2f} -{2:.2f}'.format(Req, Req_max - Req, Req - Req_min))
+    file1.writelines('Log Luminosity & {0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}  \\\ \n'.format(logL, logL_range[0] - logL, logL - logL_range[1]))
+    params_to_print.append('Log Luminosity  = {0:.2f} +{1:.2f} -{2:.2f}'.format(logL, logL_range[0] - logL, logL - logL_range[1]))
+    file1.writelines('Beta & {0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}} \\\ \n'.format(beta_par, beta_range[1] - beta_par, beta_par - beta_range[0]))
+    params_to_print.append('Beta  = {0:.2f} +{1:.2f} -{2:.2f}'.format(beta_par, beta_range[1] - beta_par, beta_par - beta_range[0]))
+    file1.writelines('vsini & {0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}} \\\ \n'.format(vsini, vsini_range[0] - vsini, vsini - vsini_range[1]))
+    params_to_print.append('vsini = {0:.2f} +{1:.2f} -{2:.2f}'.format(vsini, vsini_range[0] - vsini, vsini - vsini_range[1]))
+    
+    L = ['\hline \n',
+        '\end{tabular} \n'
+        '\end{table} \n']
+    
+    file1.writelines(L)
+
+    file1.close()
+
+    params_print = ' \n'.join(map(str, params_to_print))
+    
+    return params_to_print
+    
+    
+    
 
 # ==============================================================================
 def print_output_means(samples):
@@ -86,6 +218,8 @@ def print_output_means(samples):
         print('Equatorial radius: ', oblat*Rpole)
         print('Log Luminosity: ', logL) 
         print('Beta: ', beta_par)
+
+
 
     return
 
@@ -355,6 +489,22 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
             dlogF_UV = dlogF[index]
             lbd_UV = lbd[index]
             
+            dist = 1e3/dist
+            norma = (10. / dist)**2  # (Lstar*Lsun) / (4. * pi * (dist*pc)**2)
+            uplim = dlogF[index] == 0
+            keep = np.logical_not(uplim)  
+            
+            
+            # convert to physical units
+            logF_mod_UV += np.log10(norma)
+            
+            flux_mod_UV = 10.**logF_mod_UV
+            dflux = dlogF_UV * flux_UV
+            
+            flux_mod_UV = pyasl.unred(lbd_UV * 1e4, flux_mod_UV, ebv=-1 * ebv, R_V=rv)
+
+            
+            chi2_UV = np.sum((flux_UV - flux_mod_UV)**2. / dflux**2.)
             
             logF_list = np.zeros([len(par_list), len(logF_mod_UV)])
             chi2 = np.zeros(len(logF_list))
@@ -364,21 +514,14 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
             # Plot
             fig, (ax1,ax2) = plt.subplots(2,1,gridspec_kw={'height_ratios': [3, 1]})
             
-            norma = (10. / dist)**2  # (Lstar*Lsun) / (4. * pi * (dist*pc)**2)
-            uplim = dlogF[index] == 0
-            keep = np.logical_not(uplim)  
-            
-            
-            # convert to physical units
-            logF_mod_UV += np.log10(norma)
             logF_list += np.log10(norma)
-            flux_mod_UV = 10.**logF_mod_UV
+
+            
             
             for j in range(len(logF_list)):
-                chi2[j] = np.sum((logF_UV[keep] -
-                logF_list[j][keep])**2 / (dlogF_UV[keep])**2)
+                chi2[j] = np.sum((logF_UV[keep] - logF_list[j][keep])**2 / (dlogF_UV[keep])**2)
             
-            dflux = dlogF_UV * flux_UV
+            
 
             # Plot Models
             for i in range(len(par_list)):
@@ -392,11 +535,10 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
             
             
             # Applying reddening to the best model
-            flux_mod_UV = pyasl.unred(lbd_UV * 1e4, flux_mod_UV, ebv=-1 * ebv, R_V=rv)
  
             # Best fit
             ax1.plot(lbd_UV, flux_mod_UV, color='red', ls='-', lw=3.5, alpha=0.4,
-                     label='$\mathrm{Best\, fit}$')
+                     label='Best fit \n chi2 = {0:.2f}'.format(chi2_UV))
             ax2.plot(lbd_UV, (flux_UV - flux_mod_UV) / dflux, 'bs', alpha=0.2)
             ax2.set_ylim(-10,10)
             # Plot Data
@@ -405,10 +547,10 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
                          alpha=0.5, ms=5, color='blue', linewidth=1)
 
                          
-            ax2.set_xlabel('$\lambda\,\mathrm{[\mu m]}$', fontsize=16)
+            ax2.set_xlabel('$\lambda\,\mathrm{[\mu m]}$', fontsize=14)
             ax1.set_ylabel(r'$F_{\lambda}\,\mathrm{[erg\, s^{-1}\, cm^{-2}]}$',
-                       fontsize=20)	
-            ax2.set_ylabel('$(F-F_\mathrm{m})/\sigma$', fontsize=16)
+                       fontsize=14)	
+            ax2.set_ylabel('$(F-F_\mathrm{m})/\sigma$', fontsize=14)
             #plt.tick_params(labelbottom='off')
             ax1.set_xlim(min(lbd_UV), max(lbd_UV))
             ax2.set_xlim(min(lbd_UV), max(lbd_UV))
@@ -722,6 +864,10 @@ def plot_line(line, lista_obs, minfo, logF_grid, par, listpar, dims, logF, dlogF
     # Observations
     logF_line = logF[index]
     flux_line = 10.**logF_line
+    dflux_line = dlogF[index] * flux_line
+    
+    keep = np.where(flux_line > 0) # avoid plot zero flux
+    lbd_line = lbd[index]
     
     logF_list = np.zeros([len(par_list), len(logF_mod_line)])
     chi2 = np.zeros(len(logF_list))
@@ -733,31 +879,31 @@ def plot_line(line, lista_obs, minfo, logF_grid, par, listpar, dims, logF, dlogF
             logF_list[i] = griddataBA(minfo, logF_grid[index], par_list[i, :-lim],
                                   listpar, dims)
                                   
+    chi2_line = np.sum((flux_line[keep] - flux_mod_line[keep])**2 / (dflux_line[keep])**2.)
     
     # Data
-    keep_fx = np.where(flux_line > 0) # avoid plot zero flux
-    lbd_line = lbd[index]
+
     #print(len(lbd), lbd)
-    dflux_line = dlogF[index] * flux_line
+    
     # Plot
     fig, (ax1,ax2) = plt.subplots(2,1,gridspec_kw={'height_ratios': [3, 1]})                              
     # Plot models
     for i in range(len(par_list)):
         ax1.plot(lbd_line, 10**logF_list[i], color='gray', alpha=0.1)
-    ax1.errorbar(lbd_line[keep_fx], flux_line[keep_fx], yerr= dflux_line[keep_fx], ls='', marker='o', alpha=0.5, ms=5, color='blue', linewidth=1) 
+    ax1.errorbar(lbd_line[keep], flux_line[keep], yerr= dflux_line[keep], ls='', marker='o', alpha=0.5, ms=5, color='blue', linewidth=1) 
 
     # Best fit
-    #ax1.plot(lbd_line, flux_mod_line, color='red', ls='-', lw=3.5, alpha=0.4, label='$\mathrm{Best\, fit}$')
+    ax1.plot(lbd_line, flux_mod_line, color='red', ls='-', lw=3.5, alpha=0.4, label='Best fit \n chi2 = {0:.2f}'.format(chi2_line))
     
-    ax1.set_ylabel('Normalized Flux',fontsize=18)
+    ax1.set_ylabel('Normalized Flux',fontsize=14)
     ax1.set_xlim(min(lbd_line), max(lbd_line))
-    #ax1.legend(loc='lower right')
+    ax1.legend(loc='lower right')
     ax1.set_title(line)
     # Residuals
-    ax2.plot(lbd_line[keep_fx], (flux_line[keep_fx] - flux_mod_line[keep_fx])/dflux_line[keep_fx], marker='o', alpha=0.5)
+    ax2.plot(lbd_line[keep], (flux_line[keep] - flux_mod_line[keep])/dflux_line[keep], marker='o', alpha=0.5)
     
-    ax2.set_ylabel('$(F-F_\mathrm{m})/\sigma$', fontsize=16)
-    ax2.set_xlabel('$\lambda\,\mathrm{[\mu m]}$', fontsize=16)
+    ax2.set_ylabel('$(F-F_\mathrm{m})/\sigma$', fontsize=14)
+    ax2.set_xlabel('$\lambda\,\mathrm{[\mu m]}$', fontsize=14)
     ax2.set_xlim(min(lbd_line), max(lbd_line))
     plt.tight_layout()
     plt.savefig(current_folder + fig_name + '_new_residuals_' + line +'.png', dpi=100)

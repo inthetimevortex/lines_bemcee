@@ -44,11 +44,11 @@ folder_tables = '../tables/'
 folder_models = '../models/'
 
 
-vsini_prior =   False # Uses a gaussian vsini prior
+vsini_prior =   True # Uses a gaussian vsini prior
 dist_prior =    True # Uses a gaussian distance prior
 
 box_W =         True # Constrain the W lower limit, not actual a prior, but restrain the grid
-box_W_min, box_W_max = [0.8, 'max']
+box_W_min, box_W_max = [0.7, 'max']
 
 incl_prior =    False # Uses a gaussian inclination prior 
 

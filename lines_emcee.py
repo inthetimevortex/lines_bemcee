@@ -12,7 +12,7 @@ from utils import find_nearest,griddataBAtlas, griddataBA, kde_scipy, quantile, 
 from be_theory import hfrac2tms
 import corner_HDR
 from pymc3.stats import hpd
-from lines_plot import print_output, par_errors, plot_residuals_new, print_output_means
+from lines_plot import print_output, par_errors, plot_residuals_new, print_output_means, print_to_latex
 from lines_reading import read_iue, read_votable, read_star_info, read_line_spectra, read_observables, check_list, Sliding_Outlier_Removal
 from lines_convergence import plot_convergence
 from astropy.stats import SigmaClip
@@ -68,7 +68,8 @@ def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim,  lista_obs):
             RV = params[-1]
         else:
             RV = 3.1
-      
+        
+        dist = 1e3 / dist
         norma = (10 / dist)**2
         uplim = dlogF_UV == 0
         keep = np.logical_not(uplim)
@@ -230,6 +231,7 @@ def lnprior(params, vsin_obs, sig_vsin_obs, dist_pc, sig_dist_pc,
     # Vsini prior
     if flag.vsini_prior:
         chi2_vsi = (vsin_obs - vsini)**2 / sig_vsin_obs**2.
+
     else:
         chi2_vsi = 0
     
@@ -237,6 +239,7 @@ def lnprior(params, vsin_obs, sig_vsin_obs, dist_pc, sig_dist_pc,
     if flag.normal_spectra is False or flag.UV is True:
         if flag.dist_prior:
             chi2_dis = (dist_pc - dist)**2 / sig_dist_pc**2.
+
         else:
             chi2_dis = 0
     else:
@@ -639,13 +642,13 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
         quantiles = [0.16, 0.5, 0.84]
         if flag.include_rv is True:
             labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
-                      r'$i[\mathrm{^o}]$', r'$d\,[pc]$', r'E(B-V)',
+                      r'$i[\mathrm{^o}]$', r'$d\,[mas]$', r'E(B-V)',
                       r'$R_\mathrm{V}$']
         else:
             if flag.model == 'aeri':
                 if check_list(lista_obs, 'UV'):
                     labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
-                          r'$i[\mathrm{^o}]$', r'$d\,[pc]$', r'E(B-V)']
+                          r'$i[\mathrm{^o}]$', r'$d\,[mas]$', r'E(B-V)']
                 else:
                     labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
                           r'$i[\mathrm{^o}]$']
@@ -659,6 +662,7 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
             ranges[3] = (np.arccos(ranges[3])) * (180. / np.pi)
             ranges[3] = np.array([ranges[3][1], ranges[3][0]])
         best_pars = []
+        best_errs = []
         for i in range(Ndim):
             #mode_val = mode1(np.round(samples[:,i], decimals=2))
             qvalues = hpd(samples[:,i], alpha=0.32)
@@ -668,10 +672,11 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
             
             #ax1 = plt.subplot(3, 3, i+1)
             #x1, x2 = hpd(samples[:,i], alpha=0.32)
-            #quantiles.append([x1, x2])
+            best_errs.append([qvalues[1] - median_val, median_val - qvalues[0]])
             best_pars.append(median_val)
         
         #elif flag.lbd_range == 'Ha':
+        
         truth_color='k'
         color='xkcd:pinky'
         color_hist='xkcd:light pink'
@@ -710,13 +715,22 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
                         ax.plot(value1[xi], value1[yi], "sg")
 
 
-        print_output_means(samples)
+        
 
 
         current_folder = str(flag.folder_fig) + str(flag.stars) + '/'
         fig_name = 'Walkers_' + np.str(Nwalk) + '_Nmcmc_' +\
             np.str(nint_mcmc) + '_af_' + str(af) + '_a_' +\
             str(flag.a_parameter) + tag
+        
+        params_to_print = print_to_latex(best_pars, best_errs, current_folder, fig_name, labels)
+        #print(params_to_print)
+        
+        #ax = np.array(fig_corner.axes)
+        #plt.text(0.8, 0.6, params_to_print, horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+        
+        print_output_means(samples)    
+        
         plt.savefig(current_folder + fig_name + '.png', dpi=100)
         # plt.close()
 

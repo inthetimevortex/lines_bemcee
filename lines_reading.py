@@ -585,13 +585,15 @@ def read_star_info(star, lista_obs, listpar):
 
 # ------------------------------------------------------------------------------
         # Reading known stellar parameters
-        if plx != 0:
-            dist_pc = 1e3 / plx  # pc
-            sig_dist_pc = (1e3 * dplx) / plx**2
-            
-        else:
-            dist_pc = 50.0
-            sig_dist_pc = 100.0
+        dist_pc = plx
+        sig_dist_pc = dplx
+        #if plx != 0:
+        #    dist_pc = 1e3 / plx  # pc
+        #    sig_dist_pc = (1e3 * dplx) / plx**2
+        #    
+        #else:
+        #    dist_pc = 50.0
+        #    sig_dist_pc = 100.0
 
         
         if check_list(lista_obs, 'UV') or flag.normal_spectra is False:
@@ -604,8 +606,8 @@ def read_star_info(star, lista_obs, listpar):
             dist_min = dist_pc - flag.Nsigma_dis * sig_dist_pc
             dist_max = dist_pc + flag.Nsigma_dis * sig_dist_pc
     
-            if dist_min < 0:
-                dist_min = 1    
+            #if dist_min < 0:
+            #    dist_min = 1    
             
             addlistpar = [ebmv, [dist_min, dist_max], rv]
             addlistpar = list(filter(partial(is_not, None), addlistpar))
