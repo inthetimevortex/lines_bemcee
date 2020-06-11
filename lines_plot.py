@@ -505,7 +505,8 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
 
             
             chi2_UV = np.sum((flux_UV - flux_mod_UV)**2. / dflux**2.)
-            
+            N_UV = len(logF_UV)
+            chi2_UV = chi2_UV/N_UV
             logF_list = np.zeros([len(par_list), len(logF_mod_UV)])
             chi2 = np.zeros(len(logF_list))
             for i in range(len(par_list)):
@@ -865,7 +866,7 @@ def plot_line(line, lista_obs, minfo, logF_grid, par, listpar, dims, logF, dlogF
     logF_line = logF[index]
     flux_line = 10.**logF_line
     dflux_line = dlogF[index] * flux_line
-    
+
     keep = np.where(flux_line > 0) # avoid plot zero flux
     lbd_line = lbd[index]
     
@@ -880,7 +881,8 @@ def plot_line(line, lista_obs, minfo, logF_grid, par, listpar, dims, logF, dlogF
                                   listpar, dims)
                                   
     chi2_line = np.sum((flux_line[keep] - flux_mod_line[keep])**2 / (dflux_line[keep])**2.)
-    
+    N_line = len(logF_line[keep])
+    chi2_line = chi2_Ha/N_line
     # Data
 
     #print(len(lbd), lbd)
