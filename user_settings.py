@@ -34,7 +34,7 @@ plot_fits =         True  # NOT USING //// Include fits in the corner plot NOT U
 plot_in_log_scale=  False  # NOT USING ///
 Nsigma_dis =        3.  # Set the range of values for the distance
 model =             'aeri'  # 'beatlas', 'befavor', 'aara', or 'acol'
-cut_iue_regions=    True  # trim UV data from 0.13 to 0.30
+cut_iue_regions=    False  # trim UV data from 0.13 to 0.30
 
 
 folder_data = '../data/'
@@ -63,12 +63,16 @@ remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too mu
 # Line and continuum combination
 combination =   True
 UV =            True
+votable =       False
 Ha =            True
 Hb =            False
 Hd =            False
 Hg =            False
 
-   
+
+corner_color = 'yellow' # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
+                  # IF YOU DO NOT CHOOSE A COLOR, A RANDOM ONE WILL BE SELECTED
+
 
 # Plot options
 compare_results = False # Plot the reference Achernar values in the corner (only for model aeri)
@@ -122,6 +126,11 @@ stars, list_plx, list_sig_plx, list_vsini_obs, list_sig_vsini_obs,\
     list_pre_ebmv, incl0, sig_incl0, bump0, lbd_range=\
     read_stars(list_of_stars)
 
+#############################################################################################################################
+if corner_color == 'random' or '':
+    corner_color = random.select(['blue', 'dark blue', 'teal', 'green', 'yellow', 'orange', 'red', 'purple', 'violet', 'pink'])
+#############################################################################################################################
+
 def init():
     global flags
     flags = [a_parameter, extension, include_rv, af_filter,
@@ -130,5 +139,5 @@ def init():
             Halpha, normal_spectra, only_wings, only_centerline, Sigma_Clip, cut_iue_regions,
             remove_partHa, combination, UV, Ha, Hb, Hg, Hd, compare_results,
             stellar_prior, npy_star, acrux, Nproc, stars, list_plx, list_sig_plx, 
-            list_vsini_obs, list_sig_vsini_obs, list_pre_ebmv, incl0, sig_incl0, bump0, lbd_range]
+            list_vsini_obs, list_sig_vsini_obs, list_pre_ebmv, incl0, sig_incl0, bump0, lbd_range, corner_color]
 

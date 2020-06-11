@@ -652,9 +652,69 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
                 else:
                     labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
                           r'$i[\mathrm{^o}]$']
-
+        
 
         
+        if flag.corner_color == 'blue':
+            truth_color='xkcd:cobalt'
+            color='xkcd:cornflower'
+            color_hist='xkcd:powder blue'
+            color_dens='xkcd:clear blue'
+            
+        elif flag.corner_color == 'dark blue':
+            truth_color='xkcd:deep teal'
+            color='xkcd:dark teal'
+            color_hist='xkcd:pale sky blue'
+            color_dens='xkcd:ocean'
+            
+        elif flag.corner_color == 'teal':
+            truth_color='xkcd:charcoal'
+            color='xkcd:dark sea green'
+            color_hist='xkcd:pale aqua'
+            color_dens='xkcd:seafoam blue'
+            
+        elif flag.corner_color == 'green':
+            truth_color='xkcd:forest'
+            color='xkcd:forest green'
+            color_hist='xkcd:light grey green'
+            color_dens='xkcd:grass green'
+            
+        elif flag.corner_color == 'yellow':
+            truth_color='xkcd:mud brown'
+            color='xkcd:sandstone'
+            color_hist='xkcd:pale gold'
+            color_dens='xkcd:sunflower'
+            
+        elif flag.corner_color == 'orange':
+            truth_color='xkcd:chocolate'
+            color='xkcd:cinnamon'
+            color_hist='xkcd:light peach'
+            color_dens='xkcd:bright orange'
+            
+        elif flag.corner_color == 'red':
+            truth_color='xkcd:mahogany'
+            color='xkcd:deep red'
+            color_hist='xkcd:salmon'
+            color_dens='xkcd:reddish'
+            
+        elif flag.corner_color == 'purple':
+            truth_color='xkcd:deep purple'
+            color='xkcd:medium purple'
+            color_hist='xkcd:soft purple'
+            color_dens='xkcd:plum purple'
+            
+        elif flag.corner_color == 'violet':
+            truth_color='xkcd:royal purple'
+            color='xkcd:purpley'
+            color_hist='xkcd:pale violet'
+            color_dens='xkcd:blue violet'
+            
+        elif flag.corner_color == 'pink':
+            truth_color='xkcd:wine'
+            color='xkcd:pinky'
+            color_hist='xkcd:light pink'
+            color_dens='xkcd:pink red'
+
 
         labels2 = labels
         if flag.model == 'aeri':
@@ -675,15 +735,10 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
             best_errs.append([qvalues[1] - median_val, median_val - qvalues[0]])
             best_pars.append(median_val)
         
-        #elif flag.lbd_range == 'Ha':
+
         
         truth_color='k'
-        color='xkcd:pinky'
-        color_hist='xkcd:light pink'
-        color_dens='xkcd:pink red'
-        
-        
-        
+
         fig_corner = corner_HDR.corner(samples, labels=labels, labels2=labels2, range=ranges, quantiles=None, plot_contours=True, show_titles=True, 
                 title_kwargs={'fontsize': 15}, label_kwargs={'fontsize': 19}, truths = best_pars, hdr=True,
                 truth_color=truth_color, color=color, color_hist=color_hist, color_dens=color_dens, 

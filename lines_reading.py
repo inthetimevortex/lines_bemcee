@@ -1543,6 +1543,47 @@ def read_iue(models, lbdarr, wave0, flux0, sigma0):
     if os.path.isdir(flag.folder_fig + str(flag.stars)) is False:
         os.mkdir(flag.folder_fig + str(flag.stars))
 
+
+    if flag.lbd_range == 'UV':
+        wave_lim_min = 0.1  # mum
+        wave_lim_max = 0.3  # mum
+    if flag.lbd_range == 'UV+VIS':
+        wave_lim_min = 0.1  # mum
+        wave_lim_max = 0.7  # mum
+    if flag.lbd_range == 'UV+VIS+NIR':
+        wave_lim_min = 0.1  # mum
+        wave_lim_max = 5.0  # mum
+    if flag.lbd_range == 'UV+VIS+NIR+MIR':
+        wave_lim_min = 0.1  # mum
+        wave_lim_max = 40.0  # mum
+    if flag.lbd_range == 'UV+VIS+NIR+MIR+FIR':
+        wave_lim_min = 0.1  # mum
+        wave_lim_max = 350.  # mum
+    if flag.lbd_range == 'UV+VIS+NIR+MIR+FIR+MICROW+RADIO':
+        wave_lim_min = 0.1  # mum
+        wave_lim_max = np.max(lbdarr)  # mum
+    if flag.lbd_range == 'VIS+NIR+MIR+FIR+MICROW+RADIO':
+        wave_lim_min = 0.39  # mum
+        wave_lim_max = np.max(lbdarr)  # mum
+    if flag.lbd_range == 'NIR+MIR+FIR+MICROW+RADIO':
+        wave_lim_min = 0.7  # mum
+        wave_lim_max = np.max(lbdarr)  # mum
+    if flag.lbd_range == 'MIR+FIR+MICROW+RADIO':
+        wave_lim_min = 5.0  # mum
+        wave_lim_max = np.max(lbdarr)  # mum
+    if flag.lbd_range == 'FIR+MICROW+RADIO':
+        wave_lim_min = 40.0  # mum
+        wave_lim_max = np.max(lbdarr)  # mum
+    if flag.lbd_range == 'MICROW+RADIO':
+        wave_lim_min = 1e3  # mum
+        wave_lim_max = np.max(lbdarr)  # mum
+    if flag.lbd_range == 'RADIO':
+        wave_lim_min = 1e6  # mum
+        wave_lim_max = np.max(lbdarr)  # mum
+
+
+    band = np.copy(flag.lbd_range)
+
 # ------------------------------------------------------------------------------
     # Would you like to cut the spectrum?
     if flag.cut_iue_regions is True:
@@ -1615,19 +1656,22 @@ def read_iue(models, lbdarr, wave0, flux0, sigma0):
 
 
 # ==============================================================================
-def read_votable(star):
+def read_votable():
+    
+    table = flag.folder_data + str(flag.star) + '/' + 'list.txt'
 
-    table = flag.folder_data + str(star) + '/' + 'list.txt'
-
-    # os.chdir(flag.folder_data + str(flag.stars) + '/')
-    if os.path.isfile(table) is False or os.path.isfile(table) is True:
-        os.system('ls ' + flag.folder_data + str(flag.stars) +
-                  '/*.xml | xargs -n1 basename >' +
-                  flag.folder_data + str(star) + '/' + 'list.txt')
-        vo_list = np.genfromtxt(table, comments='#', dtype='str')
-        table_name = np.copy(vo_list)
-
-    vo_file = flag.folder_data + str(star) + '/' + str(table_name)
+    #os.chdir(folder_data + str(star) + '/')
+    #if os.path.isfile(table) is False or os.path.isfile(table) is True:
+    os.system('ls ' + folder_data + str(star) +
+                '/*.xml | xargs -n1 basename >' +
+                folder_data + str(star) + '/' + 'list.txt')
+    vo_list = np.genfromtxt(table, comments='#', dtype='str')
+    table_name = np.copy(vo_list)
+    vo_file = folder_data + str(star) + '/' + str(table_name)
+    #thefile = 'data/HD37795/alfCol.sed.dat' #folder_data + str(star) + '/' + str(table_name)
+    #table = np.genfromtxt(thefile, usecols=(1, 2, 3))
+    #wave, flux, sigma = table[:,0], table[:,1], table[:,2]
+    
     try:
         t1 = atpy.Table(vo_file)
         wave = t1['Wavelength'][:]  # Angstrom
@@ -1646,13 +1690,23 @@ def read_votable(star):
     new_sigma = list(new_sigma)
 
     # Filtering null sigmas
-    for h in range(len(new_sigma)):
-        if new_sigma[h] == 0.:
-            new_sigma[h] = 0.002 * new_flux[h]
+    #for h in range(len(new_sigma)):
+    #    if new_sigma[h] == 0.:
+    #        new_sigma[h] = 0.002 * new_flux[h]
+    
 
     wave = np.copy(new_wave) * 1e-4
     flux = np.copy(new_flux) * 1e4
     sigma = np.copy(new_sigma) * 1e4
+    keep = wave > 0.34
+    wave, flux, sigma = wave[keep], flux[keep], sigma[keep]
+    
+    if flag.star == 'HD37795':
+        fname = 'data/HD37795/alfCol.txt'
+        data = np.loadtxt(fname, dtype={'names':('lbd', 'flux', 'dflux', 'source'), 'formats':(np.float, np.float, np.float, '|S20')})
+        wave = np.hstack([wave, data['lbd']])
+        flux = np.hstack([flux, jy2cgs(1e-3*data['flux'], data['lbd'])])
+        sigma = np.hstack([sigma, jy2cgs(1e-3*data['dflux'], data['lbd'])])
 
     return wave, flux, sigma
 
@@ -1856,8 +1910,11 @@ def read_observables(models, lbdarr, lista_obs):
     box_lim_combined = []
      
     if check_list(lista_obs, 'UV'):     
-
-        wave0, flux0, sigma0 = [], [], []
+        
+        if flag.votable:
+            wave0, flux0, sigma0 = read_votable()
+        else:    
+            wave0, flux0, sigma0 = [], [], []
 
         u = np.where(lista_obs == 'UV')
         index = u[0][0]
@@ -1869,7 +1926,8 @@ def read_observables(models, lbdarr, lista_obs):
         dlogF_combined.append(dlogF_UV)
         logF_grid_combined.append(logF_grid_UV) 
         wave_combined.append(wave_UV)
-        
+    
+
     if check_list(lista_obs, 'Ha'):
         
         u = np.where(lista_obs == 'Ha')

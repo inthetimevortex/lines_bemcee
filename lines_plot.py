@@ -882,7 +882,7 @@ def plot_line(line, lista_obs, minfo, logF_grid, par, listpar, dims, logF, dlogF
                                   
     chi2_line = np.sum((flux_line[keep] - flux_mod_line[keep])**2 / (dflux_line[keep])**2.)
     N_line = len(logF_line[keep])
-    chi2_line = chi2_Ha/N_line
+    chi2_line = chi2_line/N_line
     # Data
 
     #print(len(lbd), lbd)
