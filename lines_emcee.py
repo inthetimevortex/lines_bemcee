@@ -640,18 +640,18 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
 
         # plot corner
         quantiles = [0.16, 0.5, 0.84]
-        if flag.include_rv is True:
-            labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
+        
+        if flag.model == 'aeri':
+            if check_list(lista_obs, 'UV'):
+                labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
+                      r'$i[\mathrm{^o}]$', r'$d\,[mas]$', r'E(B-V)']
+                if flag.include_rv is True:
+                    labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
                       r'$i[\mathrm{^o}]$', r'$d\,[mas]$', r'E(B-V)',
                       r'$R_\mathrm{V}$']
-        else:
-            if flag.model == 'aeri':
-                if check_list(lista_obs, 'UV'):
-                    labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
-                          r'$i[\mathrm{^o}]$', r'$d\,[mas]$', r'E(B-V)']
-                else:
-                    labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
-                          r'$i[\mathrm{^o}]$']
+            else:
+                labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
+                      r'$i[\mathrm{^o}]$']
         
 
         

@@ -130,8 +130,9 @@ def plot_convergence(npy, file_name, file_npy_burnin,  lista_obs, linspace, para
     gs = gridspec.GridSpec(len(param_to_latex), 3)
     # gs.update(hspace=0.10, wspace=0.025, top=0.85, bottom=0.44)
     gs.update(hspace=0.25)
+    print(len(param_to_latex))
 
-    for ii, param in enumerate(param_to_latex):
+    for ii in range(len(param_to_latex)):
         these_chains = chain[:, :, ii]
         these_chains2 = chain_burnin[:, :, ii]
         

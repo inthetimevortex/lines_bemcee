@@ -61,11 +61,11 @@ Sigma_Clip =        True # If you want telluric lines/outilier points removed
 remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too much absorption (in the wings)
 
 # Line and continuum combination
-combination =   True
-UV =            True
+combination =   False
+UV =            False
 votable =       False
-Ha =            True
-Hb =            False
+Ha =            False
+Hb =            True
 Hd =            False
 Hg =            False
 
