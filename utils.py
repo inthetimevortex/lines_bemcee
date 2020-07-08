@@ -7,6 +7,22 @@ import struct as struct
 import constants as const
 import warnings as _warn
 
+def jy2cgs(flux, lbd, inverse=False):
+    '''
+    Converts from Jy units to erg/s/cm2/micron, and vice-versa
+
+    [lbd] = micron
+
+    Usage:
+    flux_cgs = jy2cgs(flux, lbd, inverse=False)
+    '''
+    if not inverse:
+        flux_new = 3e-9 * flux / lbd**2
+    else:
+        flux_new = lbd**2 * flux / 3e-9
+
+    return flux_new
+
 def beta(par, is_ob=False):
     r""" Calculate the :math:`\beta` value from Espinosa-Lara for a given 
     rotation rate :math:`w_{\rm frac} = \Omega/\Omega_c`

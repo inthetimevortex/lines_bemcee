@@ -1,11 +1,12 @@
 import numpy as np
 import math
+import matplotlib.pyplot as plt
 from glob import glob
 import utils as ut
 from operator import is_not
 from functools import partial
 import os
-from utils import bin_data, find_nearest
+from utils import bin_data, find_nearest, jy2cgs
 from scipy.interpolate import griddata
 import atpy
 from astropy.io import fits
@@ -75,15 +76,22 @@ def read_BAphot2_xdr(lista_obs):
     lbd_combined = []
     
     if check_list(lista_obs, 'UV'):
+        if flag.votable:
+            lbd_UV, models_UV = xdr_remove_lines(lbdarr, models)
 	    # UV is from lbdarr[0] to lbdarr[224]
-        j = 0
-        shape = (5500,225)
-        models_UV = np.zeros(shape)
-        while j < 5500:
-            models_UV[j] = models[j][:225]
-            j += 1
+        else:
+            j = 0
+            shape = (5500,225)
+            models_UV = np.zeros(shape)
+            while j < 5500:
+                models_UV[j] = models[j][:225]
+                j += 1
    
-        lbd_UV = lbdarr[:225]
+            lbd_UV = lbdarr[:225]
+        
+        #plt.plot(lbd_UV, models_UV[30])
+        #plt.xscale('log')
+        #plt.yscale('log')
         models_combined.append(models_UV)
         lbd_combined.append(lbd_UV)
    
@@ -103,6 +111,8 @@ def read_BAphot2_xdr(lista_obs):
         lbdc = 0.434
         models_combined, lbd_combined = select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc)
   
+          
+        
     listpar = [np.unique(minfo[:,0]), np.unique(minfo[:,1]),np.unique(minfo[:,2]), np.unique(minfo[:,3])]
 
     return ctrlarr, minfo, models_combined, lbd_combined, listpar, dims, isig  
@@ -121,7 +131,21 @@ def select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc):
     lbd_combined.append(lbdarr_line*1e-4)
 
     return models_combined, lbd_combined
-    
+
+
+def xdr_remove_lines(lbdarr, models):
+    for line in lines_dict:
+        keep_a = find_nearest2(lbdarr, lines_dict[line] - 0.007)
+        keep_b = find_nearest2(lbdarr, lines_dict[line] + 0.007)
+        lbdarr1 = lbdarr[:keep_a]
+        lbdarr2 = lbdarr[keep_b:]
+        lbdarr = np.concatenate([lbdarr1,lbdarr2])
+        novo_models1 = models[:, :keep_a]
+        novo_models2 = models[:, keep_b:]
+        novo_models = np.hstack((novo_models1, novo_models2))
+        
+    return lbdarr, novo_models
+        
 # ==============================================================================
 def read_aara_xdr():
 
@@ -1523,7 +1547,7 @@ def read_iue(models, lbdarr, wave0, flux0, sigma0):
     # Combines the observations from all files in the folder, taking the good quality ones
         for k in range(len(file_name)):
             file_iue = str(flag.folder_data) + str(flag.stars) + '/' + str(file_name[k])
-            hdulist = pyfits.open(file_iue)
+            hdulist = fits.open(file_iue)
             tbdata = hdulist[1].data
             wave = tbdata.field('WAVELENGTH') * 1e-4  # mum
             flux = tbdata.field('FLUX') * 1e4  # erg/cm2/s/A -> erg/cm2/s/mum
@@ -1623,16 +1647,16 @@ def read_iue(models, lbdarr, wave0, flux0, sigma0):
     flux = ybin[ordem]
     sigma = dybin[ordem]
 
-    if flag.model != 'befavor' and flag.model != 'aeri': # sort for other models
-        wave = np.hstack([wave0, wave])
-        flux = np.hstack([flux0, flux])
-        sigma = np.hstack([sigma0, sigma])
+    #if flag.model != 'befavor' and flag.model != 'aeri': # sort for other models
+    wave = np.hstack([wave0, wave])
+    flux = np.hstack([flux0, flux])
+    sigma = np.hstack([sigma0, sigma])
 
-        ordem = wave.argsort()
-        wave = wave[ordem]
-        flux = flux[ordem]
-        sigma = sigma[ordem]
-
+    ordem = wave.argsort()
+    wave = wave[ordem]
+    flux = flux[ordem]
+    sigma = sigma[ordem]
+    
 # ------------------------------------------------------------------------------
     # select lbdarr to coincide with lbd
     models_new = np.zeros([len(models), len(wave)])
@@ -1658,16 +1682,16 @@ def read_iue(models, lbdarr, wave0, flux0, sigma0):
 # ==============================================================================
 def read_votable():
     
-    table = flag.folder_data + str(flag.star) + '/' + 'list.txt'
+    table = flag.folder_data + str(flag.stars) + '/' + 'list.txt'
 
     #os.chdir(folder_data + str(star) + '/')
     #if os.path.isfile(table) is False or os.path.isfile(table) is True:
-    os.system('ls ' + folder_data + str(star) +
+    os.system('ls ' + flag.folder_data + str(flag.stars) +
                 '/*.xml | xargs -n1 basename >' +
-                folder_data + str(star) + '/' + 'list.txt')
+                flag.folder_data + str(flag.stars) + '/' + 'list.txt')
     vo_list = np.genfromtxt(table, comments='#', dtype='str')
     table_name = np.copy(vo_list)
-    vo_file = folder_data + str(star) + '/' + str(table_name)
+    vo_file = flag.folder_data + str(flag.stars) + '/' + str(table_name)
     #thefile = 'data/HD37795/alfCol.sed.dat' #folder_data + str(star) + '/' + str(table_name)
     #table = np.genfromtxt(thefile, usecols=(1, 2, 3))
     #wave, flux, sigma = table[:,0], table[:,1], table[:,2]
@@ -1701,8 +1725,8 @@ def read_votable():
     keep = wave > 0.34
     wave, flux, sigma = wave[keep], flux[keep], sigma[keep]
     
-    if flag.star == 'HD37795':
-        fname = 'data/HD37795/alfCol.txt'
+    if flag.stars == 'HD37795':
+        fname = flag.folder_data + '/HD37795/alfCol.txt'
         data = np.loadtxt(fname, dtype={'names':('lbd', 'flux', 'dflux', 'source'), 'formats':(np.float, np.float, np.float, '|S20')})
         wave = np.hstack([wave, data['lbd']])
         flux = np.hstack([flux, jy2cgs(1e-3*data['flux'], data['lbd'])])
@@ -1817,7 +1841,7 @@ def Sliding_Outlier_Removal(x, y, window_size, sigma=3.0, iterate=1):
     #y_uniq = y_good_[x_u_indexs]
     
     ar_of_index_of_bad_pts = np.unique(ar_of_index_of_bad_pts)
-    print('step {0}: remove {1} points'.format(i, len(ar_of_index_of_bad_pts)))
+    #print('step {0}: remove {1} points'.format(i, len(ar_of_index_of_bad_pts)))
     #print(ar_of_index_of_bad_pts)
     
     #x_bad = x[ar_of_index_of_bad_pts]
@@ -1898,6 +1922,61 @@ def check_list(lista_obs, x):
     else:
         return True
 
+#========================================================================
+
+def read_table():
+    table = flag.folder_data + str(flag.stars) + '/' + 'list.txt'
+
+    #os.chdir(folder_data + str(star) + '/')
+    #if os.path.isfile(table) is False or os.path.isfile(table) is True:
+    os.system('ls ' + flag.folder_data + str(flag.stars) + '/*.dat /*.csv /*.txt | xargs -n1 basename >' +
+                flag.folder_data + str(flag.stars) + '/' + 'list.txt')
+    vo_list = np.genfromtxt(table, comments='#', dtype='str')
+    table_name = np.copy(vo_list)
+    table = flag.folder_data + str(flag.stars) + '/' + str(table_name)
+    
+
+    typ = (0, 1, 2, 3)
+
+    a = np.genfromtxt(table, usecols=typ, unpack=True,
+                      delimiter='\t', comments='#',
+                      dtype={'names': ('B', 'V', 'R', 'I'),
+                             'formats': ('f4', 'f4', 'f4', 'f4')})
+    
+    B_mag, V_mag, R_mag, I_mag = a['B'], a['V'], a['R'], a['I']
+
+    # lbd array (center of bands)
+    wave = np.array([0.4361, 0.5448, 0.6407, 0.7980])
+
+    c = 299792458e6 #um/s
+
+	# Change observed magnitude to flux
+	# Zero magnitude flux 10^-20.erg.s^-1.cm^2.Hz^-1  ---> convert to erg.s^-1.cm^2.um^-1
+    B_flux0 = 4.26*10**(-20)
+    V_flux0 = 3.64*10**(-20)
+    R_flux0 = 3.08*10**(-20)
+    I_flux0 = 2.55*10**(-20)
+	
+    B_flux = B_flux0*10.**(- B_mag/2.5)
+    V_flux = V_flux0*10.**(- V_mag/2.5) 
+    R_flux = R_flux0*10.**(- R_mag/2.5) 
+    I_flux = I_flux0*10.**(- I_mag/2.5) 
+    
+	#---> convert to erg.s^-1.cm^2.um^-1
+    B_flux = B_flux*c/(wave[0]**2)
+    V_flux = V_flux*c/(wave[1]**2) 
+    R_flux = R_flux*c/(wave[2]**2) 
+    I_flux = I_flux*c/(wave[3]**2)
+	
+    flux = np.array([B_flux, V_flux, R_flux, I_flux])
+    logF = np.log10(np.array([B_flux, V_flux, R_flux, I_flux]))
+	# Uncertainty (?)	
+    dlogF = 0.01*logF  
+    sigma = dlogF * flux
+    
+    
+    return wave, flux, sigma  
+
 #=======================================================================
 # Read the data files
 
@@ -1913,9 +1992,12 @@ def read_observables(models, lbdarr, lista_obs):
         
         if flag.votable:
             wave0, flux0, sigma0 = read_votable()
+        elif flag.data_table:
+            wave0, flux0, sigma0 = read_table()
         else:    
             wave0, flux0, sigma0 = [], [], []
-
+        
+        #print(wave0)
         u = np.where(lista_obs == 'UV')
         index = u[0][0]
        
@@ -1926,7 +2008,7 @@ def read_observables(models, lbdarr, lista_obs):
         dlogF_combined.append(dlogF_UV)
         logF_grid_combined.append(logF_grid_UV) 
         wave_combined.append(wave_UV)
-    
+
 
     if check_list(lista_obs, 'Ha'):
         

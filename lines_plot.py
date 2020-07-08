@@ -542,6 +542,8 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
                      label='Best fit \n chi2 = {0:.2f}'.format(chi2_UV))
             ax2.plot(lbd_UV, (flux_UV - flux_mod_UV) / dflux, 'bs', alpha=0.2)
             ax2.set_ylim(-10,10)
+            if flag.votable:
+                ax1.set_xscale('log')
             # Plot Data
             keep = np.where(flux_UV > 0) # avoid plot zero flux
             ax1.errorbar(lbd_UV[keep], flux_UV[keep], yerr=dflux[keep], ls='', marker='o',
@@ -553,12 +555,12 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
                        fontsize=14)	
             ax2.set_ylabel('$(F-F_\mathrm{m})/\sigma$', fontsize=14)
             #plt.tick_params(labelbottom='off')
-            ax1.set_xlim(min(lbd_UV), max(lbd_UV))
-            ax2.set_xlim(min(lbd_UV), max(lbd_UV))
+            #ax1.set_xlim(min(lbd_UV), max(lbd_UV))
+            #ax2.set_xlim(min(lbd_UV), max(lbd_UV))
             #plt.tick_params(direction='in', length=6, width=2, colors='gray',
             #    which='both')
             ax1.legend(loc='upper right')
-            ax1.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+            #ax1.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
             plt.tight_layout()
             plt.savefig(current_folder + fig_name + '_new_residuals-UV' + '.png', dpi=100)
             plt.close()

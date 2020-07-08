@@ -24,17 +24,17 @@
 import numpy as np
 # ==============================================================================
 # General Options
-a_parameter =       2.   # Set internal steps of each walker
+a_parameter =       4.   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        True  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
 long_process =      False  # Run with few walkers or many?
-list_of_stars =     'hd6226_lines.txt'  # The list of flag.stars with prior data in /tables/ folder
+list_of_stars =     'acol_lines.txt'  # The list of flag.stars with prior data in /tables/ folder
 plot_fits =         True  # NOT USING //// Include fits in the corner plot NOT USING 
 plot_in_log_scale=  False  # NOT USING ///
 Nsigma_dis =        3.  # Set the range of values for the distance
 model =             'aeri'  # 'beatlas', 'befavor', 'aara', or 'acol'
-cut_iue_regions=    False  # trim UV data from 0.13 to 0.30
+cut_iue_regions=    True  # trim UV data from 0.13 to 0.30
 
 
 folder_data = '../data/'
@@ -44,35 +44,33 @@ folder_tables = '../tables/'
 folder_models = '../models/'
 
 
-vsini_prior =   True # Uses a gaussian vsini prior
+vsini_prior =   False # Uses a gaussian vsini prior
 dist_prior =    True # Uses a gaussian distance prior
 
 box_W =         True # Constrain the W lower limit, not actual a prior, but restrain the grid
-box_W_min, box_W_max = [0.7, 'max']
+box_W_min, box_W_max = [0.6, 'max']
 
 incl_prior =    False # Uses a gaussian inclination prior 
 
-
-
 normal_spectra =    True # True if the spectra is normalized (for lines), distance and e(b-v) are not computed
-only_wings =        False # Run emcee with only the wings
+only_wings =        True # Run emcee with only the wings
 only_centerline =   False # Run emcee with only the center of the line
 Sigma_Clip =        True # If you want telluric lines/outilier points removed
 remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too much absorption (in the wings)
 
 # Line and continuum combination
-combination =   False
-UV =            False
-votable =       False
-Ha =            False
-Hb =            True
+combination =   True
+UV =            True
+votable =       True
+data_table=     False
+Ha =            True
+Hb =            False
 Hd =            False
 Hg =            False
 
-
-corner_color = 'yellow' # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
+   
+corner_color = 'random' # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
                   # IF YOU DO NOT CHOOSE A COLOR, A RANDOM ONE WILL BE SELECTED
-
 
 # Plot options
 compare_results = False # Plot the reference Achernar values in the corner (only for model aeri)
@@ -139,5 +137,5 @@ def init():
             Halpha, normal_spectra, only_wings, only_centerline, Sigma_Clip, cut_iue_regions,
             remove_partHa, combination, UV, Ha, Hb, Hg, Hd, compare_results,
             stellar_prior, npy_star, acrux, Nproc, stars, list_plx, list_sig_plx, 
-            list_vsini_obs, list_sig_vsini_obs, list_pre_ebmv, incl0, sig_incl0, bump0, lbd_range, corner_color]
+            list_vsini_obs, list_sig_vsini_obs, list_pre_ebmv, incl0, sig_incl0, bump0, lbd_range, corner_color, data_table]
 
