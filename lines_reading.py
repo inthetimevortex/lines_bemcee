@@ -76,7 +76,7 @@ def read_BAphot2_xdr(lista_obs):
     lbd_combined = []
     
     if check_list(lista_obs, 'UV'):
-        if flag.votable:
+        if flag.votable or flag.data_table:
             lbd_UV, models_UV = xdr_remove_lines(lbdarr, models)
 	    # UV is from lbdarr[0] to lbdarr[224]
         else:
@@ -1646,7 +1646,8 @@ def read_iue(models, lbdarr, wave0, flux0, sigma0):
     wave = xbin[ordem]
     flux = ybin[ordem]
     sigma = dybin[ordem]
-
+    
+    
     #if flag.model != 'befavor' and flag.model != 'aeri': # sort for other models
     wave = np.hstack([wave0, wave])
     flux = np.hstack([flux0, flux])
@@ -1656,7 +1657,8 @@ def read_iue(models, lbdarr, wave0, flux0, sigma0):
     wave = wave[ordem]
     flux = flux[ordem]
     sigma = sigma[ordem]
-    
+    print(wave)
+    print(np.max(lbdarr))
 # ------------------------------------------------------------------------------
     # select lbdarr to coincide with lbd
     models_new = np.zeros([len(models), len(wave)])
@@ -1971,8 +1973,8 @@ def read_table():
     flux = np.array([B_flux, V_flux, R_flux, I_flux])
     logF = np.log10(np.array([B_flux, V_flux, R_flux, I_flux]))
 	# Uncertainty (?)	
-    dlogF = 0.01*logF  
-    sigma = dlogF * flux
+    #dlogF = 0.01*logF  
+    sigma = 0.01 * flux
     
     
     return wave, flux, sigma  
@@ -1997,7 +1999,7 @@ def read_observables(models, lbdarr, lista_obs):
         else:    
             wave0, flux0, sigma0 = [], [], []
         
-        #print(wave0)
+        
         u = np.where(lista_obs == 'UV')
         index = u[0][0]
        
@@ -2008,7 +2010,7 @@ def read_observables(models, lbdarr, lista_obs):
         dlogF_combined.append(dlogF_UV)
         logF_grid_combined.append(logF_grid_UV) 
         wave_combined.append(wave_UV)
-
+        print(wave_UV)
 
     if check_list(lista_obs, 'Ha'):
         

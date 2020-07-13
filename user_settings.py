@@ -26,10 +26,10 @@ import numpy as np
 # General Options
 a_parameter =       4.   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
-include_rv =        True  # If False: fix Rv = 3.1, else Rv will be inferead
+include_rv =        False # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
 long_process =      False  # Run with few walkers or many?
-list_of_stars =     'acol_lines.txt'  # The list of flag.stars with prior data in /tables/ folder
+list_of_stars =     'hd6226_lines.txt'  # The list of flag.stars with prior data in /tables/ folder
 plot_fits =         True  # NOT USING //// Include fits in the corner plot NOT USING 
 plot_in_log_scale=  False  # NOT USING ///
 Nsigma_dis =        3.  # Set the range of values for the distance
@@ -53,7 +53,7 @@ box_W_min, box_W_max = [0.6, 'max']
 incl_prior =    False # Uses a gaussian inclination prior 
 
 normal_spectra =    True # True if the spectra is normalized (for lines), distance and e(b-v) are not computed
-only_wings =        True # Run emcee with only the wings
+only_wings =        False # Run emcee with only the wings
 only_centerline =   False # Run emcee with only the center of the line
 Sigma_Clip =        True # If you want telluric lines/outilier points removed
 remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too much absorption (in the wings)
@@ -61,15 +61,15 @@ remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too mu
 # Line and continuum combination
 combination =   True
 UV =            True
-votable =       True
-data_table=     False
-Ha =            True
+votable =       False
+data_table=     True
+Ha =            False
 Hb =            False
 Hd =            False
 Hg =            False
 
    
-corner_color = 'random' # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
+corner_color = 'orange' # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
                   # IF YOU DO NOT CHOOSE A COLOR, A RANDOM ONE WILL BE SELECTED
 
 # Plot options
