@@ -67,7 +67,7 @@ def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, lista_obs):
         if flag.include_rv and not flag.binary_star:
             RV = params[-1]
         elif flag.binary_star:
-            RV = params[-3]
+            RV = params[-2]
         else:
             RV = 3.1
         
@@ -76,21 +76,21 @@ def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, lista_obs):
         uplim = dlogF_UV == 0
         keep = np.logical_not(uplim)
         
-        if flag.binary_star:
-            M2, Lfrac = params[-2], params[-1]
-            logF_mod_UV_1, logF_mod_UV_2 = logF_mod[index]            
-            F_mod_UV_2 = Lfrac * 10**logF_mod_UV_2
-            F_mod_UV_1 = (1. - Lfrac) * 10**logF_mod_UV_1
-            logF_mod_UV_comb = np.log(F_mod_UV_1 + F_mod_UV_2)
-
-            logF_mod_UV_comb += np.log10(norma)
-            tmp_flux = 10**logF_mod_UV_comb
-            
-
-        else:
+        #if flag.binary_star:
+        #    M2, Lfrac = params[-2], params[-1]
+        #    logF_mod_UV_1, logF_mod_UV_2 = logF_mod[index]            
+        #    F_mod_UV_2 = Lfrac * 10**logF_mod_UV_2
+        #    F_mod_UV_1 = (1. - Lfrac) * 10**logF_mod_UV_1
+        #    logF_mod_UV_comb = np.log(F_mod_UV_1 + F_mod_UV_2)
+        #
+        #    logF_mod_UV_comb += np.log10(norma)
+        #    tmp_flux = 10**logF_mod_UV_comb
+        #    
+        #
+        #else:
         
-            logF_mod[index] += np.log10(norma)
-            tmp_flux = 10**logF_mod[index]
+        logF_mod[index] += np.log10(norma)
+        tmp_flux = 10**logF_mod[index]
         
         
         flux_mod = pyasl.unred(lbd[index] * 1e4, tmp_flux, ebv=-1 * ebmv, R_V=RV)
@@ -297,9 +297,9 @@ def lnprob(params, lbd, logF, dlogF, minfo, listpar, logF_grid,
             if flag.include_rv and not flag.binary_star:
                 lim = 3
             elif flag.include_rv and flag.binary_star:
-                lim = 5
-            elif flag.binary_star and not flag.include_rv:
                 lim = 4
+            elif flag.binary_star and not flag.include_rv:
+                lim = 3
         else:
             lim = 4
 
@@ -318,13 +318,12 @@ def lnprob(params, lbd, logF, dlogF, minfo, listpar, logF_grid,
                 
                 
                 if flag.binary_star:
-                    M2 = params[-2]
-                    Lfrac = params[-1]
+                    M2 = params[-1]
                     logF_mod_UV_1 = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
                     logF_mod_UV_2 = griddataBA(minfo, logF_grid[index], np.array([M2, 0.1, params[2], params[3]]), listpar, dims)
                     #logF_mod_UV_3 = Lfrac * logF_mod_UV_2 + (1. - Lfrac) * logF_mod_UV
                     #logF_mod_UV = np.log10(Lfrac * 10**logF_mod_UV_2 + (1. - Lfrac) * 10**logF_mod_UV)
-                    logF_mod_UV = [logF_mod_UV_1, logF_mod_UV_2]
+                    logF_mod_UV = logF_mod_UV_1 + logF_mod_UV_2
                 else:
                     logF_mod_UV = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
                     
@@ -680,7 +679,7 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
                 if flag.include_rv is True:
                     labels = labels + r'$R_\mathrm{V}$'
                 if flag.binary_star:
-                    labels = labels + [r'$M2\,[M_\odot]$', r'$L_{frac}$']
+                    labels = labels + [r'$M2\,[M_\odot]$']
             else:
                 labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
                       r'$i[\mathrm{^o}]$']

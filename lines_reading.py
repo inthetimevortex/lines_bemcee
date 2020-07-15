@@ -676,8 +676,7 @@ def read_star_info(star, lista_obs, listpar):
                 
             if flag.binary_star:
                 M2 = [listpar[0][0], listpar[0][-1]]
-                Lfrac = [0., 1.]
-                ranges = np.concatenate([ranges, [M2], [Lfrac]])
+                ranges = np.concatenate([ranges, [M2]])
                 
 
 
