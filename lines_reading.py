@@ -604,8 +604,8 @@ def read_star_info(star, lista_obs, listpar):
         
         # New parameters limits
         #box_W_inf = 0.8
-        vrad_inf = -100  # km/s
-        vrad_sup = 100 # km/s
+        #vrad_inf = -100  # km/s
+        #vrad_sup = 100 # km/s
 
 # ------------------------------------------------------------------------------
         # Reading known stellar parameters
@@ -635,7 +635,8 @@ def read_star_info(star, lista_obs, listpar):
             
             addlistpar = [ebmv, [dist_min, dist_max], rv]
             addlistpar = list(filter(partial(is_not, None), addlistpar))
-    
+            
+
     
             if flag.model == 'aeri' or flag.model == 'befavor':
                 
@@ -672,6 +673,12 @@ def read_star_info(star, lista_obs, listpar):
             
             if flag.include_rv:
                 ranges = np.concatenate([ranges, [rv]])
+                
+            if flag.binary_star:
+                M2 = [listpar[0][0], listpar[0][-1]]
+                Lfrac = [0., 1.]
+                ranges = np.concatenate([ranges, [M2], [Lfrac]])
+                
 
 
         else:
@@ -1657,8 +1664,7 @@ def read_iue(models, lbdarr, wave0, flux0, sigma0):
     wave = wave[ordem]
     flux = flux[ordem]
     sigma = sigma[ordem]
-    print(wave)
-    print(np.max(lbdarr))
+
 # ------------------------------------------------------------------------------
     # select lbdarr to coincide with lbd
     models_new = np.zeros([len(models), len(wave)])
@@ -2010,7 +2016,7 @@ def read_observables(models, lbdarr, lista_obs):
         dlogF_combined.append(dlogF_UV)
         logF_grid_combined.append(logF_grid_UV) 
         wave_combined.append(wave_UV)
-        print(wave_UV)
+
 
     if check_list(lista_obs, 'Ha'):
         

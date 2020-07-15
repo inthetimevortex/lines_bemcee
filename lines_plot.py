@@ -63,7 +63,7 @@ def print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels):
     
     fname = current_folder+fig_name+ '.txt'
     
-    names = ['Mstar', 'W', 't/tms', 'i', 'Dist', 'E(B-V)', 'RV']
+    names = ['Mstar', 'W', 't/tms', 'i', 'Dist', 'E(B-V)', 'RV', 'M2', 'Lfrac']
     
     file1 = open(fname, 'w')
     L = ['\bbegin{table} \n',
@@ -75,7 +75,6 @@ def print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels):
     file1.writelines(L)
     
     params_to_print = []
-    print(errors_fit[0][1])
     for i in range(len(params_fit)):
         params_to_print.append(names[i] + '= {0:.2f} +{1:.2f} -{2:.2f}'.format(params_fit[i], errors_fit[i][0], errors_fit[i][1]))
         file1.writelines(labels[i] + '& {0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}} \\\ \n'.format(params_fit[i], errors_fit[i][0], errors_fit[i][1]))
@@ -456,12 +455,20 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
 
     '''
     if flag.include_rv and check_list(lista_obs, 'UV'):
-        Mstar, W, tms, cosi, dist, ebv, rv = par
-        lim = 3
-        lim2 = 2
+        if flag.binary_star:
+            lim = 5
+            Mstar, W, tms, cosi, dist, ebv, rv, M2, Lfrac = par
+        else:
+            Mstar, W, tms, cosi, dist, ebv, rv = par
+            lim = 3
+            lim2 = 2
     elif check_list(lista_obs, 'UV'):
-        Mstar, W, tms, cosi, dist, ebv = par
-        lim=2
+        if flag.binary_star:
+            lim=4
+            Mstar, W, tms, cosi, dist, ebv, M2, Lfrac = par
+        else:
+            Mstar, W, tms, cosi, dist, ebv = par
+            lim=2
         rv=3.1
     else:
         Mstar, W, tms, cosi = par
@@ -480,9 +487,7 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
 			# Finding position
             u = np.where(lista_obs == 'UV')
             index = u[0][0]
-            # Finding the corresponding flag.model (interpolation)
-            logF_mod_UV = griddataBA(minfo, logF_grid[index], par[:-lim],
-                                     listpar, dims)  
+              
             # Observations
             logF_UV = logF[index]
             flux_UV = 10.**logF_UV
@@ -492,9 +497,19 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
             dist = 1e3/dist
             norma = (10. / dist)**2  # (Lstar*Lsun) / (4. * pi * (dist*pc)**2)
             uplim = dlogF[index] == 0
-            keep = np.logical_not(uplim)  
+            keep = np.logical_not(uplim) 
+                
+            if flag.binary_star:
+                logF_mod_UV_1 = griddataBA(minfo, logF_grid[index], par[:-lim], listpar, dims)
+                logF_mod_UV_2 = griddataBA(minfo, logF_grid[index], np.array([M2, 0.1, W, cosi]), listpar, dims)
+                F_mod_UV_2 = Lfrac * 10**logF_mod_UV_2
+                F_mod_UV_1 = (1. - Lfrac) * 10**logF_mod_UV_1
+                logF_mod_UV = np.log10(F_mod_UV_1 + F_mod_UV_2)
+                
+            else:
+                logF_mod_UV = griddataBA(minfo, logF_grid[index], par[:-lim], listpar, dims)
             
-            
+
             # convert to physical units
             logF_mod_UV += np.log10(norma)
             
@@ -510,7 +525,14 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
             logF_list = np.zeros([len(par_list), len(logF_mod_UV)])
             chi2 = np.zeros(len(logF_list))
             for i in range(len(par_list)):
-                logF_list[i] = griddataBA(minfo, logF_grid[index], par_list[i, :-lim],
+                if flag.binary_star:
+                    logF_mod_UV_1_list = griddataBA(minfo, logF_grid[index], par_list[i, :-lim], listpar, dims)
+                    logF_mod_UV_2_list = griddataBA(minfo, logF_grid[index], np.array([par_list[i, -2], 0.1, par_list[i, 1], par_list[i, 2]]), listpar, dims)
+                    F_mod_UV_2_list = par_list[i, -1] * 10**logF_mod_UV_2_list
+                    F_mod_UV_1_list = (1. - par_list[i, -1]) * 10**logF_mod_UV_1_list
+                    logF_list[i] = np.log10(F_mod_UV_1_list + F_mod_UV_2_list)
+                else:
+                    logF_list[i] = griddataBA(minfo, logF_grid[index], par_list[i, :-lim],
                                           listpar, dims)
             # Plot
             fig, (ax1,ax2) = plt.subplots(2,1,gridspec_kw={'height_ratios': [3, 1]})
@@ -531,8 +553,7 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
                 F_temp = pyasl.unred(lbd_UV * 1e4, 10**logF_list[i],
                                      ebv=-1 * ebv_temp, R_V=rv)
                 ax1.plot(lbd_UV, F_temp, color='gray', alpha=0.1)
-                # Residuals  --- desta forma plota os residuos de todos os modelos, mas acho que nao eh o que quero  
-                #ax2.plot(lbd_UV, (flux_UV - F_temp) / dflux, 'bs', alpha=0.2)
+
             
             
             # Applying reddening to the best model
@@ -540,6 +561,7 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
             # Best fit
             ax1.plot(lbd_UV, flux_mod_UV, color='red', ls='-', lw=3.5, alpha=0.4,
                      label='Best fit \n chi2 = {0:.2f}'.format(chi2_UV))
+
             ax2.plot(lbd_UV, (flux_UV - flux_mod_UV) / dflux, 'bs', alpha=0.2)
             ax2.set_ylim(-10,10)
             if flag.votable:

@@ -93,7 +93,7 @@ for i in range(Ndim):
     #mode_val = mode1(np.round(samples[:,i], decimals=2))
     qvalues = hpd(samples[:,i], alpha=0.32)
     cut = samples[samples[:,i] > qvalues[0], i]
-    cut = samples[samples[:,i] < qvalues[1], i]
+    cut = cut[cut < qvalues[1]]
     median_val = np.median(cut)
 
     best_errs.append([qvalues[1] - median_val, median_val - qvalues[0]])

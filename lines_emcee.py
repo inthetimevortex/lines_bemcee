@@ -25,7 +25,7 @@ sns.set_style("white", {"xtick.major.direction": 'in',
 
 
 # ==============================================================================
-def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim,  lista_obs):
+def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, lista_obs):
 
     """
     Returns the likelihood probability function.
@@ -64,8 +64,10 @@ def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim,  lista_obs):
             dist = params[5]
             ebmv = params[6]
 
-        if flag.include_rv:
+        if flag.include_rv and not flag.binary_star:
             RV = params[-1]
+        elif flag.binary_star:
+            RV = params[-3]
         else:
             RV = 3.1
         
@@ -73,14 +75,27 @@ def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim,  lista_obs):
         norma = (10 / dist)**2
         uplim = dlogF_UV == 0
         keep = np.logical_not(uplim)
+        
+        if flag.binary_star:
+            M2, Lfrac = params[-2], params[-1]
+            logF_mod_UV_1, logF_mod_UV_2 = logF_mod[index]            
+            F_mod_UV_2 = Lfrac * 10**logF_mod_UV_2
+            F_mod_UV_1 = (1. - Lfrac) * 10**logF_mod_UV_1
+            logF_mod_UV_comb = np.log(F_mod_UV_1 + F_mod_UV_2)
 
-        logF_mod[index] += np.log10(norma)
+            logF_mod_UV_comb += np.log10(norma)
+            tmp_flux = 10**logF_mod_UV_comb
+            
 
-        tmp_flux = 10**logF_mod[index]
-
+        else:
+        
+            logF_mod[index] += np.log10(norma)
+            tmp_flux = 10**logF_mod[index]
+        
+        
         flux_mod = pyasl.unred(lbd[index] * 1e4, tmp_flux, ebv=-1 * ebmv, R_V=RV)
-
         logF_mod_UV = np.log10(flux_mod)
+            
         
         chi2_UV = np.sum(((logF_UV[keep] - logF_mod_UV[keep])**2. / (dlogF_UV[keep])**2.))
         N_UV = len(logF_UV[keep])
@@ -279,8 +294,12 @@ def lnprob(params, lbd, logF, dlogF, minfo, listpar, logF_grid,
 
         if check_list(lista_obs, 'UV'):
             lim = 2
-            if flag.include_rv:
+            if flag.include_rv and not flag.binary_star:
                 lim = 3
+            elif flag.include_rv and flag.binary_star:
+                lim = 5
+            elif flag.binary_star and not flag.include_rv:
+                lim = 4
         else:
             lim = 4
 
@@ -296,8 +315,21 @@ def lnprob(params, lbd, logF, dlogF, minfo, listpar, logF_grid,
             if check_list(lista_obs, 'UV'):
                 u = np.where(lista_obs == 'UV')
                 index = u[0][0]
-                logF_mod_UV = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+                
+                
+                if flag.binary_star:
+                    M2 = params[-2]
+                    Lfrac = params[-1]
+                    logF_mod_UV_1 = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+                    logF_mod_UV_2 = griddataBA(minfo, logF_grid[index], np.array([M2, 0.1, params[2], params[3]]), listpar, dims)
+                    #logF_mod_UV_3 = Lfrac * logF_mod_UV_2 + (1. - Lfrac) * logF_mod_UV
+                    #logF_mod_UV = np.log10(Lfrac * 10**logF_mod_UV_2 + (1. - Lfrac) * 10**logF_mod_UV)
+                    logF_mod_UV = [logF_mod_UV_1, logF_mod_UV_2]
+                else:
+                    logF_mod_UV = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+                    
                 logF_mod.append(logF_mod_UV)                    
+            
             if check_list(lista_obs, 'Ha'):
                 u = np.where(lista_obs == 'Ha')
                 index = u[0][0]
@@ -497,22 +529,22 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
             minprob_index, af, file_npy_burnin = sampler_tmp
 
 
-        if flag.model == 'aeri':
-            if flag.include_rv is True and check_list(lista_obs, 'UV'):
-                mass_true, obt_true, xc_true,\
-                cos_true, ebv_true, dist_true, rv_true = params_fit
-            elif check_list(lista_obs, 'UV') or flag.normal_spectra is False:
-                mass_true, W_true, tms_true,\
-                    cos_true, ebv_true, dist_true = params_fit
-            else: #only lines
-                mass_true, W_true, tms_true, cos_true = params_fit
-
-            
-            
-            
-        if flag.model == 'acol':
-            if flag.normal_spectral:
-                mass_true, W_true, tms_true, cos_true, modNflux_true = params_fit # colocar parametros certos			
+        #if flag.model == 'aeri':
+        #    if flag.include_rv is True and check_list(lista_obs, 'UV'):
+        #        mass_true, obt_true, xc_true,\
+        #        cos_true, ebv_true, dist_true, rv_true = params_fit
+        #    elif check_list(lista_obs, 'UV') or flag.normal_spectra is False:
+        #        mass_true, W_true, tms_true,\
+        #            cos_true, ebv_true, dist_true = params_fit
+        #    else: #only lines
+        #        mass_true, W_true, tms_true, cos_true = params_fit
+        #
+        #    
+        #    
+        #    
+        #if flag.model == 'acol':
+        #    if flag.normal_spectral:
+        #        mass_true, W_true, tms_true, cos_true, modNflux_true = params_fit # colocar parametros certos			
 
 
         chain = sampler.chain
@@ -646,9 +678,9 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
                 labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
                       r'$i[\mathrm{^o}]$', r'$d\,[mas]$', r'E(B-V)']
                 if flag.include_rv is True:
-                    labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
-                      r'$i[\mathrm{^o}]$', r'$d\,[mas]$', r'E(B-V)',
-                      r'$R_\mathrm{V}$']
+                    labels = labels + r'$R_\mathrm{V}$'
+                if flag.binary_star:
+                    labels = labels + [r'$M2\,[M_\odot]$', r'$L_{frac}$']
             else:
                 labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
                       r'$i[\mathrm{^o}]$']
@@ -727,7 +759,7 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
             #mode_val = mode1(np.round(samples[:,i], decimals=2))
             qvalues = hpd(samples[:,i], alpha=0.32)
             cut = samples[samples[:,i] > qvalues[0], i]
-            cut = samples[samples[:,i] < qvalues[1], i]
+            cut = cut[cut < qvalues[1]]
             median_val = np.median(cut)
             
             #ax1 = plt.subplot(3, 3, i+1)

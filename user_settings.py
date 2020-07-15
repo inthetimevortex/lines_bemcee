@@ -22,6 +22,7 @@
 #  
 #  
 import numpy as np
+import random
 # ==============================================================================
 # General Options
 a_parameter =       4.   # Set internal steps of each walker
@@ -36,6 +37,7 @@ Nsigma_dis =        3.  # Set the range of values for the distance
 model =             'aeri'  # 'beatlas', 'befavor', 'aara', or 'acol'
 cut_iue_regions=    True  # trim UV data from 0.13 to 0.30
 
+binary_star = True
 
 folder_data = '../data/'
 folder_fig = '../figures/'
@@ -62,14 +64,14 @@ remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too mu
 combination =   True
 UV =            True
 votable =       False
-data_table=     True
+data_table=     False
 Ha =            False
 Hb =            False
 Hd =            False
 Hg =            False
 
    
-corner_color = 'orange' # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
+corner_color = '' # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
                   # IF YOU DO NOT CHOOSE A COLOR, A RANDOM ONE WILL BE SELECTED
 
 # Plot options
@@ -125,8 +127,8 @@ stars, list_plx, list_sig_plx, list_vsini_obs, list_sig_vsini_obs,\
     read_stars(list_of_stars)
 
 #############################################################################################################################
-if corner_color == 'random' or '':
-    corner_color = random.select(['blue', 'dark blue', 'teal', 'green', 'yellow', 'orange', 'red', 'purple', 'violet', 'pink'])
+if corner_color == 'random' or corner_color == '':
+    corner_color = random.choice(['blue', 'dark blue', 'teal', 'green', 'yellow', 'orange', 'red', 'purple', 'violet', 'pink'])
 #############################################################################################################################
 
 def init():
@@ -137,5 +139,5 @@ def init():
             Halpha, normal_spectra, only_wings, only_centerline, Sigma_Clip, cut_iue_regions,
             remove_partHa, combination, UV, Ha, Hb, Hg, Hd, compare_results,
             stellar_prior, npy_star, acrux, Nproc, stars, list_plx, list_sig_plx, 
-            list_vsini_obs, list_sig_vsini_obs, list_pre_ebmv, incl0, sig_incl0, bump0, lbd_range, corner_color, data_table]
+            list_vsini_obs, list_sig_vsini_obs, list_pre_ebmv, incl0, sig_incl0, bump0, lbd_range, corner_color, data_table, binary_star]
 
