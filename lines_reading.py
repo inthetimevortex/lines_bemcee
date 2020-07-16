@@ -1158,21 +1158,26 @@ def read_star_info(star, lista_obs, listpar):
 def read_espadons(fname):
 
     # read fits
-    hdr_list = fits.open(fname)
-    fits_data = hdr_list[0].data
-    fits_header = hdr_list[0].header
+    if False :
+        hdr_list = fits.open(fname)
+        fits_data = hdr_list[0].data
+        fits_header = hdr_list[0].header
     #read MJD
-    MJD = fits_header['MJDATE']
-    
-    lat = fits_header['LATITUDE']
-    lon = fits_header['LONGITUD']
-    lbd = fits_data[0, :]
-    ordem = lbd.argsort()
-    lbd = lbd[ordem] * 10
-    flux_norm = fits_data[1, ordem]
+        MJD = fits_header['MJDATE']   
+        lat = fits_header['LATITUDE']
+        lon = fits_header['LONGITUD']
+        lbd = fits_data[0, :]
+        ordem = lbd.argsort()
+        lbd = lbd[ordem] * 10
+        flux_norm = fits_data[1, ordem]
     #vel, flux = spt.lineProf(lbd, flux_norm, lbc=lbd0)
-    
+    else :
+        lbd, flux_norm, MJD, dateobs, datereduc, fitsfile = spec.loadfits(fname)
+#    plt.plot (lbd, flux_norm)
+#    plt.show()
     return lbd, flux_norm, MJD
+    
+
 
 
 # ==================================================================================
@@ -1222,6 +1227,8 @@ def read_line_spectra(models, lbdarr, linename):
 
     
     radv = delta_v(vel, fluxes, 'Ha')
+#AMANDA_VOLTAR: o que fazer quando o 
+    radv = 2.8
     print('RADIAL VELOCITY = {0}'.format(radv))
     vel = vel - radv
     wl = c*lbd_central/(c - vel)
@@ -1254,7 +1261,9 @@ def read_line_spectra(models, lbdarr, linename):
     lbdarr = lbdarr[1:-1]
     sigma_new = np.zeros(len(lbdarr))
     #sigma_new.fill(0.017656218)
-
+#AMANDA_VOLTAR: erros devem ser estimados numa rotina de precondicionamento
+#HD6226: 0.04
+#MT91-213: 0.01 
     for i in range(len(box_lim) - 1):
         # lbd observations inside the box
         index = np.argwhere((new_wave > box_lim[i]) & (new_wave < box_lim[i+1]))
@@ -1262,11 +1271,11 @@ def read_line_spectra(models, lbdarr, linename):
             bin_flux[i] = -np.inf
         elif len(index) == 1:
             bin_flux[i] = new_flux[index[0][0]]
-            sigma_new[i] = 0.017656218
+            sigma_new[i] = 0.01
         else: 
             # Calculating the mean flux in the box
             bin_flux[i] = np.sum(new_flux[index[0][0]:index[-1][0]])/len(new_flux[index[0][0]:index[-1][0]])
-            sigma_new[i] = 0.017656218/np.sqrt(len(index))
+            sigma_new[i] = 0.01/np.sqrt(len(index))
 
     obs_new = bin_flux
     

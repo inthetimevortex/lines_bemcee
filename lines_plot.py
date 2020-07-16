@@ -75,24 +75,25 @@ def print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels):
     file1.writelines(L)
     
     params_to_print = []
+    print(errors_fit[0][1])
     for i in range(len(params_fit)):
         params_to_print.append(names[i] + '= {0:.2f} +{1:.2f} -{2:.2f}'.format(params_fit[i], errors_fit[i][0], errors_fit[i][1]))
-        file1.writelines(labels[i] + '& {0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}} \\\ \n'.format(params_fit[i], errors_fit[i][0], errors_fit[i][1]))
+        file1.writelines(labels[i] + '& ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Free \\\ \n'.format(params_fit[i], errors_fit[i][0], errors_fit[i][1]))
     
     
-    L = ['\hline \n',
-        '\end{tabular} \n'
-        '\end{table} \n']
+#    L = ['\hline \n',
+#        '\end{tabular} \n'
+#        '\end{table} \n']
     
-    file1.writelines(L)
+#    file1.writelines(L)
     
-    L = ['\bbegin{table} \n',
-        '\centering \n',
-        '\bbegin{tabular}{ll} \n',
-        '\hline \n',
-        'Derived Parameters  & Value \\\ \n', 
-        '\hline \n']
-    file1.writelines(L)
+#    L = ['\bbegin{table} \n',
+#        '\centering \n',
+#        '\bbegin{tabular}{ll} \n',
+#        '\hline \n',
+#        'Derived Parameters  & Value \\\ \n', 
+#        '\hline \n']
+#    file1.writelines(L)
     
     Mstar = params_fit[0]
     Mstar_range = [Mstar + errors_fit[0][0], Mstar - errors_fit[0][1]]
@@ -161,15 +162,15 @@ def print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels):
 
 
     
-    file1.writelines('Oblateness & {0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}} \\\ \n'.format(oblat, oblat_range[0] - oblat, oblat- oblat_range[1]))
+    file1.writelines(r"$R_{\rm eq}/R_{\rm p}$"+' & ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Derived  \\\ \n'.format(oblat, oblat_range[0] - oblat, oblat- oblat_range[1]))
     params_to_print.append('Oblateness = {0:.2f} +{1:.2f} -{2:.2f}'.format(oblat, oblat_range[0] - oblat, oblat- oblat_range[1]))
-    file1.writelines('Equatorial radius & {0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}} \\\ \n'.format(Req, Req_max - Req, Req - Req_min))
+    file1.writelines(r"$R_{\rm eq}\,[R_\odot]$"+' & ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Derived  \\\ \n'.format(Req, Req_max - Req, Req - Req_min))
     params_to_print.append('Equatorial radius = {0:.2f} +{1:.2f} -{2:.2f}'.format(Req, Req_max - Req, Req - Req_min))
-    file1.writelines('Log Luminosity & {0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}  \\\ \n'.format(logL, logL_range[0] - logL, logL - logL_range[1]))
+    file1.writelines(r"$\log(L)\,[L_\odot]$"+' & ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Derived  \\\ \n'.format(logL, logL_range[0] - logL, logL - logL_range[1]))
     params_to_print.append('Log Luminosity  = {0:.2f} +{1:.2f} -{2:.2f}'.format(logL, logL_range[0] - logL, logL - logL_range[1]))
-    file1.writelines('Beta & {0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}} \\\ \n'.format(beta_par, beta_range[1] - beta_par, beta_par - beta_range[0]))
+    file1.writelines(r"$\beta$"+' & ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Derived \\\ \n'.format(beta_par, beta_range[1] - beta_par, beta_par - beta_range[0]))
     params_to_print.append('Beta  = {0:.2f} +{1:.2f} -{2:.2f}'.format(beta_par, beta_range[1] - beta_par, beta_par - beta_range[0]))
-    file1.writelines('vsini & {0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}} \\\ \n'.format(vsini, vsini_range[0] - vsini, vsini - vsini_range[1]))
+    file1.writelines(r"$v \sin i\,\rm[km/s]$"+' & ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Derived  \\\ \n'.format(vsini, vsini_range[0] - vsini, vsini - vsini_range[1]))
     params_to_print.append('vsini = {0:.2f} +{1:.2f} -{2:.2f}'.format(vsini, vsini_range[0] - vsini, vsini - vsini_range[1]))
     
     L = ['\hline \n',
