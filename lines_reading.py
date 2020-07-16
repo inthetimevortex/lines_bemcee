@@ -1527,7 +1527,7 @@ def read_line_spectra(models, lbdarr, linename):
 #    return logF, dlogF, logF_grid, lbdarr, box_lim
 
 # ==============================================================================
-def read_iue(models, lbdarr, wave0, flux0, sigma0):
+def read_iue(models, lbdarr):
 
     table = flag.folder_data + str(flag.stars) + '/' + 'list_iue.txt'
 
@@ -1573,9 +1573,52 @@ def read_iue(models, lbdarr, wave0, flux0, sigma0):
     if os.path.isdir(flag.folder_fig + str(flag.stars)) is False:
         os.mkdir(flag.folder_fig + str(flag.stars))
 
+# ------------------------------------------------------------------------------
+    # Would you like to cut the spectrum?
+    #if flag.cut_iue_regions is True:
+    #    wave_lim_min_iue = 0.13
+    #    wave_lim_max_iue = 0.30
+    #
+    #    # Do you want to select a range to middle UV? (2200 bump region)
+    #    wave_lim_min_bump_iue = 0.20  # 0.200 #0.195  #0.210 / 0.185
+    #    wave_lim_max_bump_iue = 0.30  # 0.300 #0.230  #0.300 / 0.335
+    #
+    #    indx = np.where(((waves >= wave_lim_min_iue) &
+    #                     (waves <= wave_lim_max_iue)))
+    #    indx2 = np.where(((waves >= wave_lim_min_bump_iue) &
+    #                      (waves <= wave_lim_max_bump_iue)))
+    #    indx3 = np.concatenate((indx, indx2), axis=1)[0]
+    #    waves, fluxes, errors = waves[indx3], fluxes[indx3], errors[indx3]
 
+    #else: # remove observations outside the range
+    #    wave_lim_min_iue = min(waves)
+    #    wave_lim_max_iue = 0.300
+    #    indx = np.where(((waves >= wave_lim_min_iue) &
+    #                     (waves <= wave_lim_max_iue)))
+    #    waves, fluxes, errors = waves[indx], fluxes[indx], errors[indx]
+
+    # sort the combined observations in all files
+    new_wave, new_flux, new_sigma = \
+        zip(*sorted(zip(waves, fluxes, errors)))
+
+
+    nbins = 200
+    xbin, ybin, dybin = bin_data(new_wave, new_flux, nbins,
+                                exclude_empty=True)
+
+    # just to make sure that everything is in order
+    ordem = xbin.argsort()
+    wave = xbin[ordem]
+    flux = ybin[ordem]
+    sigma = dybin[ordem]
+
+
+    return wave, flux, sigma
+
+
+def combine_sed(wave, flux, sigma, models, lbdarr):
     if flag.lbd_range == 'UV':
-        wave_lim_min = 0.1  # mum
+        wave_lim_min = 0.13  # mum
         wave_lim_max = 0.3  # mum
     if flag.lbd_range == 'UV+VIS':
         wave_lim_min = 0.1  # mum
@@ -1614,51 +1657,6 @@ def read_iue(models, lbdarr, wave0, flux0, sigma0):
 
     band = np.copy(flag.lbd_range)
 
-# ------------------------------------------------------------------------------
-    # Would you like to cut the spectrum?
-    if flag.cut_iue_regions is True:
-        wave_lim_min_iue = 0.13
-        wave_lim_max_iue = 0.30
-
-        # Do you want to select a range to middle UV? (2200 bump region)
-        wave_lim_min_bump_iue = 0.20  # 0.200 #0.195  #0.210 / 0.185
-        wave_lim_max_bump_iue = 0.30  # 0.300 #0.230  #0.300 / 0.335
-
-        indx = np.where(((waves >= wave_lim_min_iue) &
-                         (waves <= wave_lim_max_iue)))
-        indx2 = np.where(((waves >= wave_lim_min_bump_iue) &
-                          (waves <= wave_lim_max_bump_iue)))
-        indx3 = np.concatenate((indx, indx2), axis=1)[0]
-        waves, fluxes, errors = waves[indx3], fluxes[indx3], errors[indx3]
-
-    else: # remove observations outside the range
-        wave_lim_min_iue = min(waves)
-        wave_lim_max_iue = 0.300
-        indx = np.where(((waves >= wave_lim_min_iue) &
-                         (waves <= wave_lim_max_iue)))
-        waves, fluxes, errors = waves[indx], fluxes[indx], errors[indx]
-
-    # sort the combined observations in all files
-    new_wave, new_flux, new_sigma = \
-        zip(*sorted(zip(waves, fluxes, errors)))
-
-
-    nbins = 200
-    xbin, ybin, dybin = bin_data(new_wave, new_flux, nbins,
-                                exclude_empty=True)
-
-    # just to make sure that everything is in order
-    ordem = xbin.argsort()
-    wave = xbin[ordem]
-    flux = ybin[ordem]
-    sigma = dybin[ordem]
-    
-    
-    #if flag.model != 'befavor' and flag.model != 'aeri': # sort for other models
-    wave = np.hstack([wave0, wave])
-    flux = np.hstack([flux0, flux])
-    sigma = np.hstack([sigma0, sigma])
-
     ordem = wave.argsort()
     wave = wave[ordem]
     flux = flux[ordem]
@@ -1683,10 +1681,10 @@ def read_iue(models, lbdarr, wave0, flux0, sigma0):
     dlogF = sigma / flux
     logF_grid = np.log10(models_new)
 
+# ==============================================================================
+
     return logF, dlogF, logF_grid, wave
 
-
-# ==============================================================================
 def read_votable():
     
     table = flag.folder_data + str(flag.stars) + '/' + 'list.txt'
@@ -1932,15 +1930,15 @@ def check_list(lista_obs, x):
 #========================================================================
 
 def read_table():
-    table = flag.folder_data + str(flag.stars) + '/' + 'list.txt'
+    table = flag.folder_data + str(flag.stars) + '/sed_data/' + 'list_sed.txt'
 
     #os.chdir(folder_data + str(star) + '/')
     #if os.path.isfile(table) is False or os.path.isfile(table) is True:
-    os.system('ls ' + flag.folder_data + str(flag.stars) + '/*.dat /*.csv /*.txt | xargs -n1 basename >' +
-                flag.folder_data + str(flag.stars) + '/' + 'list.txt')
+    os.system('ls ' + flag.folder_data + str(flag.stars) + '/sed_data/*.dat /*.csv /*.txt | xargs -n1 basename >' +
+                flag.folder_data + str(flag.stars) + '/sed_data/' + 'list_sed.txt')
     vo_list = np.genfromtxt(table, comments='#', dtype='str')
     table_name = np.copy(vo_list)
-    table = flag.folder_data + str(flag.stars) + '/' + str(table_name)
+    table = flag.folder_data + str(flag.stars) + '/sed_data/' + str(table_name)
     
 
     typ = (0, 1, 2, 3)
@@ -1997,19 +1995,27 @@ def read_observables(models, lbdarr, lista_obs):
      
     if check_list(lista_obs, 'UV'):     
         
+        u = np.where(lista_obs == 'UV')
+        index = u[0][0]
+        
+        if flag.iue:
+            wave, flux, sigma = read_iue(models[index], lbdarr[index])
+        else:
+            wave, flux, sigma = [], [], []
+        
         if flag.votable:
             wave0, flux0, sigma0 = read_votable()
         elif flag.data_table:
             wave0, flux0, sigma0 = read_table()
         else:    
             wave0, flux0, sigma0 = [], [], []
+            
+        wave = np.hstack([wave0, wave])
+        flux = np.hstack([flux0, flux])
+        sigma = np.hstack([sigma0, sigma])
         
-        
-        u = np.where(lista_obs == 'UV')
-        index = u[0][0]
-       
         logF_UV, dlogF_UV, logF_grid_UV, wave_UV =\
-            read_iue(models[index], lbdarr[index], wave0, flux0, sigma0)
+            combine_sed(wave, flux, sigma, models[index], lbdarr[index])
 
         logF_combined.append(logF_UV)
         dlogF_combined.append(dlogF_UV)

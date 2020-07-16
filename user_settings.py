@@ -29,13 +29,13 @@ a_parameter =       4.   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        False # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
-long_process =      False  # Run with few walkers or many?
-list_of_stars =     'hd6226_lines.txt'  # The list of flag.stars with prior data in /tables/ folder
+long_process =      True  # Run with few walkers or many?
+list_of_stars =     'hd19818.txt'  # The list of flag.stars with prior data in /tables/ folder
 plot_fits =         True  # NOT USING //// Include fits in the corner plot NOT USING 
 plot_in_log_scale=  False  # NOT USING ///
 Nsigma_dis =        3.  # Set the range of values for the distance
 model =             'aeri'  # 'beatlas', 'befavor', 'aara', or 'acol'
-cut_iue_regions=    True  # trim UV data from 0.13 to 0.30
+
 
 binary_star = True
 
@@ -63,8 +63,9 @@ remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too mu
 # Line and continuum combination
 combination =   True
 UV =            True
+iue =           False
 votable =       False
-data_table=     False
+data_table=     True
 Ha =            False
 Hb =            False
 Hd =            False
@@ -98,7 +99,7 @@ def read_stars(stars_table):
     file_data = folder_tables + stars_table
 
     a = np.genfromtxt(file_data, usecols=typ, unpack=True,
-                      delimiter='\t', comments='#',
+                      comments='#',
                       dtype={'names': ('star', 'plx', 'sig_plx', 'vsini',
                                        'sig_vsini', 'pre_ebmv', 'inc', 'sinc',
                                        'bump', 'lbd_range'),
@@ -136,8 +137,9 @@ def init():
     flags = [a_parameter, extension, include_rv, af_filter,
             long_process, list_of_flag.stars, plot_fits, plot_in_log_scale, 
             Nsigma_dis, model, vsini_prior, dist_prior, box_W ,incl_prior, 
-            Halpha, normal_spectra, only_wings, only_centerline, Sigma_Clip, cut_iue_regions,
+            Halpha, normal_spectra, only_wings, only_centerline, Sigma_Clip, 
             remove_partHa, combination, UV, Ha, Hb, Hg, Hd, compare_results,
             stellar_prior, npy_star, acrux, Nproc, stars, list_plx, list_sig_plx, 
-            list_vsini_obs, list_sig_vsini_obs, list_pre_ebmv, incl0, sig_incl0, bump0, lbd_range, corner_color, data_table, binary_star]
+            list_vsini_obs, list_sig_vsini_obs, list_pre_ebmv, incl0, sig_incl0, bump0, 
+            lbd_range, corner_color, data_table, binary_star, iue]
 
