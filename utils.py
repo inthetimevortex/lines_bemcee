@@ -6,7 +6,17 @@ import user_settings as flag
 import struct as struct
 import constants as const
 import warnings as _warn
+from scipy.interpolate import UnivariateSpline
 
+
+#def norm_spectra(wl_c, flx_con):
+#    '''normaliza espectro
+#    '''
+#    spl_fit = UnivariateSpline(wl_c, flx_con, w=spl_weight, k=3)
+#    flx_normalized = flx_con - spl_fit(wl_c)
+#    
+#    return flx_normalized
+    
 def jy2cgs(flux, lbd, inverse=False):
     '''
     Converts from Jy units to erg/s/cm2/micron, and vice-versa
@@ -431,7 +441,7 @@ def find_neighbours(par, par_grid, ranges):
 
     return keep, out, inside_ranges, par_new, par_grid_new
 
-
+    
 def geneva_interp_fast(Mstar, oblat, t, Zstr='014', silent=True):
     '''
     Interpolates Geneva stellar models, from grid of

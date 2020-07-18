@@ -38,7 +38,7 @@ Nsigma_dis =        7.  # Set the range of values for the distance
 model =             'aeri'  # 'beatlas', 'befavor', 'aara', or 'acol'
 
 
-binary_star = False
+binary_star = True
 
 folder_data = '../data/'
 folder_fig = '../figures/'

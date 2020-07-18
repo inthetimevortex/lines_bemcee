@@ -22,8 +22,6 @@ import user_settings as flag
 sns.set_style("white", {"xtick.major.direction": 'in',
               "ytick.major.direction": 'in'})
 
-
-
 # ==============================================================================
 def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, lista_obs):
 
@@ -291,18 +289,23 @@ def lnprob(params, lbd, logF, dlogF, minfo, listpar, logF_grid,
         count += 1
 
     if inside_ranges:
-
+        
         if check_list(lista_obs, 'UV'):
-            lim = 2
             if flag.include_rv and not flag.binary_star:
                 lim = 3
             elif flag.include_rv and flag.binary_star:
                 lim = 4
             elif flag.binary_star and not flag.include_rv:
                 lim = 3
+            else:
+                lim = 2
         else:
-            lim = 4
+            if flag.binary_star:
+                lim = 1
+            else:
+                lim = -4
 
+        
 
         if flag.model == 'beatlas' or flag.model == 'acol':
             if flag.normal_spectra:
@@ -321,7 +324,7 @@ def lnprob(params, lbd, logF, dlogF, minfo, listpar, logF_grid,
                     M2 = params[-1]
                     logF_mod_UV_1 = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
                     logF_mod_UV_2 = griddataBA(minfo, logF_grid[index], np.array([M2, 0.1, params[2], params[3]]), listpar, dims)
-                    logF_mod_UV = np.log10(10.**logF_mod_UV_1 + 10**logF_mod_UV_2)
+                    logF_mod_UV = np.log10(10.**logF_mod_UV_1 + 10.**logF_mod_UV_2)
                 else:
                     logF_mod_UV = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
                     
@@ -330,10 +333,17 @@ def lnprob(params, lbd, logF, dlogF, minfo, listpar, logF_grid,
             if check_list(lista_obs, 'Ha'):
                 u = np.where(lista_obs == 'Ha')
                 index = u[0][0]
-                if check_list(lista_obs, 'UV'):
-                    logF_mod_Ha = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+                #if check_list(lista_obs, 'UV'):
+                if flag.binary_star:
+                    M2 = params[-1]
+                    logF_mod_Ha_1 = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+                    logF_mod_Ha_2 = griddataBA(minfo, logF_grid[index], np.array([M2, 0.1, params[2], params[3]]), listpar, dims)
+                    logF_mod_Ha = np.log((10.**logF_mod_Ha_1 + 10.**logF_mod_Ha_2)/2.)
+                    #logF_mod_Ha = np.log(norm_spectra(lbd[index], F_mod_Ha_unnormed))
                 else:
-                    logF_mod_Ha = griddataBA(minfo, logF_grid[index], params, listpar, dims)
+                    logF_mod_Ha = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+                #else:
+                #    logF_mod_Ha = griddataBA(minfo, logF_grid[index], params, listpar, dims)
                 logF_mod.append(logF_mod_Ha)
             if check_list(lista_obs, 'Hb'):
                 u = np.where(lista_obs == 'Hb')
@@ -673,14 +683,16 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
         if flag.model == 'aeri':
             if check_list(lista_obs, 'UV'):
                 labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
-                      r'$i[\mathrm{^o}]$', r'$d\,[mas]$', r'E(B-V)']
+                      r'$i[\mathrm{^o}]$', r'$\pi\,[mas]$', r'E(B-V)']
                 if flag.include_rv is True:
                     labels = labels + [r'$R_\mathrm{V}$']
-                if flag.binary_star:
-                    labels = labels + [r'$M2\,[M_\odot]$']
+
             else:
                 labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
                       r'$i[\mathrm{^o}]$']
+            
+            if flag.binary_star:
+                labels = labels + [r'$M2\,[M_\odot]$']
         
 
         

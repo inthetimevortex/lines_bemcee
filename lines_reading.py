@@ -707,7 +707,11 @@ def read_star_info(star, lista_obs, listpar):
                                 [listpar[2][0], listpar[2][-1]],
                                 [listpar[3][0], listpar[3][-1]],
                                 [listpar[4][0], listpar[4][-1]]])
-
+            
+            if flag.binary_star:
+                M2 = [listpar[0][0], listpar[0][-1]]
+                ranges = np.concatenate([ranges, [M2]])
+        
         if flag.box_W:
             if flag.box_W_max == 'max':
                 ranges[1][0] = flag.box_W_min
