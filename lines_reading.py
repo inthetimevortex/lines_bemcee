@@ -1228,7 +1228,7 @@ def read_line_spectra(models, lbdarr, linename):
     
     radv = delta_v(vel, fluxes, 'Ha')
 #AMANDA_VOLTAR: o que fazer quando o 
-    radv = 2.8
+    #radv = 2.8
     print('RADIAL VELOCITY = {0}'.format(radv))
     vel = vel - radv
     wl = c*lbd_central/(c - vel)
@@ -1271,11 +1271,11 @@ def read_line_spectra(models, lbdarr, linename):
             bin_flux[i] = -np.inf
         elif len(index) == 1:
             bin_flux[i] = new_flux[index[0][0]]
-            sigma_new[i] = 0.01
+            sigma_new[i] = 0.04
         else: 
             # Calculating the mean flux in the box
             bin_flux[i] = np.sum(new_flux[index[0][0]:index[-1][0]])/len(new_flux[index[0][0]:index[-1][0]])
-            sigma_new[i] = 0.01/np.sqrt(len(index))
+            sigma_new[i] = 0.04/np.sqrt(len(index))
 
     obs_new = bin_flux
     

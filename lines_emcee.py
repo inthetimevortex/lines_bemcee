@@ -321,9 +321,7 @@ def lnprob(params, lbd, logF, dlogF, minfo, listpar, logF_grid,
                     M2 = params[-1]
                     logF_mod_UV_1 = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
                     logF_mod_UV_2 = griddataBA(minfo, logF_grid[index], np.array([M2, 0.1, params[2], params[3]]), listpar, dims)
-                    #logF_mod_UV_3 = Lfrac * logF_mod_UV_2 + (1. - Lfrac) * logF_mod_UV
-                    #logF_mod_UV = np.log10(Lfrac * 10**logF_mod_UV_2 + (1. - Lfrac) * 10**logF_mod_UV)
-                    logF_mod_UV = logF_mod_UV_1 + logF_mod_UV_2
+                    logF_mod_UV = np.log10(10.**logF_mod_UV_1 + 10**logF_mod_UV_2)
                 else:
                     logF_mod_UV = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
                     

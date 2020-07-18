@@ -30,14 +30,14 @@ extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        False # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
 long_process =      False  # Run with few walkers or many?
-list_of_stars =     'hd19818.txt'  # The list of flag.stars with prior data in /tables/ folder
+list_of_stars =     'hd6226_lines.txt'  # The list of flag.stars with prior data in /tables/ folder
 plot_fits =         True  # NOT USING //// Include fits in the corner plot NOT USING 
 plot_in_log_scale=  False  # NOT USING ///
 Nsigma_dis =        3.  # Set the range of values for the distance
 model =             'aeri'  # 'beatlas', 'befavor', 'aara', or 'acol'
 
 
-binary_star = False
+binary_star = True
 
 folder_data = '../data/'
 folder_fig = '../figures/'
@@ -63,10 +63,10 @@ remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too mu
 # Line and continuum combination
 combination =   True
 UV =            True
-iue =           False
+iue =           True
 votable =       False
-data_table=     True
-Ha =            True
+data_table=     False
+Ha =            False
 Hb =            False
 Hd =            False
 Hg =            False
