@@ -675,7 +675,7 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
                 labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
                       r'$i[\mathrm{^o}]$', r'$d\,[mas]$', r'E(B-V)']
                 if flag.include_rv is True:
-                    labels = labels + r'$R_\mathrm{V}$'
+                    labels = labels + [r'$R_\mathrm{V}$']
                 if flag.binary_star:
                     labels = labels + [r'$M2\,[M_\odot]$']
             else:
