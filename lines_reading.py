@@ -1243,14 +1243,14 @@ def read_line_spectra(models, lbdarr, linename):
 
     # Aqui faz o corte pra pegar so o que ta no intervalo de lbd da grade (lbdarr)
     idx = np.where((waves >= np.min(lbdarr)-0.001) & (waves <= np.max(lbdarr)+0.001))
-    wave = waves[idx]
-    flux = fluxes[idx]
-    sigma = errors[idx]
-    obs_new = np.zeros(len(lbdarr))
+    #wave = waves[idx]
+    #flux = fluxes[idx]
+    #sigma = errors[idx]
+    #obs_new = np.zeros(len(lbdarr))
 
 
-    new_wave = waves
-    new_flux = fluxes
+    #new_wave = waves
+    #new_flux = fluxes
 
 
     # Bin the spectra data to the lbdarr (model)
@@ -1263,42 +1263,43 @@ def read_line_spectra(models, lbdarr, linename):
     bin_flux = np.zeros(len(box_lim) - 1)
 
     lbdarr = lbdarr[1:-1]
-    sigma_new = np.zeros(len(lbdarr))
+    errors = np.zeros(len(lbdarr))
     #sigma_new.fill(0.017656218)
 #AMANDA_VOLTAR: erros devem ser estimados numa rotina de precondicionamento
 #HD6226: 0.04
 #MT91-213: 0.01 
     for i in range(len(box_lim) - 1):
         # lbd observations inside the box
-        index = np.argwhere((new_wave > box_lim[i]) & (new_wave < box_lim[i+1]))
+        index = np.argwhere((waves > box_lim[i]) & (waves < box_lim[i+1]))
         if len(index) == 0:
             bin_flux[i] = -np.inf
         elif len(index) == 1:
-            bin_flux[i] = new_flux[index[0][0]]
-            sigma_new[i] = 0.04
+            bin_flux[i] = fluxes[index[0][0]]
+            errors[i] = 0.04
         else: 
             # Calculating the mean flux in the box
-            bin_flux[i] = np.sum(new_flux[index[0][0]:index[-1][0]])/len(new_flux[index[0][0]:index[-1][0]])
-            sigma_new[i] = 0.04/np.sqrt(len(index))
+            bin_flux[i] = np.sum(fluxes[index[0][0]:index[-1][0]])/len(fluxes[index[0][0]:index[-1][0]])
+            errors[i] = 0.04/np.sqrt(len(index))
 
-    obs_new = bin_flux
+    flux = bin_flux
     
     #que estou interpolando sao as observacoes nos modelos, entao nao eh models_new que tenho que fazer. o models ta pronto
     # log space
-    logF = np.log10(obs_new)
-    mask = np.where(obs_new == -np.inf)
-    logF[mask] = -np.inf # so that dlogF == 0 in these points and the chi2 will not be computed
-    dlogF = sigma_new/obs_new
+    #logF = np.log10(obs_new)
+    #mask = np.where(obs_new == -np.inf)
+    #logF[mask] = -np.inf # so that dlogF == 0 in these points and the chi2 will not be computed
+    #dlogF = sigma_new/obs_new
     
     
     #rmalize the flux of models to the continuum
-    norm_model = np.zeros((len(models),len(lbdarr)))
+    #norm_model = np.zeros((len(models),len(lbdarr)))
+    #for i in range(len(models)):
+    #    norm_model[i] = ut.linfit(lbdarr, models[i][1:-1])
+    #models = norm_model
+    novo_models = np.zeros((len(models),len(lbdarr)))
     for i in range(len(models)):
-        norm_model[i] = ut.linfit(lbdarr, models[i][1:-1])
-    models = norm_model
-
-
-    logF_grid = np.log10(models)  
+        novo_models[i] = models[i][1:-1]
+    #logF_grid = np.log10(models)  
     
     if linename == 'Ha':
         if flag.remove_partHa:
@@ -1306,17 +1307,17 @@ def read_line_spectra(models, lbdarr, linename):
             lbdarr2 = lbdarr[194:]
             lbdarr = np.append(lbdarr1,lbdarr2)
             novo_models = np.zeros((5500,191))
-            obs_new1 = obs_new[:149]
-            obs_new2 = obs_new[194:]
-            obs_new = np.append(obs_new1,obs_new2)
-            logF = np.log10(obs_new)
-            sigma_new2 = np.append(sigma_new[:149], sigma_new[194:])
-            dlogF = sigma_new2 / obs_new
+            obs_new1 = flux[:149]
+            obs_new2 = flux[194:]
+            flux = np.append(obs_new1,obs_new2)
+            #logF = np.log10(obs_new)
+            errors = np.append(errors[:149], errors[194:])
+            #dlogF = sigma_new2 / obs_new
             i = 0
             while i < len(models):
-                novo_models[i] = np.append(models[i][:149],models[i][194:])
+                novo_models[i] = np.append(novo_models[i][:149],novo_models[i][194:])
                 i+=1
-            logF_grid = np.log10(novo_models)       
+            #logF_grid = np.log10(novo_models)       
     
     
     if flag.only_wings:
@@ -1331,18 +1332,18 @@ def read_line_spectra(models, lbdarr, linename):
         lbdarr1 = lbdarr[:keep_a]
         lbdarr2 = lbdarr[keep_b:]
         lbdarr = np.concatenate([lbdarr1,lbdarr2])
-        obs_new1 = obs_new[:keep_a]
-        obs_new2 = obs_new[keep_b:]
-        obs_neww = np.concatenate([obs_new1,obs_new2])
-        logF = np.log10(obs_neww)
-        sigma_new1 = sigma_new[:keep_a]
-        sigma_new2 = sigma_new[keep_b:]
-        sigma_new = np.concatenate([sigma_new1, sigma_new2])
-        dlogF = sigma_new/obs_neww
-        novo_models1 = models[:, :keep_a]
-        novo_models2 = models[:, keep_b:]
+        obs_new1 = flux[:keep_a]
+        obs_new2 = flux[keep_b:]
+        flux = np.concatenate([obs_new1,obs_new2])
+        #logF = np.log10(obs_neww)
+        sigma_new1 = errors[:keep_a]
+        sigma_new2 = errors[keep_b:]
+        errors = np.concatenate([sigma_new1, sigma_new2])
+        #dlogF = sigma_new/obs_neww
+        novo_models1 = novo_models[:, :keep_a]
+        novo_models2 = novo_models[:, keep_b:]
         novo_models = np.hstack((novo_models1, novo_models2))
-        logF_grid = np.log10(novo_models)
+        #logF_grid = np.log10(novo_models)
         
     if flag.only_centerline:
         plt.plot(waves, fluxes)
@@ -1354,20 +1355,21 @@ def read_line_spectra(models, lbdarr, linename):
         lbdarr1 = lbdarr[keep_a:]
         lbdarr2 = lbdarr[:keep_b]
         lbdarr = np.concatenate([lbdarr1,lbdarr2])
-        obs_new1 = obs_new[keep_a:]
-        obs_new2 = obs_new[:keep_b]
-        obs_neww = np.concatenate([obs_new1,obs_new2])
-        logF = np.log10(obs_neww)
-        sigma_new1 = sigma_new[keep_a:]
-        sigma_new2 = sigma_new[:keep_b]
-        sigma_new = np.concatenate([sigma_new1, sigma_new2])
-        dlogF = sigma_new/obs_neww
-        novo_models1 = models[:, keep_a:]
-        novo_models2 = models[:, :keep_b]
+        obs_new1 = flux[keep_a:]
+        obs_new2 = flux[:keep_b]
+        flux = np.concatenate([obs_new1,obs_new2])
+        #logF = np.log10(obs_neww)
+        sigma_new1 = errors[keep_a:]
+        sigma_new2 = errors[:keep_b]
+        errors = np.concatenate([sigma_new1, sigma_new2])
+        #dlogF = sigma_new/obs_neww
+        novo_models1 = novo_models[:, keep_a:]
+        novo_models2 = novo_models[:, :keep_b]
         novo_models = np.hstack((novo_models1, novo_models2))
-        logF_grid = np.log10(novo_models)
-
-    return logF, dlogF, logF_grid, lbdarr, box_lim
+        #logF_grid = np.log10(novo_models)
+  
+    print(len(flux), len(errors), len(novo_models[0]))
+    return flux, errors, novo_models, lbdarr, box_lim
     
     
     

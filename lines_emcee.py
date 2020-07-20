@@ -8,7 +8,7 @@ import emcee
 import matplotlib as mpl
 from matplotlib import ticker
 from matplotlib import *
-from utils import find_nearest,griddataBAtlas, griddataBA, kde_scipy, quantile, geneva_interp_fast
+from utils import find_nearest,griddataBAtlas, griddataBA, kde_scipy, quantile, geneva_interp_fast, linfit
 from be_theory import hfrac2tms
 import corner_HDR
 from pymc3.stats import hpd
@@ -333,18 +333,22 @@ def lnprob(params, lbd, logF, dlogF, minfo, listpar, logF_grid,
             if check_list(lista_obs, 'Ha'):
                 u = np.where(lista_obs == 'Ha')
                 index = u[0][0]
+                
                 #if check_list(lista_obs, 'UV'):
                 if flag.binary_star:
                     M2 = params[-1]
                     logF_mod_Ha_1 = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
                     logF_mod_Ha_2 = griddataBA(minfo, logF_grid[index], np.array([M2, 0.1, params[2], params[3]]), listpar, dims)
-                    logF_mod_Ha = np.log((10.**logF_mod_Ha_1 + 10.**logF_mod_Ha_2)/2.)
+                    F_mod_Ha = linfit(lbd[index], logF_mod_Ha_1 + logF_mod_Ha_2)
+                    #logF_mod_Ha = np.log10(F_mod_Ha)
                     #logF_mod_Ha = np.log(norm_spectra(lbd[index], F_mod_Ha_unnormed))
                 else:
-                    logF_mod_Ha = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+                    logF_mod_Ha_unnorm = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+                    F_mod_Ha = linfit(lbd[index], logF_mod_Ha_unnorm)
+                    #logF_mod_Ha = np.log10(F_mod_Ha)
                 #else:
                 #    logF_mod_Ha = griddataBA(minfo, logF_grid[index], params, listpar, dims)
-                logF_mod.append(logF_mod_Ha)
+                logF_mod.append(F_mod_Ha)
             if check_list(lista_obs, 'Hb'):
                 u = np.where(lista_obs == 'Hb')
                 index = u[0][0]

@@ -2,7 +2,7 @@ from PyAstronomy import pyasl
 import numpy as np
 import matplotlib.pylab as plt
 from be_theory import hfrac2tms
-from utils import beta, geneva_interp_fast, griddataBAtlas, griddataBA
+from utils import beta, geneva_interp_fast, griddataBAtlas, griddataBA, linfit
 from lines_reading import check_list
 import corner
 from constants import G, Msun, Rsun
@@ -611,7 +611,7 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
         
 
 
-def plot_line(line, lista_obs, minfo, logF_grid, par, listpar, dims, logF, dlogF, lbd, par_list, current_folder, fig_name):
+def plot_line(line, lista_obs, minfo, F_grid, par, listpar, dims, flux, errors, lbd, par_list, current_folder, fig_name):
     # Finding position
     u = np.where(lista_obs == line)
     index = u[0][0]
@@ -638,39 +638,45 @@ def plot_line(line, lista_obs, minfo, logF_grid, par, listpar, dims, logF, dlogF
     #    logF_mod_line = griddataBA(minfo, logF_grid[index], par ,listpar, dims)
         
     if flag.binary_star:
-        logF_mod_line_1 = griddataBA(minfo, logF_grid[index], par[:-lim], listpar, dims)
-        logF_mod_line_2 = griddataBA(minfo, logF_grid[index], np.array([par[-1], 0.1, par[2], par[3]]), listpar, dims)
-        logF_mod_line = np.log((10.**logF_mod_line_1 + 10.**logF_mod_line_2)/2.)
+        F_mod_line_1 = griddataBA(minfo, F_grid[index], par[:-lim], listpar, dims)
+        F_mod_line_2 = griddataBA(minfo, F_grid[index], np.array([par[-1], 0.1, par[2], par[3]]), listpar, dims)
+        flux_mod_line = linfit(lbd[index], F_mod_line_1 + F_mod_line_2)
+        #logF_mod_line = np.log10(F_mod_line)
+        #logF_mod_Ha = np.log(norm_spectra(lbd[index], F_mod_Ha_unnormed))
+    else:
+        F_mod_line_unnorm = griddataBA(minfo, F_grid[index], par[:-lim], listpar, dims)
+        flux_mod_line = linfit(lbd[index], F_mod_line_unnorm)
+        #logF_mod_Ha = np.log10(F_mod_Ha)
         #logF_mod_line = np.log(norm_spectra(lbd[index], F_mod_line_unnormed))
         #logF_mod_line = np.log10(10.**logF_mod_line_1 + 10.**logF_mod_line_2)
-    else:
-        logF_mod_line = griddataBA(minfo, logF_grid[index], par[:-lim], listpar, dims)
+
         
     #logF_mod_line = griddataBA(minfo, logF_grid[index], par[:-lim],listpar, dims)
-    flux_mod_line = 10.**logF_mod_line
+    #flux_mod_line = 10.**logF_mod_line
     # Observations
-    logF_line = logF[index]
-    flux_line = 10.**logF_line
-    dflux_line = dlogF[index] * flux_line
+    #logF_line = logF[index]
+    flux_line = flux[index]
+    dflux_line = errors[index]
+    #dflux_line = dlogF[index] * flux_line
 
     keep = np.where(flux_line > 0) # avoid plot zero flux
     lbd_line = lbd[index]
     
-    logF_list = np.zeros([len(par_list), len(logF_mod_line)])
-    chi2 = np.zeros(len(logF_list))
+    F_list = np.zeros([len(par_list), len(flux_mod_line)])
+    chi2 = np.zeros(len(F_list))
     for i in range(len(par_list)):
         if flag.binary_star:
-            logF_mod_line_1_list = griddataBA(minfo, logF_grid[index], par_list[i, :-lim], listpar, dims)
-            logF_mod_line_2_list = griddataBA(minfo, logF_grid[index], np.array([par_list[i, -1], 0.1, par_list[i, 2], par_list[i, 3]]), listpar, dims)
-            logF_list[i]= np.log((10.**logF_mod_line_1_list + 10**logF_mod_line_2_list)/2.)
+            F_mod_line_1_list = griddataBA(minfo, F_grid[index], par_list[i, :-lim], listpar, dims)
+            F_mod_line_2_list = griddataBA(minfo, F_grid[index], np.array([par_list[i, -1], 0.1, par_list[i, 2], par_list[i, 3]]), listpar, dims)
+            F_list[i]  = linfit(lbd[index], F_mod_line_1_list + F_mod_line_2_list)
             #logF_list[i] = np.log(norm_spectra(lbd[index], F_list))
         else:
-            logF_list[i] = griddataBA(minfo, logF_grid[index], par_list[i, :-lim],
-                              listpar, dims)
-        
-                              
+            F_list_unnorm[i] = griddataBA(minfo, F_grid[index], par_list[i, :-lim], listpar, dims)
+            F_list[i]  = linfit(lbd[index], F_list_unnorm)
+            
+    #logF_list[i]= np.log10(flux_mod_line_list)
     chi2_line = np.sum((flux_line[keep] - flux_mod_line[keep])**2 / (dflux_line[keep])**2.)
-    N_line = len(logF_line[keep])
+    N_line = len(flux_line[keep])
     chi2_line = chi2_line/N_line
     # Data
 
@@ -683,7 +689,7 @@ def plot_line(line, lista_obs, minfo, logF_grid, par, listpar, dims, logF, dlogF
     fig, (ax1,ax2) = plt.subplots(2,1,gridspec_kw={'height_ratios': [3, 1]})                              
     # Plot models
     for i in range(len(par_list)):
-        ax1.plot(lbd_line, 10**logF_list[i], color='gray', alpha=0.1)
+        ax1.plot(lbd_line, F_list[i], color='gray', alpha=0.1)
     ax1.errorbar(lbd_line[keep], flux_line[keep], yerr= dflux_line[keep], ls='', marker='o', alpha=0.5, ms=5, color='blue', linewidth=1) 
 
     # Best fit
