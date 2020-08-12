@@ -582,8 +582,8 @@ def read_acol_xdr():
     listpar[4].sort()
     listpar = list([listpar[0], listpar[1], listpar[3], listpar[4], listpar[5],
                     listpar[7], listpar[8]])
-
-    return ctrlarr, minfo, models, lbdarr, listpar, dims, isig
+        
+    return ctrlarr, minfo, [models], [lbdarr], listpar, dims, isig
 
 
 # ==============================================================================
@@ -1679,18 +1679,18 @@ def combine_sed(wave, flux, sigma, models, lbdarr):
 
 # ------------------------------------------------------------------------------
     # select lbdarr to coincide with lbd
+    #models_new = np.zeros([len(models), len(wave)])
+    
+    idx = np.where((wave >= wave_lim_min) & (wave <= wave_lim_max))
+    wave = wave[idx]
+    flux = flux[idx]
+    sigma = sigma[idx]
     models_new = np.zeros([len(models), len(wave)])
-    if flag.model == 'beatlas' or flag.model == 'aara' or flag.model == 'aeri': # Aqui faz o corte pra pegar so o que ta no intervalo de lbd
-        idx = np.where((wave >= np.min(lbdarr)) & (wave <= np.max(lbdarr)))
-        wave = wave[idx]
-        flux = flux[idx]
-        sigma = sigma[idx]
-        models_new = np.zeros([len(models), len(wave)])
-
+    
     for i in range(len(models)): # A interpolacao 
-        models_new[i, :] = 10.**griddata(np.log(lbdarr),
+        models_new[i, :] = 10.**griddata(np.log10(lbdarr),
                                          np.log10(models[i]),
-                                         np.log(wave), method='linear')
+                                         np.log10(wave), method='linear')
     # to log space
     logF = np.log10(flux)
     dlogF = sigma / flux
@@ -2007,7 +2007,8 @@ def read_observables(models, lbdarr, lista_obs):
     logF_grid_combined = []
     wave_combined = []
     box_lim_combined = []
-     
+    
+
     if check_list(lista_obs, 'UV'):     
         
         u = np.where(lista_obs == 'UV')

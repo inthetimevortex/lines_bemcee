@@ -195,7 +195,7 @@ def lnprior(params, vsin_obs, sig_vsin_obs, dist_pc, sig_dist_pc,
         Mstar, oblat, Hfrac, cosi, dist, ebv = params[0], params[1],\
             params[2], params[3], params[4], params[5]
     if flag.model == 'aara' or flag.model == 'acol':
-        if flag.normal_spectra is False:
+        if flag.normal_spectra is False or flag.UV is True:
             Mstar, oblat, Hfrac, cosi, dist, ebv = params[0], params[1],\
                 params[2], params[6], params[7], params[8]
         else:
@@ -275,6 +275,25 @@ def lnprior(params, vsin_obs, sig_vsin_obs, dist_pc, sig_dist_pc,
     return -0.5 * chi2_prior
 
 
+def find_lim():
+    if flag.UV:
+        if flag.include_rv and not flag.binary_star:
+            lim = 3
+        elif flag.include_rv and flag.binary_star:
+            lim = 4
+        elif flag.binary_star and not flag.include_rv:
+            lim = 3
+        else:
+            lim = 2
+    else:
+        if flag.binary_star:
+            lim = 1
+        else:
+            lim = -4
+    
+    
+    return lim
+
 # ==============================================================================
 def lnprob(params, lbd, logF, dlogF, minfo, listpar, logF_grid,
            vsin_obs, sig_vsin_obs, dist_pc, sig_dist_pc, isig,
@@ -290,24 +309,11 @@ def lnprob(params, lbd, logF, dlogF, minfo, listpar, logF_grid,
 
     if inside_ranges:
         
-        if check_list(lista_obs, 'UV'):
-            if flag.include_rv and not flag.binary_star:
-                lim = 3
-            elif flag.include_rv and flag.binary_star:
-                lim = 4
-            elif flag.binary_star and not flag.include_rv:
-                lim = 3
-            else:
-                lim = 2
-        else:
-            if flag.binary_star:
-                lim = 1
-            else:
-                lim = -4
+        lim = find_lim()
 
         
 
-        if flag.model == 'beatlas' or flag.model == 'acol':
+        if flag.model == 'beatlas' :
             if flag.normal_spectra:
                 logF_mod = griddataBA(minfo, logF_grid, params, listpar, dims)
             else:
@@ -666,15 +672,18 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
 
 
         for i in range(len(samples)):
-            if flag.model == 'befavor' or flag.model == 'aara' or\
-               flag.model == 'acol' or flag.model == 'bcmi':
-                # Calculating logg for the non_rotating case
-                Mstar, oblat, Hfrac = samples[i][0], samples[i][1],\
-                    samples[i][2]
-            else:
-                Mstar, W, tms = samples[i][0], samples[i][1], samples[i][2]
+            #if flag.model == 'befavor' or flag.model == 'aara' or\
+            #   flag.model == 'acol' or flag.model == 'bcmi':
+            #    # Calculating logg for the non_rotating case
+            #    Mstar, oblat, Hfrac = samples[i][0], samples[i][1],\
+            #        samples[i][2]
+            #else:
+            #    Mstar, W, tms = samples[i][0], samples[i][1], samples[i][2]
 
-
+            if flag.model == 'acol':
+                samples[i][1] = obl2W(samples[i][1])
+                samples[i][2] = hfrac2tms(samples[i][2])
+                samples[i][6] = (np.arccos(samples[i][6])) * (180. / np.pi)
 
             if flag.model == 'aeri':
                 # Converting angles to degrees
@@ -695,10 +704,24 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
                 labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
                       r'$i[\mathrm{^o}]$']
             
-            if flag.binary_star:
+            
+        if flag.model == 'acol':
+            labels = [r'$M\,[\mathrm{M_\odot}]$', r'$W$',
+                          r"$t/t_\mathrm{ms}$",
+                          r'$\log \, n_0 \, [\mathrm{cm^{-3}}]$',
+                          r'$R_\mathrm{D}\, [R_\star]$',
+                          r'$n$', r'$i[\mathrm{^o}]$', r'$\pi\,[\mathrm{pc}]$',
+                          r'E(B-V)']
+            labels2 = [r'$M$', r'$W$',
+                          r"$t/t_\mathrm{ms}$",
+                          r'$\log \, n_0 $',
+                          r'$R_\mathrm{D}$',
+                          r'$n$', r'$i$', r'$\pi$',
+                          r'E(B-V)']                
+            if flag.include_rv is True:
+                    labels = labels + [r'$R_\mathrm{V}$']
+        if flag.binary_star:
                 labels = labels + [r'$M2\,[M_\odot]$']
-        
-
         
         if flag.corner_color == 'blue':
             truth_color='xkcd:cobalt'
@@ -766,6 +789,13 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
 
             ranges[3] = (np.arccos(ranges[3])) * (180. / np.pi)
             ranges[3] = np.array([ranges[3][1], ranges[3][0]])
+        if flag.model == 'acol':
+            ranges[1] = obl2W(ranges[1])            
+            ranges[2][0] = hfrac2tms(ranges[2][1])
+            ranges[2][1] = hfrac2tms(ranges[2][0])
+            ranges[6] = (np.arccos(ranges[6])) * (180. / np.pi)
+            ranges[6] = np.array([ranges[6][1], ranges[6][0]])
+
         best_pars = []
         best_errs = []
         for i in range(Ndim):
@@ -1232,10 +1262,8 @@ def run(input_params):
         ranges, dist_pc, sig_dist_pc, vsin_obs, sig_vsin_obs,\
             Ndim = read_star_info(star, lista_obs, listpar)
 
-        
-        if flag.model == 'aeri':
-                # leitura dos dados
-            logF, dlogF, logF_grid, wave, box_lim =\
+
+        logF, dlogF, logF_grid, wave, box_lim =\
                 read_observables( models, lbdarr, lista_obs)
                                 
 

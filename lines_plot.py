@@ -1,11 +1,11 @@
 from PyAstronomy import pyasl
 import numpy as np
 import matplotlib.pylab as plt
-from be_theory import hfrac2tms
+from be_theory import hfrac2tms, oblat2w
 from utils import beta, geneva_interp_fast, griddataBAtlas, griddataBA, linfit
 from lines_reading import check_list
 import corner
-from constants import G, Msun, Rsun
+from constants import G, Msun, Rsun, sigma, Lsun
 import seaborn as sns
 import user_settings as flag
 
@@ -62,11 +62,18 @@ def print_output(params_fit, errors_fit):
 def print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels):
     
     fname = current_folder+fig_name+ '.txt'
-    names = ['Mstar', 'W', 't/tms', 'i', 'Dist', 'E(B-V)']
-    if flag.include_rv:
-        names = names + ['RV']
-    if flag.binary_star:
-        names = names + ['M2']
+    if flag.model == 'aeri':
+        names = ['Mstar', 'W', 't/tms', 'i', 'Dist', 'E(B-V)']
+        if flag.include_rv:
+            names = names + ['RV']
+        if flag.binary_star:
+            names = names + ['M2']
+    if flag.model == 'acol':
+        names = ['Mstar', 'W', 't/tms', 'logn0', 'Rd', 'n', 'i', 'Dist', 'E(B-V)']
+        if flag.include_rv:
+            names = names + ['RV']
+        if flag.binary_star:
+            names = names + ['M2']
     
     file1 = open(fname, 'w')
     L = [r"\begin{table}"+' \n',
@@ -146,6 +153,35 @@ def print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels):
     wcrit = np.sqrt(8. / 27. * G * Mstar * Msun / (Rpole * Rsun)**3)
     vsini = W * wcrit * (Req * Rsun) * np.sin(cosi * np.pi/180.) * 1e-5
     
+    w_ = oblat2w(oblat)
+    A_roche = 4.*np.pi* (Rpole*Rsun)**2 * (1. + 0.19444*w_**2 \
+                      + 0.28053*w_**4 - 1.9014*w_**6 + 6.8298*w_**8 \
+                     - 9.5002*w_**10 + 4.6631*w_**12)
+                     
+    Teff = ((10.**logL)*Lsun / sigma / A_roche)**0.25
+    
+    
+    Teff_range = [0., 50000.]
+    for oo in oblat_range:
+        for rr in Rpole_range:
+            for ll in logL_range:
+                
+                w_ = oblat2w(oo)
+                A_roche = 4.*np.pi* (rr*Rsun)**2 * (1. + 0.19444*w_**2 \
+                      + 0.28053*w_**4 - 1.9014*w_**6 + 6.8298*w_**8 \
+                     - 9.5002*w_**10 + 4.6631*w_**12)
+                     
+                Teff_ = ((10.**ll)*Lsun / sigma / A_roche)**0.25
+                if Teff_ > Teff_range[0]:
+                    Teff_range[0] = Teff_
+                    print('Teff max is now = {}'.format(Teff_range[0]))
+                if Teff_ < Teff_range[1]:
+                    Teff_range[1] = Teff_
+                    print('Teff min is now = {}'.format(Teff_range[1]))
+
+    
+    
+    
     vsini_range = [0., 10000.]
     for mm in Mstar_range:
         for rr in Rpole_range:
@@ -175,6 +211,8 @@ def print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels):
     params_to_print.append('Beta  = {0:.2f} +{1:.2f} -{2:.2f}'.format(beta_par, beta_range[1] - beta_par, beta_par - beta_range[0]))
     file1.writelines(r"$v \sin i\,\rm[km/s]$"+' & ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Derived  \\\ \n'.format(vsini, vsini_range[0] - vsini, vsini - vsini_range[1]))
     params_to_print.append('vsini = {0:.2f} +{1:.2f} -{2:.2f}'.format(vsini, vsini_range[0] - vsini, vsini - vsini_range[1]))
+    file1.writelines(r"$T_{\rm eff}$"+' & ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Derived  \\\ \n'.format(Teff, Teff_range[0]-Teff, Teff-Teff_range[1]))
+    params_to_print.append('Teff = {0:.2f} +{1:.2f} -{2:.2f}'.format(Teff, Teff_range[0]-Teff, Teff-Teff_range[1]))
     
     L = ['\hline \n',
         '\end{tabular} \n'
