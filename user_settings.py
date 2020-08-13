@@ -25,11 +25,11 @@ import numpy as np
 import random
 # ==============================================================================
 # General Options
-a_parameter =       3.   # Set internal steps of each walker
+a_parameter =       1.4   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
-include_rv =        True  # If False: fix Rv = 3.1, else Rv will be inferead
+include_rv =        False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
-long_process =      False  # Run with few walkers or many?
+long_process =      True  # Run with few walkers or many?
 list_of_stars =     'HD37795'  # Star name
 Nsigma_dis =        3.  # Set the range of values for the distance
 model =             'acol'  # 'beatlas', 'befavor', 'aara', or 'acol'
@@ -59,9 +59,9 @@ Sigma_Clip =        True # If you want telluric lines/outilier points removed
 remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too much absorption (in the wings)
 
 # Line and continuum combination
-combination =   True
-UV =            True
-iue =           True
+
+UV =            False
+iue =           False
 votable =       False
 data_table=     False
 Ha =            True
@@ -136,7 +136,7 @@ def init():
             long_process, list_of_flag.stars, plot_fits, plot_in_log_scale, 
             Nsigma_dis, model, vsini_prior, dist_prior, box_W ,incl_prior, 
             Halpha, normal_spectra, only_wings, only_centerline, Sigma_Clip, 
-            remove_partHa, combination, UV, Ha, Hb, Hg, Hd, compare_results,
+            remove_partHa, UV, Ha, Hb, Hg, Hd, compare_results,
             stellar_prior, npy_star, acrux, Nproc, stars, list_plx, list_sig_plx, 
             list_vsini_obs, list_sig_vsini_obs, list_pre_ebmv, incl0, sig_incl0,
             lbd_range, corner_color, data_table, binary_star, iue]

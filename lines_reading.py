@@ -121,8 +121,8 @@ def read_BAphot2_xdr(lista_obs):
 # =============================================================================
 def select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc):
     line_peak = find_nearest2(lbdarr, lbdc)
-    keep_a = find_nearest2(lbdarr, lbdc - 0.007)
-    keep_b = find_nearest2(lbdarr, lbdc + 0.007)
+    keep_a = find_nearest2(lbdarr, lbdc - 0.004)
+    keep_b = find_nearest2(lbdarr, lbdc + 0.004)
     lbd_line = lbdarr[keep_a:keep_b]
     models_line = models[:, keep_a:keep_b]
     lbdarr_line = lbd_line*1e4
@@ -132,7 +132,7 @@ def select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc):
 
     return models_combined, lbd_combined
 
-
+# =============================================================================
 def xdr_remove_lines(lbdarr, models):
     for line in lines_dict:
         keep_a = find_nearest2(lbdarr, lines_dict[line] - 0.007)
@@ -650,7 +650,7 @@ def read_acol_Ha_xdr(lista_obs):
         lbd_combined.append(lbd_UV)
    
     if check_list(lista_obs, 'Ha'): 
-        lbdc = 0.656
+        lbdc = 0.6563
         models_combined, lbd_combined = select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc)
     
     
@@ -1978,8 +1978,6 @@ def create_tag():
         tag = tag + '_boxW'
     if flag.incl_prior:
         tag = tag + '_inclPrior'
-    if flag.combination:
-        tag = tag + '_combination'
     if flag.UV:
         tag = tag + '+UV'
     if flag.Ha:

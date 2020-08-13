@@ -85,7 +85,7 @@ def print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels):
     file1.writelines(L)
     
     params_to_print = []
-    print(errors_fit[0][1])
+    #print(errors_fit[0][1])
     for i in range(len(params_fit)):
         params_to_print.append(names[i] + '= {0:.2f} +{1:.2f} -{2:.2f}'.format(params_fit[i], errors_fit[i][0], errors_fit[i][1]))
         file1.writelines(labels[i] + '& ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Free \\\ \n'.format(params_fit[i], errors_fit[i][0], errors_fit[i][1]))
@@ -160,10 +160,10 @@ def print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels):
                 Teff_ = ((10.**ll)*Lsun / sigma / A_roche)**0.25
                 if Teff_ > Teff_range[0]:
                     Teff_range[0] = Teff_
-                    print('Teff max is now = {}'.format(Teff_range[0]))
+                    #print('Teff max is now = {}'.format(Teff_range[0]))
                 if Teff_ < Teff_range[1]:
                     Teff_range[1] = Teff_
-                    print('Teff min is now = {}'.format(Teff_range[1]))
+                    #print('Teff min is now = {}'.format(Teff_range[1]))
 
     
     
@@ -509,16 +509,24 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
             
     
     if flag.model == 'acol':
-        if flag.include_rv and flag.binary_star:
-            Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv, rv, M2 = par
-        elif flag.include_rv and not flag.binary_star:
-            Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv, rv = par
-        elif flag.binary_star and not flag.include_rv:
-            Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv, M2 = par
-            rv = 3.1
+        if check_list(lista_obs, 'UV'):
+            if flag.include_rv and flag.binary_star:
+                Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv, rv, M2 = par
+            elif flag.include_rv and not flag.binary_star:
+                Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv, rv = par
+            elif flag.binary_star and not flag.include_rv:
+                Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv, M2 = par
+                rv = 3.1
+            else:
+                Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv = par
+                rv=3.1
         else:
-            Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv = par
+            if flag.binary_star:
+                Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, M2 = par
+            else:
+                Mstar, oblat, Hfrac, Sig0, Rd, n, cosi = par
         tms = hfrac2tms(Hfrac)
+        rv = 3.1
 
     
     

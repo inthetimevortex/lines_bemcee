@@ -704,20 +704,35 @@ def griddataBA_new(minfo, models, params, isig, silent=True):
 
 
 def find_lim():
-    if flag.UV:
-        if flag.include_rv and not flag.binary_star:
-            lim = 3
-        elif flag.include_rv and flag.binary_star:
-            lim = 4
-        elif flag.binary_star and not flag.include_rv:
-            lim = 3
+    if flag.model == 'aeri':
+        if flag.UV:
+            if flag.include_rv and not flag.binary_star:
+                lim = 3
+            elif flag.include_rv and flag.binary_star:
+                lim = 4
+            elif flag.binary_star and not flag.include_rv:
+                lim = 3
+            else:
+                lim = 2
         else:
-            lim = 2
-    else:
-        if flag.binary_star:
-            lim = 1
+            if flag.binary_star:
+                lim = 1
+            else:
+                lim = -4
+    if flag.model == 'acol':
+        if flag.UV:
+            if flag.include_rv and not flag.binary_star:
+                lim = 3
+            elif flag.include_rv and flag.binary_star:
+                lim = 4
+            elif flag.binary_star and not flag.include_rv:
+                lim = 3
+            else:
+                lim = 2
         else:
-            lim = -4
-    
+            if flag.binary_star:
+                lim = 1
+            else:
+                lim = -7
     
     return lim

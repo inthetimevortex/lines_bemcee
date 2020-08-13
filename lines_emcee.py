@@ -296,74 +296,65 @@ def lnprob(params, lbd, logF, dlogF, minfo, listpar, logF_grid,
         
         lim = find_lim()
 
-        
-
-        if flag.model == 'beatlas' :
-            if flag.normal_spectra:
-                logF_mod = griddataBA(minfo, logF_grid, params, listpar, dims)
-            else:
-                logF_mod = griddataBAtlas(minfo, logF_grid, params[:-lim],
-                                          listpar, dims, isig)
-        else:
-            logF_mod = []
-            if check_list(lista_obs, 'UV'):
-                u = np.where(lista_obs == 'UV')
-                index = u[0][0]
-                
-                
-                if flag.binary_star:
-                    M2 = params[-1]
-                    logF_mod_UV_1 = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
-                    logF_mod_UV_2 = griddataBA(minfo, logF_grid[index], np.array([M2, 0.1, params[2], params[3]]), listpar, dims)
-                    logF_mod_UV = np.log10(10.**logF_mod_UV_1 + 10.**logF_mod_UV_2)
-                else:
-                    logF_mod_UV = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
-                    
-                logF_mod.append(logF_mod_UV)                    
+    
+        logF_mod = []
+        if check_list(lista_obs, 'UV'):
+            u = np.where(lista_obs == 'UV')
+            index = u[0][0]
             
-            if check_list(lista_obs, 'Ha'):
-                u = np.where(lista_obs == 'Ha')
-                index = u[0][0]
+            if flag.binary_star:
+                M2 = params[-1]
+                logF_mod_UV_1 = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+                logF_mod_UV_2 = griddataBA(minfo, logF_grid[index], np.array([M2, 0.1, params[2], params[3]]), listpar, dims)
+                logF_mod_UV = np.log10(10.**logF_mod_UV_1 + 10.**logF_mod_UV_2)
+            else:
+                logF_mod_UV = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
                 
-                #if check_list(lista_obs, 'UV'):
-                if flag.binary_star:
-                    M2 = params[-1]
-                    logF_mod_Ha_1 = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
-                    logF_mod_Ha_2 = griddataBA(minfo, logF_grid[index], np.array([M2, 0.1, params[2], params[3]]), listpar, dims)
-                    F_mod_Ha = linfit(lbd[index], logF_mod_Ha_1 + logF_mod_Ha_2)
-                    #logF_mod_Ha = np.log10(F_mod_Ha)
-                    #logF_mod_Ha = np.log(norm_spectra(lbd[index], F_mod_Ha_unnormed))
-                else:
-                    logF_mod_Ha_unnorm = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
-                    F_mod_Ha = linfit(lbd[index], logF_mod_Ha_unnorm)
-                    #logF_mod_Ha = np.log10(F_mod_Ha)
-                #else:
-                #    logF_mod_Ha = griddataBA(minfo, logF_grid[index], params, listpar, dims)
-                logF_mod.append(F_mod_Ha)
-            if check_list(lista_obs, 'Hb'):
-                u = np.where(lista_obs == 'Hb')
-                index = u[0][0]
-                if check_list(lista_obs, 'UV'):
-                    logF_mod_Hb = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
-                else:
-                    logF_mod_Hb = griddataBA(minfo, logF_grid[index], params, listpar, dims)
-                logF_mod.append(logF_mod_Hb)
-            if check_list(lista_obs, 'Hd'):
-                u = np.where(lista_obs == 'Hd')
-                index = u[0][0]
-                if check_list(lista_obs, 'UV'):
-                    logF_mod_Hd = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
-                else:
-                    logF_mod_Hd = griddataBA(minfo, logF_grid[index], params, listpar, dims)
-                logF_mod.append(logF_mod_Hd)
-            if check_list(lista_obs, 'Hg'):
-                u = np.where(lista_obs == 'Hg')
-                index = u[0][0]
-                if check_list(lista_obs, 'UV'):
-                    logF_mod_Hg = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
-                else:
-                    logF_mod_Hg = griddataBA(minfo, logF_grid[index], params, listpar, dims)
-                logF_mod.append(logF_mod_Hg)
+            logF_mod.append(logF_mod_UV)                    
+        
+        if check_list(lista_obs, 'Ha'):
+            u = np.where(lista_obs == 'Ha')
+            index = u[0][0]
+            
+            #if check_list(lista_obs, 'UV'):
+            if flag.binary_star:
+                M2 = params[-1]
+                logF_mod_Ha_1 = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+                logF_mod_Ha_2 = griddataBA(minfo, logF_grid[index], np.array([M2, 0.1, params[2], params[3]]), listpar, dims)
+                F_mod_Ha = linfit(lbd[index], logF_mod_Ha_1 + logF_mod_Ha_2)
+                #logF_mod_Ha = np.log10(F_mod_Ha)
+                #logF_mod_Ha = np.log(norm_spectra(lbd[index], F_mod_Ha_unnormed))
+            else:
+                logF_mod_Ha_unnorm = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+                F_mod_Ha = linfit(lbd[index], logF_mod_Ha_unnorm)
+                #logF_mod_Ha = np.log10(F_mod_Ha)
+            #else:
+            #    logF_mod_Ha = griddataBA(minfo, logF_grid[index], params, listpar, dims)
+            logF_mod.append(F_mod_Ha)
+        if check_list(lista_obs, 'Hb'):
+            u = np.where(lista_obs == 'Hb')
+            index = u[0][0]
+            if check_list(lista_obs, 'UV'):
+                logF_mod_Hb = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+            else:
+                logF_mod_Hb = griddataBA(minfo, logF_grid[index], params, listpar, dims)
+            logF_mod.append(logF_mod_Hb)
+        if check_list(lista_obs, 'Hd'):
+            u = np.where(lista_obs == 'Hd')
+            index = u[0][0]
+            if check_list(lista_obs, 'UV'):
+                logF_mod_Hd = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+            else:
+                logF_mod_Hd = griddataBA(minfo, logF_grid[index], params, listpar, dims)
+            logF_mod.append(logF_mod_Hd)
+        if check_list(lista_obs, 'Hg'):
+            u = np.where(lista_obs == 'Hg')
+            index = u[0][0]
+            if check_list(lista_obs, 'UV'):
+                logF_mod_Hg = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+            else:
+                logF_mod_Hg = griddataBA(minfo, logF_grid[index], params, listpar, dims)
+            logF_mod.append(logF_mod_Hg)
 
 
         lp = lnprior(params, vsin_obs, sig_vsin_obs, dist_pc,
@@ -472,14 +463,14 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
 
 # emcee inference for new stellar grid 
         if flag.long_process is True:
-            Nwalk = 300  # 200  # 500
+            Nwalk = 100  # 200  # 500
             nint_burnin = 300  # 50
             nint_mcmc = 1000  # 500  # 1000
         else:
-            Nwalk = 20
-            nint_burnin = 20
-            nint_mcmc = 60
-
+            Nwalk = 30
+            nint_burnin = 50
+            nint_mcmc = 150
+            
         p0 = [np.random.rand(Ndim) * (ranges[:, 1] - ranges[:, 0]) +
               ranges[:, 0] for i in range(Nwalk)]
         start_time = time.time()
@@ -688,25 +679,41 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
             else:
                 labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
                       r'$i[\mathrm{^o}]$']
-            
+            labels2 = labels
             
         if flag.model == 'acol':
-            labels = [r'$M\,[\mathrm{M_\odot}]$', r'$W$',
-                          r"$t/t_\mathrm{ms}$",
-                          r'$\log \, n_0 \, [\mathrm{cm^{-3}}]$',
-                          r'$R_\mathrm{D}\, [R_\star]$',
-                          r'$n$', r'$i[\mathrm{^o}]$', r'$\pi\,[\mathrm{pc}]$',
-                          r'E(B-V)']
-            labels2 = [r'$M$', r'$W$',
-                          r"$t/t_\mathrm{ms}$",
-                          r'$\log \, n_0 $',
-                          r'$R_\mathrm{D}$',
-                          r'$n$', r'$i$', r'$\pi$',
-                          r'E(B-V)']                
-            if flag.include_rv is True:
-                    labels = labels + [r'$R_\mathrm{V}$']
+            if check_list(lista_obs, 'UV'):
+                labels = [r'$M\,[\mathrm{M_\odot}]$', r'$W$',
+                            r"$t/t_\mathrm{ms}$",
+                            r'$\log \, n_0 \, [\mathrm{cm^{-3}}]$',
+                            r'$R_\mathrm{D}\, [R_\star]$',
+                            r'$n$', r'$i[\mathrm{^o}]$', r'$\pi\,[\mathrm{pc}]$',
+                            r'E(B-V)']
+                labels2 = [r'$M$', r'$W$',
+                            r"$t/t_\mathrm{ms}$",
+                            r'$\log \, n_0 $',
+                            r'$R_\mathrm{D}$',
+                            r'$n$', r'$i$', r'$\pi$',
+                            r'E(B-V)']                
+                if flag.include_rv is True:
+                        labels = labels + [r'$R_\mathrm{V}$']
+                        labels2 = labels2 + [r'$R_\mathrm{V}$']
+            else:
+                labels = [r'$M\,[\mathrm{M_\odot}]$', r'$W$',
+                            r"$t/t_\mathrm{ms}$",
+                            r'$\log \, n_0 \, [\mathrm{cm^{-3}}]$',
+                            r'$R_\mathrm{D}\, [R_\star]$',
+                            r'$n$', r'$i[\mathrm{^o}]$']
+                labels2 = [r'$M$', r'$W$',
+                            r"$t/t_\mathrm{ms}$",
+                            r'$\log \, n_0 $',
+                            r'$R_\mathrm{D}$',
+                            r'$n$', r'$i$']
+                
+                
         if flag.binary_star:
                 labels = labels + [r'$M2\,[M_\odot]$']
+                labels2 = labels2 + [r'$M2\,[M_\odot]$']
         
         if flag.corner_color == 'blue':
             truth_color='xkcd:cobalt'
@@ -769,7 +776,7 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
             color_dens='xkcd:pink red'
 
 
-        labels2 = labels
+        
         if flag.model == 'aeri':
 
             ranges[3] = (np.arccos(ranges[3])) * (180. / np.pi)
