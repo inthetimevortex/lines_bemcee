@@ -553,7 +553,7 @@ def read_acol_xdr():
 
     # Read the grid models, with the interval of parameters.
 
-    xdrPL = flag.folder_models + 'acol_06.xdr'
+    #xdrPL = flag.folder_models + 'acol_06.xdr'
 
     listpar, lbdarr, minfo, models = ut.readBAsed(xdrPL, quiet=False)
 
@@ -585,6 +585,81 @@ def read_acol_xdr():
         
     return ctrlarr, minfo, [models], [lbdarr], listpar, dims, isig
 
+
+#===============================================================================
+
+def read_acol_Ha_xdr(lista_obs):
+
+    # print(params_tmp)
+    dims = ['M', 'ob', 'Hfrac', 'sig0', 'Rd', 'mr', 'cosi']
+    dims = dict(zip(dims, range(len(dims))))
+    isig = dims["sig0"]
+
+    ctrlarr = [np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN]
+
+    tmp = 0
+    cont = 0
+    while tmp < len(ctrlarr):
+        if math.isnan(ctrlarr[tmp]) is True:
+            cont = cont + 1
+            tmp = tmp + 1
+        else:
+            tmp = tmp + 1
+
+    # Read the grid models, with the interval of parameters.
+
+    xdrPL = flag.folder_models + 'acol_Ha.xdr'
+
+    listpar, lbdarr, minfo, models = ut.readBAsed(xdrPL, quiet=False)
+
+    # Filter (removing bad models)
+    for i in range(np.shape(minfo)[0]):
+        for j in range(np.shape(minfo)[1]):
+            if minfo[i][j] < 0:
+                minfo[i][j] = 0.
+
+    for i in range(np.shape(listpar)[0]):
+        for j in range(len(listpar[i])):
+            if listpar[i][j] < 0:
+                listpar[i][j] = 0.
+
+    mask = np.ones(len(minfo[0]), dtype=bool) # isso provavelmente remove os parâmetros com só 1 valor
+    mask[[2, 6]] = False
+    result = []
+    for i in range(len(minfo)):
+        result.append(minfo[i][mask])
+    minfo = np.copy(result)
+
+    for i in range(np.shape(minfo)[0]):
+        minfo[i][3] = np.log10(minfo[i][3])
+
+    listpar[4] = np.log10(listpar[4])
+    listpar[4].sort()
+    listpar = list([listpar[0], listpar[1], listpar[3], listpar[4], listpar[5],
+                    listpar[7], listpar[8]])
+    
+    # Combining models and lbdarr
+    models_combined = []
+    lbd_combined = []
+    
+    
+    if check_list(lista_obs, 'UV'):
+        lbd_UV, models_UV = xdr_remove_lines(lbdarr, models)
+    
+        models_combined.append(models_UV)
+        lbd_combined.append(lbd_UV)
+   
+    if check_list(lista_obs, 'Ha'): 
+        lbdc = 0.656
+        models_combined, lbd_combined = select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc)
+    
+    
+    
+        
+    return ctrlarr, minfo, models_combined, lbd_combined, listpar, dims, isig
+
+
+# ==============================================================================
 
 # ==============================================================================
 def read_star_info(star, lista_obs, listpar):
@@ -1162,7 +1237,7 @@ def read_star_info(star, lista_obs, listpar):
 def read_espadons(fname):
 
     # read fits
-    if False :
+    if str(flag.stars) == 'HD37795':
         hdr_list = fits.open(fname)
         fits_data = hdr_list[0].data
         fits_header = hdr_list[0].header
@@ -1204,7 +1279,8 @@ def read_line_spectra(models, lbdarr, linename):
         file_ha = str(flag.folder_data) + str(flag.stars) + '/spectra/' + str(file_name)
         wl, normal_flux = np.loadtxt(file_ha, delimiter=' ').T
     else:
-        file_ha = str(flag.folder_data) + str(flag.stars) + '/spectra/' + str(file_name)    
+        file_ha = str(flag.folder_data) + str(flag.stars) + '/spectra/' + str(file_name)
+        #print(file_ha)  
         wl, normal_flux, MJD = read_espadons(file_ha)
     
     #--------- Selecting an approximate wavelength interval 
@@ -1368,7 +1444,7 @@ def read_line_spectra(models, lbdarr, linename):
         novo_models = np.hstack((novo_models1, novo_models2))
         #logF_grid = np.log10(novo_models)
   
-    print(len(flux), len(errors), len(novo_models[0]))
+    #print(len(flux), len(errors), len(novo_models[0]))
     return flux, errors, novo_models, lbdarr, box_lim
     
     
@@ -1580,6 +1656,11 @@ def read_iue(models, lbdarr):
             wave = wave[idx]
             sigma = sigma[idx]
             flux = flux[idx]
+            
+            idx = np.where((flux>0.))
+            wave = wave[idx]
+            sigma = sigma[idx]
+            flux = flux[idx]
     
             fluxes = np.concatenate((fluxes, flux), axis=0)
             waves = np.concatenate((waves, wave), axis=0)
@@ -1695,7 +1776,7 @@ def combine_sed(wave, flux, sigma, models, lbdarr):
     logF = np.log10(flux)
     dlogF = sigma / flux
     logF_grid = np.log10(models_new)
-
+    
 # ==============================================================================
 
     return logF, dlogF, logF_grid, wave
@@ -1768,7 +1849,7 @@ def read_models(lista_obs):
     if flag.model == 'beatlas':
         ctrlarr, minfo, models, lbdarr, listpar, dims, isig = read_beatlas_xdr()
     if flag.model == 'acol':
-        ctrlarr, minfo, models, lbdarr, listpar, dims, isig = read_acol_xdr()
+        ctrlarr, minfo, models, lbdarr, listpar, dims, isig = read_acol_Ha_xdr(lista_obs)
 
     return ctrlarr, minfo, models, lbdarr, listpar, dims, isig
 
@@ -2018,7 +2099,7 @@ def read_observables(models, lbdarr, lista_obs):
             wave, flux, sigma = read_iue(models[index], lbdarr[index])
         else:
             wave, flux, sigma = [], [], []
-        
+
         if flag.votable:
             wave0, flux0, sigma0 = read_votable()
         elif flag.data_table:

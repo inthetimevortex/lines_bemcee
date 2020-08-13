@@ -30,9 +30,9 @@ extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        True  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
 long_process =      False  # Run with few walkers or many?
-list_of_stars =     'HD6226'  # Star name
+list_of_stars =     'HD37795'  # Star name
 Nsigma_dis =        3.  # Set the range of values for the distance
-model =             'aeri'  # 'beatlas', 'befavor', 'aara', or 'acol'
+model =             'acol'  # 'beatlas', 'befavor', 'aara', or 'acol'
 
 
 binary_star = False
@@ -44,7 +44,7 @@ folder_tables = '../tables/'
 folder_models = '../models/'
 
 
-vsini_prior =   True # Uses a gaussian vsini prior
+vsini_prior =   False # Uses a gaussian vsini prior
 dist_prior =    True # Uses a gaussian distance prior
 
 box_W =         False # Constrain the W lower limit, not actual a prior, but restrain the grid
@@ -64,7 +64,7 @@ UV =            True
 iue =           True
 votable =       False
 data_table=     False
-Ha =            False
+Ha =            True
 Hb =            False
 Hd =            False
 Hg =            False

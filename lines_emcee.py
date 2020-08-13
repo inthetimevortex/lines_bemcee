@@ -8,7 +8,7 @@ import emcee
 import matplotlib as mpl
 from matplotlib import ticker
 from matplotlib import *
-from utils import find_nearest,griddataBAtlas, griddataBA, kde_scipy, quantile, geneva_interp_fast, linfit
+from utils import find_nearest,griddataBAtlas, griddataBA, kde_scipy, quantile, geneva_interp_fast, linfit, find_lim
 from be_theory import hfrac2tms
 import corner_HDR
 from pymc3.stats import hpd
@@ -69,6 +69,7 @@ def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, lista_obs):
         else:
             RV = 3.1
         
+        #print(logF_UV)
         dist = 1e3 / dist
         norma = (10 / dist)**2
         uplim = dlogF_UV == 0
@@ -98,6 +99,7 @@ def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, lista_obs):
         chi2_UV = np.sum(((logF_UV[keep] - logF_mod_UV[keep])**2. / (dlogF_UV[keep])**2.))
         N_UV = len(logF_UV[keep])
         chi2_UV_red = chi2_UV/N_UV
+        
     else:
         chi2_UV_red = 0.
         N_UV = 0.
@@ -173,7 +175,7 @@ def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, lista_obs):
     chi2 = (chi2_UV_red + chi2_Ha_red + chi2_Hb_red+ chi2_Hd_red+ chi2_Hg_red)*(N_UV + N_Ha + N_Hb + N_Hd+ N_Hg)
       
 		
-
+    #print(chi2)
     if chi2 is np.nan:
         chi2 = np.inf
 
@@ -275,24 +277,7 @@ def lnprior(params, vsin_obs, sig_vsin_obs, dist_pc, sig_dist_pc,
     return -0.5 * chi2_prior
 
 
-def find_lim():
-    if flag.UV:
-        if flag.include_rv and not flag.binary_star:
-            lim = 3
-        elif flag.include_rv and flag.binary_star:
-            lim = 4
-        elif flag.binary_star and not flag.include_rv:
-            lim = 3
-        else:
-            lim = 2
-    else:
-        if flag.binary_star:
-            lim = 1
-        else:
-            lim = -4
-    
-    
-    return lim
+
 
 # ==============================================================================
 def lnprob(params, lbd, logF, dlogF, minfo, listpar, logF_grid,
@@ -491,9 +476,9 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
             nint_burnin = 300  # 50
             nint_mcmc = 1000  # 500  # 1000
         else:
-            Nwalk = 50
-            nint_burnin = 50
-            nint_mcmc = 100
+            Nwalk = 20
+            nint_burnin = 20
+            nint_mcmc = 60
 
         p0 = [np.random.rand(Ndim) * (ranges[:, 1] - ranges[:, 0]) +
               ranges[:, 0] for i in range(Nwalk)]
