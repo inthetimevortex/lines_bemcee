@@ -30,9 +30,9 @@ extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
 long_process =      True  # Run with few walkers or many?
-list_of_stars =     'HD37795'  # Star name
+list_of_stars =     'HD6226'  # Star name
 Nsigma_dis =        3.  # Set the range of values for the distance
-model =             'acol'  # 'beatlas', 'befavor', 'aara', or 'acol'
+model =             'aeri'  # 'beatlas', 'befavor', 'aara', or 'acol'
 
 
 binary_star = False
@@ -60,8 +60,8 @@ remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too mu
 
 # Line and continuum combination
 
-UV =            False
-iue =           False
+UV =            True
+iue =           True
 votable =       False
 data_table=     False
 Ha =            True
