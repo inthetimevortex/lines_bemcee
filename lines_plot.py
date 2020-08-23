@@ -528,11 +528,7 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
         tms = hfrac2tms(Hfrac)
         rv = 3.1
 
-    
-    
-    
 
-                
     
     Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
     
@@ -577,6 +573,7 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
         chi2_UV = np.sum((flux_UV - flux_mod_UV)**2. / dflux**2.)
         N_UV = len(logF_UV)
         chi2_UV = chi2_UV/N_UV
+        
         logF_list = np.zeros([len(par_list), len(logF_mod_UV)])
         chi2 = np.zeros(len(logF_list))
         for i in range(len(par_list)):

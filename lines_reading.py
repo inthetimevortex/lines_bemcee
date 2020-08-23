@@ -121,8 +121,8 @@ def read_BAphot2_xdr(lista_obs):
 # =============================================================================
 def select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc):
     line_peak = find_nearest2(lbdarr, lbdc)
-    keep_a = find_nearest2(lbdarr, lbdc - 0.004)
-    keep_b = find_nearest2(lbdarr, lbdc + 0.004)
+    keep_a = find_nearest2(lbdarr, 0.6540)
+    keep_b = find_nearest2(lbdarr, 0.6590)
     lbd_line = lbdarr[keep_a:keep_b]
     models_line = models[:, keep_a:keep_b]
     lbdarr_line = lbd_line*1e4
@@ -2113,7 +2113,7 @@ def read_observables(models, lbdarr, lista_obs):
             combine_sed(wave, flux, sigma, models[index], lbdarr[index])
 
         logF_combined.append(logF_UV)
-        dlogF_combined.append(dlogF_UV)
+        dlogF_combined.append(dlogF_UV/2.)
         logF_grid_combined.append(logF_grid_UV) 
         wave_combined.append(wave_UV)
 

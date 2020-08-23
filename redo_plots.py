@@ -27,7 +27,7 @@ from PyAstronomy import pyasl
 import numpy as np
 import matplotlib.pylab as plt
 from be_theory import hfrac2tms
-from utils import beta, geneva_interp_fast, griddataBAtlas, griddataBA, lineProf
+from utils import beta, geneva_interp_fast, griddataBAtlas, griddataBA, lineProf, find_lim ,linfit
 from lines_reading import check_list, create_list, read_star_info, read_BAphot2_xdr, read_observables, create_tag
 import corner
 import corner_HDR
@@ -58,9 +58,9 @@ logF, dlogF, logF_grid, wave, box_lim = read_observables(models, lbdarr, lista_o
 
 
 
-Nwalk = 300
+Nwalk = 100
 nint_mcmc = 1000 
-af = 0.33
+af = 0.29
 
 current_folder = str(flag.folder_fig) + str(flag.stars) + '/'
 fig_name = 'Walkers_' + np.str(Nwalk) + '_Nmcmc_' +\
@@ -103,10 +103,10 @@ for i in range(Ndim):
 if flag.model == 'aeri':
     if check_list(lista_obs, 'UV'):
         labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
-                r'$i[\mathrm{^o}]$', r'$d\,[mas]$', r'E(B-V)']
+                r'$i[\mathrm{^o}]$', r'$\pi\,[mas]$', r'E(B-V)']
         if flag.include_rv is True:
             labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
-                r'$i[\mathrm{^o}]$', r'$d\,[mas]$', r'E(B-V)',
+                r'$i[\mathrm{^o}]$', r'$\pi\,[mas]$', r'E(B-V)',
                 r'$R_\mathrm{V}$']
     else:
         labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
@@ -255,44 +255,59 @@ def plot_residuals_new(par, lbd, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
             plot_line(line, lista_obs, minfo, logF_grid, par, listpar, dims, logF, dlogF, lbd, par_list, current_folder, fig_name)               
            
     
-def plot_line(line, lista_obs, minfo, logF_grid, par, listpar, dims, logF, dlogF, lbd, par_list, current_folder, fig_name):
+def plot_line(line, lista_obs, minfo, F_grid, par, listpar, dims, flux, errors, lbd, par_list, current_folder, fig_name):
     # Finding position
     u = np.where(lista_obs == line)
     index = u[0][0]
     # Finding the corresponding flag.model (interpolation)
-    if check_list(lista_obs, 'UV'):
-        lim = 2
-        if flag.include_rv:
-            lim = 3
-    else: lim=0
+    lim = find_lim()
     
-    if check_list(lista_obs, 'UV'):
-        logF_mod_line = griddataBA(minfo, logF_grid[index], par[:-lim] ,listpar, dims)
+    #if check_list(lista_obs, 'UV'):
+    #    logF_mod_line = griddataBA(minfo, logF_grid[index], par[:-lim] ,listpar, dims)
+    #else:
+    #    logF_mod_line = griddataBA(minfo, logF_grid[index], par ,listpar, dims)
+        
+    if flag.binary_star:
+        F_mod_line_1 = griddataBA(minfo, F_grid[index], par[:-lim], listpar, dims)
+        F_mod_line_2 = griddataBA(minfo, F_grid[index], np.array([par[-1], 0.1, par[2], par[3]]), listpar, dims)
+        flux_mod_line = linfit(lbd[index], F_mod_line_1 + F_mod_line_2)
+        #logF_mod_line = np.log10(F_mod_line)
+        #logF_mod_Ha = np.log(norm_spectra(lbd[index], F_mod_Ha_unnormed))
     else:
-        logF_mod_line = griddataBA(minfo, logF_grid[index], par ,listpar, dims)
+        F_mod_line_unnorm = griddataBA(minfo, F_grid[index], par[:-lim], listpar, dims)
+        flux_mod_line = linfit(lbd[index], F_mod_line_unnorm)
+        #logF_mod_Ha = np.log10(F_mod_Ha)
+        #logF_mod_line = np.log(norm_spectra(lbd[index], F_mod_line_unnormed))
+        #logF_mod_line = np.log10(10.**logF_mod_line_1 + 10.**logF_mod_line_2)
+
         
     #logF_mod_line = griddataBA(minfo, logF_grid[index], par[:-lim],listpar, dims)
-    flux_mod_line = 10.**logF_mod_line
+    #flux_mod_line = 10.**logF_mod_line
     # Observations
-    logF_line = logF[index]
-    flux_line = 10.**logF_line
-    dflux_line = dlogF[index] * flux_line
+    #logF_line = logF[index]
+    flux_line = flux[index]
+    dflux_line = errors[index]
+    #dflux_line = dlogF[index] * flux_line
 
     keep = np.where(flux_line > 0) # avoid plot zero flux
     lbd_line = lbd[index]
     
-    logF_list = np.zeros([len(par_list), len(logF_mod_line)])
-    chi2 = np.zeros(len(logF_list))
+    F_list = np.zeros([len(par_list), len(flux_mod_line)])
+    F_list_unnorm = np.zeros([len(par_list), len(flux_mod_line)])
+    chi2 = np.zeros(len(F_list))
     for i in range(len(par_list)):
-        if check_list(lista_obs, 'UV') is False:
-            logF_list[i] = griddataBA(minfo, logF_grid[index], par_list[i],
-                                  listpar, dims)
+        if flag.binary_star:
+            F_mod_line_1_list = griddataBA(minfo, F_grid[index], par_list[i, :-lim], listpar, dims)
+            F_mod_line_2_list = griddataBA(minfo, F_grid[index], np.array([par_list[i, -1], 0.1, par_list[i, 2], par_list[i, 3]]), listpar, dims)
+            F_list[i]  = linfit(lbd[index], F_mod_line_1_list + F_mod_line_2_list)
+            #logF_list[i] = np.log(norm_spectra(lbd[index], F_list))
         else:
-            logF_list[i] = griddataBA(minfo, logF_grid[index], par_list[i, :-lim],
-                                  listpar, dims)
-                                  
+            F_list_unnorm[i] = griddataBA(minfo, F_grid[index], par_list[i, :-lim], listpar, dims)
+            F_list[i]  = linfit(lbd[index], F_list_unnorm[i])
+            
+    #logF_list[i]= np.log10(flux_mod_line_list)
     chi2_line = np.sum((flux_line[keep] - flux_mod_line[keep])**2 / (dflux_line[keep])**2.)
-    N_line = len(logF_line[keep])
+    N_line = len(flux_line[keep])
     chi2_line = chi2_line/N_line
     #np.savetxt(current_folder + fig_name + '_new_residuals_' + line +'.dat', np.array([lbd_line, flux_mod_line]).T)
     
@@ -307,14 +322,14 @@ def plot_line(line, lista_obs, minfo, logF_grid, par, listpar, dims, logF, dlogF
     #ax2 = plt.subplot(211)
     vel, fx = lineProf(lbd_line, flux_line, hwidth=2500., lbc=lbc*1e-4)
     for i in range(len(par_list)):
-        ax2.plot(vel, 10**logF_list[i], color='gray', alpha=0.1)
+        ax2.plot(vel, F_list[i], color='gray', alpha=0.1)
     ax2.errorbar(vel[keep], flux_line[keep], yerr= dflux_line[keep], ls='', marker='o', alpha=0.5, ms=5, color='blue', linewidth=1) 
 
     # Best fit
     ax2.plot(vel, flux_mod_line, color='red', ls='-', lw=3.5, alpha=0.4, label=r'Best Fit' '\n' '$\chi^2$ = {0:.2f}'.format(chi2_line))
     
     ax2.set_ylabel('Normalized Flux',fontsize=14)
-    ax2.set_xlim(min(vel), max(vel))
+    ax2.set_xlim(-1000, 1000)
     ax2.legend(loc='lower right', fontsize=13)
     ax2.set_title(line)
     ax2.set_xlabel('Vel [km/s]', fontsize=14)
