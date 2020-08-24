@@ -27,8 +27,8 @@ from PyAstronomy import pyasl
 import numpy as np
 import matplotlib.pylab as plt
 from be_theory import hfrac2tms
-from utils import beta, geneva_interp_fast, griddataBAtlas, griddataBA, lineProf, find_lim ,linfit
-from lines_reading import check_list, create_list, read_star_info, read_BAphot2_xdr, read_observables, create_tag
+from utils import beta, geneva_interp_fast, griddataBAtlas, griddataBA, lineProf, linfit
+from lines_reading import check_list, create_list, read_star_info, read_BAphot2_xdr, read_observables, create_tag, find_lim
 import corner
 import corner_HDR
 from constants import G, Msun, Rsun
@@ -58,9 +58,9 @@ logF, dlogF, logF_grid, wave, box_lim = read_observables(models, lbdarr, lista_o
 
 
 
-Nwalk = 100
-nint_mcmc = 1000 
-af = 0.29
+Nwalk = 20
+nint_mcmc = 80 
+af = 0.28
 
 current_folder = str(flag.folder_fig) + str(flag.stars) + '/'
 fig_name = 'Walkers_' + np.str(Nwalk) + '_Nmcmc_' +\

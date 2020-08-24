@@ -2195,10 +2195,10 @@ def read_observables(models, lbdarr, lista_obs):
         sigma = np.hstack([sigma0, sigma])
         
         logF_UV, dlogF_UV, logF_grid_UV, wave_UV =\
-            combine_sed(wave, flux, sigma, models[index], lbdarr[index])
+            combine_sed(wave, flux, sigma/2., models[index], lbdarr[index])
 
         logF_combined.append(logF_UV)
-        dlogF_combined.append(dlogF_UV/2.)
+        dlogF_combined.append(dlogF_UV)
         logF_grid_combined.append(logF_grid_UV) 
         wave_combined.append(wave_UV)
 

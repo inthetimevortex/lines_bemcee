@@ -655,7 +655,7 @@ def new_emcee_inference(pool):
         if flag.model == 'aeri':
 
             new_ranges[3] = (np.arccos(flag.ranges[3])) * (180. / np.pi)
-            new_ranges[3] = np.array([flag.ranges[3][1], flag.ranges[3][0]])
+            new_ranges[3] = np.array([new_ranges[3][1], new_ranges[3][0]])
         if flag.model == 'acol':
             new_ranges[1] = obl2W(flag.ranges[1])            
             new_ranges[2][0] = hfrac2tms(flag.ranges[2][1])
@@ -727,9 +727,10 @@ def new_emcee_inference(pool):
         
         plt.savefig(current_folder + fig_name + '.png', dpi=100)
 
-
+        print(params_fit)
+        print(best_pars)
         plt.close()
-        plot_residuals_new(params_fit,Nwalk,nint_mcmc,
+        plot_residuals_new(best_pars,Nwalk,nint_mcmc,
                            file_npy,current_folder, fig_name)
 
         

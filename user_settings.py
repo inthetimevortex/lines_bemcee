@@ -27,19 +27,11 @@ from lines_reading import read_models, create_tag, create_list, read_stellar_pri
 
 # ==============================================================================
 # General Options
-<<<<<<< HEAD
 a_parameter =       3.3   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        True  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
-long_process =      True  # Run with few walkers or many?
-=======
-a_parameter =       3.   # Set internal steps of each walker
-extension =         '.png'  # Figure flag.extension to be saved
-include_rv =        True  # If False: fix Rv = 3.1, else Rv will be inferead
-af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
 long_process =      False  # Run with few walkers or many?
->>>>>>> 1df47694359691d150370db0d3a2169b8d870a10
 list_of_stars =     'HD6226'  # Star name
 Nsigma_dis =        7.  # Set the range of values for the distance
 model =             'aeri'  # 'beatlas', 'befavor', 'aara', or 'acol'
@@ -80,7 +72,7 @@ Hd =            False
 Hg =            False
 
    
-corner_color = 'orange' # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
+corner_color = '' # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
                   # IF YOU DO NOT CHOOSE A COLOR, A RANDOM ONE WILL BE SELECTED
 
 # Plot options
@@ -94,7 +86,7 @@ npy_star = 'Walkers_500_Nmcmc_1000_af_0.28_a_1.4_rv_false+hip.npy'
 
 # ------------------------------------------------------------------------------
 # Alphacrucis' options
-acrux = True  # If True, it will run in Nproc processors in the cluster
+acrux = False # If True, it will run in Nproc processors in the cluster
 Nproc = 24  # Number of processors to be used in the cluster
 
 # ==============================================================================
