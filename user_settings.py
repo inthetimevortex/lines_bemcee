@@ -23,13 +23,23 @@
 #  
 import numpy as np
 import random
+from lines_reading import read_models, create_tag, create_list, read_stellar_prior, read_star_info, read_observables
+
 # ==============================================================================
 # General Options
+<<<<<<< HEAD
 a_parameter =       3.3   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        True  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
 long_process =      True  # Run with few walkers or many?
+=======
+a_parameter =       3.   # Set internal steps of each walker
+extension =         '.png'  # Figure flag.extension to be saved
+include_rv =        True  # If False: fix Rv = 3.1, else Rv will be inferead
+af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
+long_process =      False  # Run with few walkers or many?
+>>>>>>> 1df47694359691d150370db0d3a2169b8d870a10
 list_of_stars =     'HD6226'  # Star name
 Nsigma_dis =        7.  # Set the range of values for the distance
 model =             'aeri'  # 'beatlas', 'befavor', 'aara', or 'acol'
@@ -44,7 +54,7 @@ folder_tables = '../tables/'
 folder_models = '../models/'
 
 
-vsini_prior =   False # Uses a gaussian vsini prior
+vsini_prior =   True # Uses a gaussian vsini prior
 dist_prior =    True # Uses a gaussian distance prior
 
 box_W =         True # Constrain the W lower limit, not actual a prior, but restrain the grid
@@ -84,7 +94,7 @@ npy_star = 'Walkers_500_Nmcmc_1000_af_0.28_a_1.4_rv_false+hip.npy'
 
 # ------------------------------------------------------------------------------
 # Alphacrucis' options
-acrux = False  # If True, it will run in Nproc processors in the cluster
+acrux = True  # If True, it will run in Nproc processors in the cluster
 Nproc = 24  # Number of processors to be used in the cluster
 
 # ==============================================================================
@@ -130,14 +140,21 @@ if corner_color == 'random' or corner_color == '':
     corner_color = random.choice(['blue', 'dark blue', 'teal', 'green', 'yellow', 'orange', 'red', 'purple', 'violet', 'pink'])
 #############################################################################################################################
 
-def init():
-    global flags
-    flags = [a_parameter, extension, include_rv, af_filter,
-            long_process, list_of_flag.stars, plot_fits, plot_in_log_scale, 
-            Nsigma_dis, model, vsini_prior, dist_prior, box_W ,incl_prior, 
-            Halpha, normal_spectra, only_wings, only_centerline, Sigma_Clip, 
-            remove_partHa, UV, Ha, Hb, Hg, Hd, compare_results,
-            stellar_prior, npy_star, acrux, Nproc, stars, list_plx, list_sig_plx, 
-            list_vsini_obs, list_sig_vsini_obs, list_pre_ebmv, incl0, sig_incl0,
-            lbd_range, corner_color, data_table, binary_star, iue]
 
+lista_obs = create_list() 
+
+tags = create_tag()
+
+print(tags)
+
+ctrlarr, minfo, models, lbdarr, listpar, dims, isig = read_models(lista_obs)
+
+grid_priors, pdf_priors = read_stellar_prior()
+
+
+ranges, dist_pc, sig_dist_pc, vsin_obs, sig_vsin_obs,\
+    Ndim = read_star_info(stars, lista_obs, listpar)
+
+
+logF, dlogF, logF_grid, wave, box_lim =\
+        read_observables(models, lbdarr, lista_obs)

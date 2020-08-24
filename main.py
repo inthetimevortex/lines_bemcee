@@ -2,41 +2,33 @@
 # -*- coding:utf-8 -*-
 # ==============================================================================
 # importing packages
-from lines_reading import read_models, create_tag, create_list
 import emcee
-from lines_emcee import run
+from lines_emcee import new_emcee_inference
 import sys
 import user_settings as flag
 from schwimmbad import MPIPool
+#from emcee.utils import MPIPool
+#import os
 
+#os.environ["OMP_NUM_THREADS"] = "1"
 
 # ==============================================================================
-lista_obs = create_list() 
 
-tags = create_tag()
-
-                 
-print(tags)
 
 # Acrux
 if flag.acrux is True:
-    pool = MPIPool()
-    if not pool.is_master():
-        pool.wait()
-        sys.exit(0)
+    with MPIPool() as pool:
+        if not pool.is_master():
+            pool.wait()
+            sys.exit(0)
+        print('HELLO')
+        new_emcee_inference(pool)
 else:
     pool = False
+    new_emcee_inference(pool)
 
 
 
-# Reading Models
-ctrlarr, minfo, models, lbdarr, listpar, dims, isig = read_models(lista_obs)
-
-# ==============================================================================
-# Run code
-input_params = ctrlarr, minfo, models, lbdarr, listpar, dims, isig, tags, pool, lista_obs
-
-run(input_params)
 
 # ==============================================================================
 # The End
