@@ -796,10 +796,61 @@ def read_star_info(star, lista_obs, listpar):
                 ranges[1][0], ranges[1][1] = flag.box_W_min, flag.box_W_max
         
         Ndim = len(ranges)
+        
+        
+        
 
         return ranges, dist_pc, sig_dist_pc, vsin_obs,\
             sig_vsin_obs, Ndim
 
+
+def read_stellar_prior():
+    if flag.stellar_prior is True:
+        chain = np.load('npys/' + flag.npy_star)
+        Ndim = np.shape(chain)[-1]
+        flatchain = chain.reshape((-1, Ndim))
+
+        mas = flatchain[:, 0]
+        obl = flatchain[:, 1]
+        age = flatchain[:, 2]
+        dis = flatchain[:, -2]
+        ebv = flatchain[:, -1]
+
+        # grid_mas = np.linspace(np.min(mas), np.max(mas), 100)
+        # grid_obl = np.linspace(np.min(obl), np.max(obl), 100)
+        # grid_age = np.linspace(np.min(age), np.max(age), 100)
+        # grid_ebv = np.linspace(np.min(ebv), np.max(ebv), 100)
+
+        grid_mas = np.linspace(3.4, 14.6, 100)
+        grid_obl = np.linspace(1.00, 1.45, 100)
+        grid_age = np.linspace(0.08, 0.78, 100)
+        grid_dis = np.linspace(0.00, 140, 100)
+        grid_ebv = np.linspace(0.00, 0.10, 100)
+
+        pdf_mas = kde_scipy(x=mas, x_grid=grid_mas, bandwidth=0.005)
+        pdf_obl = kde_scipy(x=obl, x_grid=grid_obl, bandwidth=0.005)
+        pdf_age = kde_scipy(x=age, x_grid=grid_age, bandwidth=0.01)
+        pdf_dis = kde_scipy(x=dis, x_grid=grid_dis, bandwidth=0.01)
+        pdf_ebv = kde_scipy(x=ebv, x_grid=grid_ebv, bandwidth=0.0005)
+
+    else:
+        grid_mas = 0
+        grid_obl = 0
+        grid_age = 0
+        grid_dis = 0
+        grid_ebv = 0
+
+        pdf_mas = 0
+        pdf_obl = 0
+        pdf_age = 0
+        pdf_dis = 0
+        pdf_ebv = 0
+        
+    grid_priors = [grid_mas, grid_obl, grid_age, grid_dis, grid_ebv]
+    pdf_priors = [pdf_mas, pdf_obl, pdf_age, pdf_dis, pdf_ebv]
+    
+        
+    return grid_priors, pdf_priors
 # ==============================================================================
 # function that returns the interpolated spectra from files
 #def read_Hg(models, lbdarr, flag.folder_data, folder_fig, star): # flag.Halpha is boolean
@@ -1834,6 +1885,40 @@ def read_votable():
         sigma = np.hstack([sigma, jy2cgs(1e-3*data['dflux'], data['lbd'])])
 
     return wave, flux, sigma
+
+def find_lim():
+    if flag.model == 'aeri':
+        if flag.UV:
+            if flag.include_rv and not flag.binary_star:
+                lim = 3
+            elif flag.include_rv and flag.binary_star:
+                lim = 4
+            elif flag.binary_star and not flag.include_rv:
+                lim = 3
+            else:
+                lim = 2
+        else:
+            if flag.binary_star:
+                lim = 1
+            else:
+                lim = -4
+    if flag.model == 'acol':
+        if flag.UV:
+            if flag.include_rv and not flag.binary_star:
+                lim = 3
+            elif flag.include_rv and flag.binary_star:
+                lim = 4
+            elif flag.binary_star and not flag.include_rv:
+                lim = 3
+            else:
+                lim = 2
+        else:
+            if flag.binary_star:
+                lim = 1
+            else:
+                lim = -7
+    
+    return lim
 
 
 # ==============================================================================

@@ -2,7 +2,7 @@ import numpy as np
 from scipy.interpolate import griddata
 import pyhdust.phc as phc
 from scipy.stats import gaussian_kde
-import user_settings as flag
+#import user_settings as flag
 import struct as struct
 import constants as const
 import warnings as _warn
@@ -455,7 +455,7 @@ def geneva_interp_fast(Mstar, oblat, t, Zstr='014', silent=True):
     '''
     # read grid
     #dir0 = '{0}/refs/geneva_models/'.format(_hdtpath())
-    dir0 = flag.folder_defs + '/geneve_models/'
+    dir0 = '../defs/geneve_models/'
     if Mstar <= 20.:
         fname = 'geneva_interp_Z{:}.npz'.format(Zstr)
     else:
@@ -703,36 +703,4 @@ def griddataBA_new(minfo, models, params, isig, silent=True):
     return model_interp
 
 
-def find_lim():
-    if flag.model == 'aeri':
-        if flag.UV:
-            if flag.include_rv and not flag.binary_star:
-                lim = 3
-            elif flag.include_rv and flag.binary_star:
-                lim = 4
-            elif flag.binary_star and not flag.include_rv:
-                lim = 3
-            else:
-                lim = 2
-        else:
-            if flag.binary_star:
-                lim = 1
-            else:
-                lim = -4
-    if flag.model == 'acol':
-        if flag.UV:
-            if flag.include_rv and not flag.binary_star:
-                lim = 3
-            elif flag.include_rv and flag.binary_star:
-                lim = 4
-            elif flag.binary_star and not flag.include_rv:
-                lim = 3
-            else:
-                lim = 2
-        else:
-            if flag.binary_star:
-                lim = 1
-            else:
-                lim = -7
-    
-    return lim
+

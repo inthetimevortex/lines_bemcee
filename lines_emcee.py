@@ -8,12 +8,12 @@ import emcee
 import matplotlib as mpl
 from matplotlib import ticker
 from matplotlib import *
-from utils import find_nearest,griddataBAtlas, griddataBA, kde_scipy, quantile, geneva_interp_fast, linfit, find_lim
+from utils import find_nearest,griddataBAtlas, griddataBA, kde_scipy, quantile, geneva_interp_fast, linfit
 from be_theory import hfrac2tms
 import corner_HDR
 from pymc3.stats import hpd
 from lines_plot import print_output, par_errors, plot_residuals_new, print_output_means, print_to_latex
-from lines_reading import read_iue, read_votable, read_star_info, read_line_spectra, read_observables, check_list, Sliding_Outlier_Removal
+from lines_reading import read_iue, read_votable, read_star_info, read_line_spectra, read_observables, check_list, Sliding_Outlier_Removal, find_lim
 from lines_convergence import plot_convergence
 from astropy.stats import SigmaClip
 import seaborn as sns
@@ -22,8 +22,12 @@ import user_settings as flag
 sns.set_style("white", {"xtick.major.direction": 'in',
               "ytick.major.direction": 'in'})
 
+
+
+
 # ==============================================================================
-def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, lista_obs):
+def lnlike(params, logF_mod):
+#def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, flag.lista_obs):
 
     """
     Returns the likelihood probability function.
@@ -45,12 +49,12 @@ def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, lista_obs):
     """
     
 
-    if check_list(lista_obs, 'UV'):
-        u = np.where(lista_obs == 'UV')
+    if check_list(flag.lista_obs, 'UV'):
+        u = np.where(flag.lista_obs == 'UV')
         index = u[0][0]
         
-        logF_UV = logF[index]
-        dlogF_UV = dlogF[index]
+        logF_UV = flag.logF[index]
+        dlogF_UV = flag.dlogF[index]
 		
         if flag.model == 'befavor' or flag.model == 'aeri':
             dist = params[4]
@@ -92,7 +96,7 @@ def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, lista_obs):
         tmp_flux = 10**logF_mod[index]
         
         
-        flux_mod = pyasl.unred(lbd[index] * 1e4, tmp_flux, ebv=-1 * ebmv, R_V=RV)
+        flux_mod = pyasl.unred(flag.wave[index] * 1e4, tmp_flux, ebv=-1 * ebmv, R_V=RV)
         logF_mod_UV = np.log10(flux_mod)
             
         
@@ -104,12 +108,12 @@ def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, lista_obs):
         chi2_UV_red = 0.
         N_UV = 0.
         
-    if check_list(lista_obs, 'Ha'):
-        u = np.where(lista_obs == 'Ha')
+    if check_list(flag.lista_obs, 'Ha'):
+        u = np.where(flag.lista_obs == 'Ha')
         index = u[0][0]
 		
-        logF_Ha = logF[index]
-        dlogF_Ha = dlogF[index] 
+        logF_Ha = flag.logF[index]
+        dlogF_Ha = flag.dlogF[index] 
         logF_mod_Ha = logF_mod[index]           
         
         uplim = dlogF_Ha == 0
@@ -122,13 +126,13 @@ def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, lista_obs):
         chi2_Ha_red = 0.
         N_Ha = 0. 
     
-    if check_list(lista_obs, 'Hb'):
-        u = np.where(lista_obs == 'Hb')
+    if check_list(flag.lista_obs, 'Hb'):
+        u = np.where(flag.lista_obs == 'Hb')
         index = u[0][0]
 
 		
-        logF_Hb = logF[index]
-        dlogF_Hb = dlogF[index] 
+        logF_Hb = flag.logF[index]
+        dlogF_Hb = flag.dlogF[index] 
         logF_mod_Hb = logF_mod[index]           
         
         uplim = dlogF_Hb == 0
@@ -139,12 +143,12 @@ def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, lista_obs):
     else:
         chi2_Hb_red = 0.
         N_Hb = 0. 
-    if check_list(lista_obs, 'Hd'):
-        u = np.where(lista_obs == 'Hd')
+    if check_list(flag.lista_obs, 'Hd'):
+        u = np.where(flag.lista_obs == 'Hd')
         index = u[0][0]
 
-        logF_Hd = logF[index]
-        dlogF_Hd = dlogF[index] 
+        logF_Hd = flag.logF[index]
+        dlogF_Hd = flag.dlogF[index] 
         logF_mod_Hd = logF_mod[index]           
         
         uplim = dlogF_Hd == 0
@@ -155,12 +159,12 @@ def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, lista_obs):
     else:
         chi2_Hd_red = 0.
         N_Hd = 0. 
-    if check_list(lista_obs, 'Hg'):
-        u = np.where(lista_obs == 'Hg')
+    if check_list(flag.lista_obs, 'Hg'):
+        u = np.where(flag.lista_obs == 'Hg')
         index = u[0][0]
 	
-        logF_Hg = logF[index]
-        dlogF_Hg = dlogF[index] 
+        logF_Hg = flag.logF[index]
+        dlogF_Hg = flag.dlogF[index] 
         logF_mod_Hg = logF_mod[index]           
         
         uplim = dlogF_Hg == 0
@@ -183,9 +187,7 @@ def lnlike(params, lbd, logF, dlogF, logF_mod, ranges, box_lim, lista_obs):
 
 
 # ==============================================================================
-def lnprior(params, vsin_obs, sig_vsin_obs, dist_pc, sig_dist_pc,
-            ranges,  pdf_mas, pdf_obl, pdf_age, pdf_dis, pdf_ebv, grid_mas,
-            grid_obl, grid_age, grid_dis, grid_ebv):
+def lnprior(params):
 
     if flag.model == 'aeri':
         if flag.normal_spectra is False or flag.UV is True:
@@ -209,16 +211,16 @@ def lnprior(params, vsin_obs, sig_vsin_obs, dist_pc, sig_dist_pc,
 
     # Reading Stellar Priors
     if flag.stellar_prior is True:
-        temp, idx_mas = find_nearest(grid_mas, value=Mstar)
-        temp, idx_obl = find_nearest(grid_obl, value=oblat)
-        temp, idx_age = find_nearest(grid_age, value=Hfrac)
-        temp, idx_dis = find_nearest(grid_dis, value=dist)
-        temp, idx_ebv = find_nearest(grid_ebv, value=ebv)
-        chi2_stellar_prior = Mstar * pdf_mas[idx_mas] +\
-            oblat * pdf_obl[idx_obl] + \
-            Hfrac * pdf_age[idx_age] + \
-            dist * pdf_dis[idx_dis] + \
-            ebv * pdf_ebv[idx_ebv]
+        temp, idx_mas = find_nearest(flag.grid_prior[0], value=Mstar)
+        temp, idx_obl = find_nearest(flag.grid_prior[1], value=oblat)
+        temp, idx_age = find_nearest(flag.grid_prior[2], value=Hfrac)
+        temp, idx_dis = find_nearest(flag.grid_prior[3], value=dist)
+        temp, idx_ebv = find_nearest(flag.grid_prior[4], value=ebv)
+        chi2_stellar_prior = Mstar * flag.pdf_prior[0][idx_mas] +\
+            oblat * flag.pdf_prior[1][idx_obl] + \
+            Hfrac * flag.pdf_prior[2][idx_age] + \
+            dist * flag.pdf_prior[3][idx_dis] + \
+            ebv * flag.pdf_prior[4][idx_ebv]
     else:
         chi2_stellar_prior = 0.0
 
@@ -245,7 +247,7 @@ def lnprior(params, vsin_obs, sig_vsin_obs, dist_pc, sig_dist_pc,
     
     # Vsini prior
     if flag.vsini_prior:
-        chi2_vsi = (vsin_obs - vsini)**2 / sig_vsin_obs**2.
+        chi2_vsi = (flag.vsin_obs - vsini)**2 / flag.sig_vsin_obs**2.
 
     else:
         chi2_vsi = 0
@@ -253,7 +255,7 @@ def lnprior(params, vsin_obs, sig_vsin_obs, dist_pc, sig_dist_pc,
     # Distance prior
     if flag.normal_spectra is False or flag.UV is True:
         if flag.dist_prior:
-            chi2_dis = (dist_pc - dist)**2 / sig_dist_pc**2.
+            chi2_dis = (flag.dist_pc - dist)**2 / flag.sig_dist_pc**2.
 
         else:
             chi2_dis = 0
@@ -280,16 +282,16 @@ def lnprior(params, vsin_obs, sig_vsin_obs, dist_pc, sig_dist_pc,
 
 
 # ==============================================================================
-def lnprob(params, lbd, logF, dlogF, minfo, listpar, logF_grid,
-           vsin_obs, sig_vsin_obs, dist_pc, sig_dist_pc, isig,
-           ranges, dims, pdf_mas, pdf_obl, pdf_age, pdf_dis, pdf_ebv, grid_mas,
-           grid_obl, grid_age, grid_dis, grid_ebv,  box_lim, lista_obs, raw_waves, raw_flux):
-
+def lnprob(params):
+#def lnprob(params, lbd, logF, dlogF, flag.minfo, listpar, logF_grid,
+#           vsin_obs, sig_vsin_obs, dist_pc, sig_dist_pc, isig,
+#           ranges, flag.dims, pdf_mas, pdf_obl, pdf_age, pdf_dis, pdf_ebv, grid_mas,
+#           grid_obl, grid_age, grid_dis, grid_ebv,  box_lim, flag.lista_obs, raw_waves, raw_flux):
     count = 0
     inside_ranges = True
     while inside_ranges * (count < len(params)):
-        inside_ranges = (params[count] >= ranges[count, 0]) *\
-            (params[count] <= ranges[count, 1])
+        inside_ranges = (params[count] >= flag.ranges[count, 0]) *\
+            (params[count] <= flag.ranges[count, 1])
         count += 1
 
     if inside_ranges:
@@ -298,72 +300,76 @@ def lnprob(params, lbd, logF, dlogF, minfo, listpar, logF_grid,
 
     
         logF_mod = []
-        if check_list(lista_obs, 'UV'):
-            u = np.where(lista_obs == 'UV')
+        if check_list(flag.lista_obs, 'UV'):
+            u = np.where(flag.lista_obs == 'UV')
             index = u[0][0]
             
             if flag.binary_star:
                 M2 = params[-1]
-                logF_mod_UV_1 = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
-                logF_mod_UV_2 = griddataBA(minfo, logF_grid[index], np.array([M2, 0.1, params[2], params[3]]), listpar, dims)
+                logF_mod_UV_1 = griddataBA(flag.minfo, flag.logF_grid[index], params[:-lim], flag.listpar, flag.dims)
+                logF_mod_UV_2 = griddataBA(flag.minfo, flag.logF_grid[index], np.array([M2, 0.1, params[2], params[3]]), flag.listpar, flag.dims)
                 logF_mod_UV = np.log10(10.**logF_mod_UV_1 + 10.**logF_mod_UV_2)
             else:
-                logF_mod_UV = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+                logF_mod_UV = griddataBA(flag.minfo, flag.logF_grid[index], params[:-lim], flag.listpar, flag.dims)
                 
             logF_mod.append(logF_mod_UV)                    
         
-        if check_list(lista_obs, 'Ha'):
-            u = np.where(lista_obs == 'Ha')
+        if check_list(flag.lista_obs, 'Ha'):
+            u = np.where(flag.lista_obs == 'Ha')
             index = u[0][0]
             
-            #if check_list(lista_obs, 'UV'):
+            #if check_list(flag.lista_obs, 'UV'):
             if flag.binary_star:
                 M2 = params[-1]
-                logF_mod_Ha_1 = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
-                logF_mod_Ha_2 = griddataBA(minfo, logF_grid[index], np.array([M2, 0.1, params[2], params[3]]), listpar, dims)
-                F_mod_Ha = linfit(lbd[index], logF_mod_Ha_1 + logF_mod_Ha_2)
+                logF_mod_Ha_1 = griddataBA(flag.minfo, flag.logF_grid[index], params[:-lim], flag.listpar, flag.dims)
+                logF_mod_Ha_2 = griddataBA(flag.minfo, flag.logF_grid[index], np.array([M2, 0.1, params[2], params[3]]), flag.listpar, flag.dims)
+                F_mod_Ha = linfit(flag.wave[index], logF_mod_Ha_1 + logF_mod_Ha_2)
                 #logF_mod_Ha = np.log10(F_mod_Ha)
                 #logF_mod_Ha = np.log(norm_spectra(lbd[index], F_mod_Ha_unnormed))
             else:
-                logF_mod_Ha_unnorm = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
-                F_mod_Ha = linfit(lbd[index], logF_mod_Ha_unnorm)
+                logF_mod_Ha_unnorm = griddataBA(flag.minfo, flag.logF_grid[index], params[:-lim], flag.listpar, flag.dims)
+                F_mod_Ha = linfit(flag.wave[index], logF_mod_Ha_unnorm)
                 #logF_mod_Ha = np.log10(F_mod_Ha)
             #else:
-            #    logF_mod_Ha = griddataBA(minfo, logF_grid[index], params, listpar, dims)
+            #    logF_mod_Ha = griddataBA(flag.minfo, logF_grid[index], params, listpar, flag.dims)
             logF_mod.append(F_mod_Ha)
-        if check_list(lista_obs, 'Hb'):
-            u = np.where(lista_obs == 'Hb')
+        if check_list(flag.lista_obs, 'Hb'):
+            u = np.where(flag.lista_obs == 'Hb')
             index = u[0][0]
-            if check_list(lista_obs, 'UV'):
-                logF_mod_Hb = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+            if check_list(flag.lista_obs, 'UV'):
+                logF_mod_Hb = griddataBA(flag.minfo, flag.logF_grid[index], params[:-lim], flag.listpar, flag.dims)
             else:
-                logF_mod_Hb = griddataBA(minfo, logF_grid[index], params, listpar, dims)
+                logF_mod_Hb = griddataBA(flag.minfo, flag.logF_grid[index], params, flag.listpar, flag.dims)
             logF_mod.append(logF_mod_Hb)
-        if check_list(lista_obs, 'Hd'):
-            u = np.where(lista_obs == 'Hd')
+        if check_list(flag.lista_obs, 'Hd'):
+            u = np.where(flag.lista_obs == 'Hd')
             index = u[0][0]
-            if check_list(lista_obs, 'UV'):
-                logF_mod_Hd = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+            if check_list(flag.lista_obs, 'UV'):
+                logF_mod_Hd = griddataBA(flag.minfo, flag.logF_grid[index], params[:-lim], flag.listpar, flag.dims)
             else:
-                logF_mod_Hd = griddataBA(minfo, logF_grid[index], params, listpar, dims)
+                logF_mod_Hd = griddataBA(flag.minfo, flag.logF_grid[index], params, flag.listpar, flag.dims)
             logF_mod.append(logF_mod_Hd)
-        if check_list(lista_obs, 'Hg'):
-            u = np.where(lista_obs == 'Hg')
+        if check_list(flag.lista_obs, 'Hg'):
+            u = np.where(flag.lista_obs == 'Hg')
             index = u[0][0]
-            if check_list(lista_obs, 'UV'):
-                logF_mod_Hg = griddataBA(minfo, logF_grid[index], params[:-lim], listpar, dims)
+            if check_list(flag.lista_obs, 'UV'):
+                logF_mod_Hg = griddataBA(flag.minfo, flag.logF_grid[index], params[:-lim], flag.listpar, flag.dims)
             else:
-                logF_mod_Hg = griddataBA(minfo, logF_grid[index], params, listpar, dims)
+                logF_mod_Hg = griddataBA(flag.minfo, flag.logF_grid[index], params, flag.listpar, flag.dims)
             logF_mod.append(logF_mod_Hg)
 
 
-        lp = lnprior(params, vsin_obs, sig_vsin_obs, dist_pc,
-                     sig_dist_pc, ranges, pdf_mas, pdf_obl, pdf_age, pdf_dis, pdf_ebv,
-                     grid_mas, grid_obl, grid_age, grid_dis, grid_ebv)
+        lp = lnprior(params)
 
-        lk = lnlike(params, lbd, logF, dlogF, logF_mod, ranges,
-                    box_lim, lista_obs)
+        lk = lnlike(params, logF_mod)
 
+
+        #lp = lnprior(params, vsin_obs, sig_vsin_obs, dist_pc,
+        #             sig_dist_pc, ranges, pdf_mas, pdf_obl, pdf_age, pdf_dis, pdf_ebv,
+        #             grid_mas, grid_obl, grid_age, grid_dis, grid_ebv)
+        #
+        #lk = lnlike(params, lbd, logF, dlogF, logF_mod, ranges,
+        #            box_lim, flag.lista_obs)
         lpost = lp + lk
 
         # print('{0:.2f} , {1:.2f}, {2:.2f}'.format(lp, lk, lpost))
@@ -453,92 +459,45 @@ def run_emcee(p0, sampler, nib, nimc, Ndim, Nwalk, file_name):
 
 
 # ==============================================================================
-def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
-                    listpar, logF_grid, vsin_obs, sig_vsin_obs, dist_pc,
-                    sig_dist_pc, isig, dims, tag, 
-                    pool, pdf_mas, pdf_obl, pdf_age, pdf_dis, pdf_ebv,
-                    grid_mas, grid_obl, grid_age, grid_dis, grid_ebv,
-                    box_lim, lista_obs, models):
-
+def new_emcee_inference(pool):
+#def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, flag.minfo,
+#                    listpar, logF_grid, vsin_obs, sig_vsin_obs, dist_pc,
+#                    sig_dist_pc, isig, flag.dims, tag, 
+#                    pool, pdf_mas, pdf_obl, pdf_age, pdf_dis, pdf_ebv,
+#                    grid_mas, grid_obl, grid_age, grid_dis, grid_ebv,
+#                    box_lim, flag.lista_obs, models):
 
 # emcee inference for new stellar grid 
         if flag.long_process is True:
-            Nwalk = 100  # 200  # 500
-            nint_burnin = 300  # 50
-            nint_mcmc = 1000  # 500  # 1000
+            Nwalk = 500  # 200  # 500
+            nint_burnin = 600  # 50
+            nint_mcmc = 2000  # 500  # 1000
         else:
-            Nwalk = 30
-            nint_burnin = 50
-            nint_mcmc = 150
+            Nwalk = 20
+            nint_burnin = 30
+            nint_mcmc = 80
             
-        p0 = [np.random.rand(Ndim) * (ranges[:, 1] - ranges[:, 0]) +
-              ranges[:, 0] for i in range(Nwalk)]
+        
+            
+        p0 = [np.random.rand(flag.Ndim) * (flag.ranges[:, 1] - flag.ranges[:, 0]) +
+              flag.ranges[:, 0] for i in range(Nwalk)]
+        
         start_time = time.time()
         
 
-        raw_flux = np.array([])
-        raw_waves = np.array([])
         
         
         if flag.acrux is True:
-            sampler = emcee.EnsembleSampler(Nwalk, Ndim, lnprob,
-                                            args=[wave, logF, dlogF, minfo,
-                                                  listpar, logF_grid, vsin_obs,
-                                                  sig_vsin_obs, dist_pc,
-                                                  sig_dist_pc,
-                                                  isig, ranges, dims,
-                                                  pdf_mas, pdf_obl, pdf_age,
-                                                  pdf_dis, pdf_ebv,
-                                                  grid_mas, grid_obl,
-                                                  grid_age, grid_dis,
-                                                  grid_ebv, 
-                                                  box_lim, 
-                                                  lista_obs, raw_waves,
-                                                  raw_flux],
-                                            a=flag.a_parameter, threads=flag.Nproc,
-                                            pool=pool)
+            sampler = emcee.EnsembleSampler(Nwalk, flag.Ndim, lnprob, pool=pool, moves=[(emcee.moves.StretchMove(flag.a_parameter))])
         else:
-            sampler = emcee.EnsembleSampler(Nwalk, Ndim, lnprob,
-                                            args=[wave, logF, dlogF, minfo,
-                                                  listpar, logF_grid, vsin_obs,
-                                                  sig_vsin_obs, dist_pc,
-                                                  sig_dist_pc,
-                                                  isig, ranges, dims,
-                                                  pdf_mas, pdf_obl, pdf_age,
-                                                  pdf_dis, pdf_ebv,
-                                                  grid_mas, grid_obl,
-                                                  grid_age, grid_dis,
-                                                  grid_ebv, 
-                                                  box_lim, 
-                                                  lista_obs, raw_waves,
-                                                  raw_flux],
-                                            a=flag.a_parameter, threads=1)
+            sampler = emcee.EnsembleSampler(Nwalk, flag.Ndim, lnprob, moves=[(emcee.moves.StretchMove(flag.a_parameter))])
 
         sampler_tmp = run_emcee(p0, sampler, nint_burnin, nint_mcmc,
-                                Ndim, Nwalk, file_name=star)
+                                flag.Ndim, Nwalk, file_name=flag.stars)
         print("--- %s minutes ---" % ((time.time() - start_time) / 60))
 
         sampler, params_fit, errors_fit, maxprob_index,\
             minprob_index, af, file_npy_burnin = sampler_tmp
-
-
-        #if flag.model == 'aeri':
-        #    if flag.include_rv is True and check_list(lista_obs, 'UV'):
-        #        mass_true, obt_true, xc_true,\
-        #        cos_true, ebv_true, dist_true, rv_true = params_fit
-        #    elif check_list(lista_obs, 'UV') or flag.normal_spectra is False:
-        #        mass_true, W_true, tms_true,\
-        #            cos_true, ebv_true, dist_true = params_fit
-        #    else: #only lines
-        #        mass_true, W_true, tms_true, cos_true = params_fit
-        #
-        #    
-        #    
-        #    
-        #if flag.model == 'acol':
-        #    if flag.normal_spectral:
-        #        mass_true, W_true, tms_true, cos_true, modNflux_true = params_fit # colocar parametros certos			
-
 
         chain = sampler.chain
 
@@ -556,105 +515,20 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
         file_npy = flag.folder_fig + str(flag.stars) + '/' + 'Walkers_' +\
             str(Nwalk) + '_Nmcmc_' + str(nint_mcmc) +\
             '_af_' + str(af) + '_a_' + str(flag.a_parameter) +\
-            tag + ".npy"
+            flag.tags + ".npy"
         np.save(file_npy, chain)
 
 
-        # Loading first dataframe
-        #chain_1 = np.load(file_npy)
-        #Ndim_1 = np.shape(chain_1)[-1] # number of dimensions (parameters)
-        flatchain_1 = chain.reshape((-1, Ndim)) # cada walker em cada step em uma lista só
 
-        #if flag.model == 'aeri':
-        #    if check_list(lista_obs, 'UV'):
-        #       mas_1 = flatchain_1[:, 0]
-        #       W_1 = flatchain_1[:, 1]
-        #       tms_1 = flatchain_1[:, 2]
-        #       inc_1 = flatchain_1[:, 3]
-        #       dis_1 = flatchain_1[:, 4]
-        #       ebv_1 = flatchain_1[:, 5]
-        #    else: #only lines          
-        #        if flag.normal_spectra is False:
-        #            mas_1 = flatchain_1[:, 0]
-        #            W_1 = flatchain_1[:, 1]
-        #            tms_1 = flatchain_1[:, 2]
-        #            inc_1 = flatchain_1[:, 3]
-        #            dis_1 = flatchain_1[:, 4]
-        #            ebv_1 = flatchain_1[:, 5]
-        #        else:
-        #            mas_1 = flatchain_1[:, 0]
-        #            W_1 = flatchain_1[:, 1]
-        #            tms_1 = flatchain_1[:, 2]
-        #            inc_1 = flatchain_1[:, 3]
+        flatchain_1 = chain.reshape((-1, flag.Ndim)) # cada walker em cada step em uma lista só
 
-
-
-        #if flag.include_rv is True:
-        #    rv_1 = flatchain_1[:, 6]
-        #    par_list = np.zeros([len(mas_1), 7])
-        #else:
-        #    if flag.model == 'aeri':
-        #        if check_list(lista_obs, 'UV'):
-        #            par_list = np.zeros([len(mas_1), 6])
-        #        else:
-        #            if flag.normal_spectra is False:
-        #                par_list = np.zeros([len(mas_1), 6])
-        #            else:
-        #                par_list = np.zeros([len(mas_1), 4])
-        #
-        #
-        #for i in range(len(mas_1)):
-        #    if flag.include_rv is True:
-        #        par_list[i] = [mas_1[i], W_1[i], tms_1[i],
-        #                    inc_1[i], dis_1[i], ebv_1[i],
-        #                    rv_1[i]]
-        #    else:
-        #        if flag.model == 'aeri':
-        #            if flag.combination:
-        #
-        #                if check_list(lista_obs, 'UV'):
-        #                    par_list[i] = [mas_1[i], W_1[i], tms_1[i],
-        #                                inc_1[i], dis_1[i], ebv_1[i]]                      
-        #                else:
-        #                    par_list[i] = [mas_1[i], W_1[i], tms_1[i], inc_1[i]]
-        #                    
-        #            else:
-        #                if flag.normal_spectra is False:
-        #                    par_list[i] = [mas_1[i], W_1[i], tms_1[i],
-        #                                   inc_1[i], dis_1[i], ebv_1[i]]
-        #
-						
-
-        # plot corner
+        
         samples = np.copy(flatchain_1)
-        #if flag.include_rv is True:
-        #    samples = np.vstack((mas_1, W_1, tms_1,
-        #                        inc_1, dis_1, ebv_1, rv_1)).T
-        #else:
-        #    if flag.model == 'aeri':
-        #        if flag.combination:
-        #            if check_list(lista_obs, 'UV'):
-        #                samples = np.vstack((mas_1, W_1, tms_1,
-        #                                    inc_1, dis_1, ebv_1)).T
-        #            else:
-        #                samples = np.vstack((mas_1, W_1, tms_1, inc_1)).T	
-        #        else:
-        #            if flag.normal_spectra is False:
-        #                samples = np.vstack((mas_1, W_1, tms_1,
-        #                                     inc_1, dis_1, ebv_1)).T
-
-		
-
+       
 
 
         for i in range(len(samples)):
-            #if flag.model == 'befavor' or flag.model == 'aara' or\
-            #   flag.model == 'acol' or flag.model == 'bcmi':
-            #    # Calculating logg for the non_rotating case
-            #    Mstar, oblat, Hfrac = samples[i][0], samples[i][1],\
-            #        samples[i][2]
-            #else:
-            #    Mstar, W, tms = samples[i][0], samples[i][1], samples[i][2]
+           
 
             if flag.model == 'acol':
                 samples[i][1] = obl2W(samples[i][1])
@@ -670,7 +544,7 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
         quantiles = [0.16, 0.5, 0.84]
         
         if flag.model == 'aeri':
-            if check_list(lista_obs, 'UV'):
+            if check_list(flag.lista_obs, 'UV'):
                 labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
                       r'$i[\mathrm{^o}]$', r'$\pi\,[mas]$', r'E(B-V)']
                 if flag.include_rv is True:
@@ -682,7 +556,7 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
             labels2 = labels
             
         if flag.model == 'acol':
-            if check_list(lista_obs, 'UV'):
+            if check_list(flag.lista_obs, 'UV'):
                 labels = [r'$M\,[\mathrm{M_\odot}]$', r'$W$',
                             r"$t/t_\mathrm{ms}$",
                             r'$\log \, n_0 \, [\mathrm{cm^{-3}}]$',
@@ -775,30 +649,32 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
             color_hist='xkcd:light pink'
             color_dens='xkcd:pink red'
 
-
+        
+        new_ranges = np.copy(flag.ranges)
         
         if flag.model == 'aeri':
 
-            ranges[3] = (np.arccos(ranges[3])) * (180. / np.pi)
-            ranges[3] = np.array([ranges[3][1], ranges[3][0]])
+            new_ranges[3] = (np.arccos(flag.ranges[3])) * (180. / np.pi)
+            new_ranges[3] = np.array([flag.ranges[3][1], flag.ranges[3][0]])
         if flag.model == 'acol':
-            ranges[1] = obl2W(ranges[1])            
-            ranges[2][0] = hfrac2tms(ranges[2][1])
-            ranges[2][1] = hfrac2tms(ranges[2][0])
-            ranges[6] = (np.arccos(ranges[6])) * (180. / np.pi)
-            ranges[6] = np.array([ranges[6][1], ranges[6][0]])
+            new_ranges[1] = obl2W(flag.ranges[1])            
+            new_ranges[2][0] = hfrac2tms(flag.ranges[2][1])
+            new_ranges[2][1] = hfrac2tms(flag.ranges[2][0])
+            new_ranges[6] = (np.arccos(flag.ranges[6])) * (180. / np.pi)
+            new_ranges[6] = np.array([new_ranges[6][1], new_ranges[6][0]])
+
+
 
         best_pars = []
         best_errs = []
-        for i in range(Ndim):
+        for i in range(flag.Ndim):
             #mode_val = mode1(np.round(samples[:,i], decimals=2))
             qvalues = hpd(samples[:,i], alpha=0.32)
             cut = samples[samples[:,i] > qvalues[0], i]
             cut = cut[cut < qvalues[1]]
             median_val = np.median(cut)
             
-            #ax1 = plt.subplot(3, 3, i+1)
-            #x1, x2 = hpd(samples[:,i], alpha=0.32)
+
             best_errs.append([qvalues[1] - median_val, median_val - qvalues[0]])
             best_pars.append(median_val)
         
@@ -806,7 +682,7 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
         
         truth_color='k'
 
-        fig_corner = corner_HDR.corner(samples, labels=labels, labels2=labels2, range=ranges, quantiles=None, plot_contours=True, show_titles=True, 
+        fig_corner = corner_HDR.corner(samples, labels=labels, labels2=labels2, range=new_ranges, quantiles=None, plot_contours=True, show_titles=True, 
                 title_kwargs={'fontsize': 15}, label_kwargs={'fontsize': 19}, truths = best_pars, hdr=True,
                 truth_color=truth_color, color=color, color_hist=color_hist, color_dens=color_dens, 
                 smooth=1, plot_datapoints=False, fill_contours=True, combined=True)
@@ -843,462 +719,86 @@ def new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
         current_folder = str(flag.folder_fig) + str(flag.stars) + '/'
         fig_name = 'Walkers_' + np.str(Nwalk) + '_Nmcmc_' +\
             np.str(nint_mcmc) + '_af_' + str(af) + '_a_' +\
-            str(flag.a_parameter) + tag
+            str(flag.a_parameter) + flag.tags
         
         params_to_print = print_to_latex(best_pars, best_errs, current_folder, fig_name, labels)
-        #print(params_to_print)
-        
-        #ax = np.array(fig_corner.axes)
-        #plt.text(0.8, 0.6, params_to_print, horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
-        
+
         print_output_means(samples)    
         
         plt.savefig(current_folder + fig_name + '.png', dpi=100)
-        # plt.close()
 
-        # plt.clf()
-        #if flag.combination is False:
-        #    plot_residuals(params_fit, wave, logF, dlogF, minfo,
-        #                   listpar, lbdarr, logF_grid, isig, dims,
-        #                   Nwalk, nint_mcmc, ranges, flag.include_rv,
-        #                   file_npy, flag.plot_in_log_scale, model, flag.normal_spectra)
-        #    plt.savefig(current_folder + fig_name + '_residuals' + '.png', dpi=100)
 
         plt.close()
-        plot_residuals_new(params_fit, wave, logF, dlogF, minfo,
-                           listpar, lbdarr, logF_grid, isig, dims,
-                           Nwalk, nint_mcmc, ranges, 
-                           file_npy, box_lim,
-                           lista_obs, current_folder, fig_name)
-        #if flag.combination is False:
-        #plt.savefig(current_folder + fig_name + '_new_residuals' + '.png', dpi=100)
+        plot_residuals_new(params_fit,Nwalk,nint_mcmc,
+                           file_npy,current_folder, fig_name)
+
         
         plot_convergence(file_npy, file_npy[:-4] + '_convergence', 
-                         file_npy_burnin,
-                        lista_obs, ranges, labels)
+                         file_npy_burnin,new_ranges,labels)
+                         
+        end = time.time()
+        serial_data_time = end - start_time
+        print("Serial took {0:.1f} seconds".format(serial_data_time))
         #chord_plot(folder=current_folder, file=file_npy[16:-4])
         return
 # ==============================================================================
-def emcee_inference(star, Ndim, ranges, lbdarr, wave, logF, dlogF, minfo,
-                    listpar, logF_grid, vsin_obs, sig_vsin_obs, dist_pc,
-                    sig_dist_pc, isig, dims, tag, 
-                    pool, pdf_mas, pdf_obl, pdf_age, pdf_dis, pdf_ebv,
-                    grid_mas, grid_obl, grid_age, grid_dis, grid_ebv):
-
-        if flag.long_process is True:
-            Nwalk = 300  # 200  # 500
-            nint_burnin = 400  # 50
-            nint_mcmc = 5000  # 500  # 1000
-        else:
-            Nwalk = 100
-            nint_burnin = 75
-            nint_mcmc = 150
-
-        p0 = [np.random.rand(Ndim) * (ranges[:, 1] - ranges[:, 0]) +
-              ranges[:, 0] for i in range(Nwalk)]
-        start_time = time.time()
-
-        if acrux is True:
-            sampler = emcee.EnsembleSampler(Nwalk, Ndim, lnprob,
-                                            args=[wave, logF, dlogF, minfo,
-                                                  listpar, logF_grid, vsin_obs,
-                                                  sig_vsin_obs, dist_pc,
-                                                  sig_dist_pc,
-                                                  isig, ranges, dims,
-                                                  flag.include_rv, model,
-                                                  stellar_prior, npy_star,
-                                                  pdf_mas, pdf_obl, pdf_age,
-                                                  pdf_dis, pdf_ebv,
-                                                  grid_mas, grid_obl,
-                                                  grid_age, grid_dis,
-                                                  grid_ebv],
-                                            a=flag.a_parameter, threads=Nproc,
-                                            pool=pool)
-        else:
-            sampler = emcee.EnsembleSampler(Nwalk, Ndim, lnprob,
-                                            args=[wave, logF, dlogF, minfo,
-                                                  listpar, logF_grid, vsin_obs,
-                                                  sig_vsin_obs, dist_pc,
-                                                  sig_dist_pc,
-                                                  isig, ranges, dims,
-                                                  flag.include_rv, model,
-                                                  stellar_prior, npy_star,
-                                                  pdf_mas, pdf_obl, pdf_age,
-                                                  pdf_dis, pdf_ebv,
-                                                  grid_mas, grid_obl,
-                                                  grid_age, grid_dis,
-                                                  grid_ebv],
-                                            a=flag.a_parameter, threads=1)
-
-        sampler_tmp = run_emcee(p0, sampler, nint_burnin, nint_mcmc,
-                                Ndim, file_name=star)
-        print("--- %s minutes ---" % ((time.time() - start_time) / 60))
-
-        sampler, params_fit, errors_fit, maxprob_index,\
-            minprob_index, af = sampler_tmp
-
-        if flag.include_rv is True:
-            mass_true, obt_true, xc_true,\
-                cos_true, ebv_true, dist_true, rv_true = params_fit
-        else:
-            if flag.model == 'aeri':
-                mass_true, W_true, tms_true,\
-                    cos_true, ebv_true, dist_true = params_fit
-            if flag.model == 'befavor':
-                mass_true, obt_true, xc_true,\
-                    cos_true, ebv_true, dist_true = params_fit
-            if flag.model == 'aara' or flag.model == 'acol' or flag.model == 'bcmi':
-                mass_true, obt_true, xc_true, n0, Rd, n_true,\
-                    cos_true, ebv_true, dist_true = params_fit
-            if flag.model == 'beatlas':
-                mass_true, obt_true, rh0_true, nix_true,\
-                    inc_true, dis_true, ebv_true = params_fit
-        # if flag.model is False:
-        #     angle_in_rad = np.arccos(params_fit[6])
-        #     params_fit[6] = (np.arccos(params_fit[6])) * (180. / np.pi)
-        #     errors_fit[6] = (errors_fit[6] / (np.sqrt(1. -
-        #                      (np.cos(angle_in_rad)**2.)))) * (180. / np.pi)
-
-        chain = sampler.chain
-
-        if flag.af_filter is True:
-            acceptance_fractions = sampler.acceptance_fraction
-            chain = chain[(acceptance_fractions >= 0.20) &
-                          (acceptance_fractions <= 0.50)]
-            af = acceptance_fractions[(acceptance_fractions >= 0.20) &
-                                      (acceptance_fractions <= 0.50)]
-            af = np.mean(af)
-
-        af = str('{0:.2f}'.format(af))
-
-        # Saving first sample
-        file_npy = 'figures/' + str(flag.stars) + '/' + 'Walkers_' +\
-            str(Nwalk) + '_Nmcmc_' + str(nint_mcmc) +\
-            '_af_' + str(af) + '_a_' + str(flag.a_parameter) +\
-            tag + ".npy"
-        np.save(file_npy, chain)
-
-        # plot results
-        mpl.rcParams['mathtext.fontset'] = 'stix'
-        mpl.rcParams['font.family'] = 'STIXGeneral'
-        mpl.rcParams['font.size'] = 16
-
-        # Loading first dataframe
-        chain_1 = np.load(file_npy)
-        Ndim_1 = np.shape(chain_1)[-1]
-        flatchain_1 = chain_1.reshape((-1, Ndim_1))
-
-        if flag.model == 'aeri':
-            mas_1 = flatchain_1[:, 0]
-            W_1 = flatchain_1[:, 1]
-            tms_1 = flatchain_1[:, 2]
-            inc_1 = flatchain_1[:, 3]
-            dis_1 = flatchain_1[:, 4]
-            ebv_1 = flatchain_1[:, 5]
-        if flag.model == 'befavor' or flag.model == 'aeri':
-            mas_1 = flatchain_1[:, 0]
-            obl_1 = flatchain_1[:, 1]
-            age_1 = flatchain_1[:, 2]
-            inc_1 = flatchain_1[:, 3]
-            dis_1 = flatchain_1[:, 4]
-            ebv_1 = flatchain_1[:, 5]
-        if flag.model == 'aara' or flag.model == 'acol' or flag.model == 'bcmi':
-            mas_1 = flatchain_1[:, 0]
-            obl_1 = flatchain_1[:, 1]
-            age_1 = flatchain_1[:, 2]
-            rh0_1 = flatchain_1[:, 3]
-            rdk_1 = flatchain_1[:, 4]
-            nix_1 = flatchain_1[:, 5]
-            inc_1 = flatchain_1[:, 6]
-            dis_1 = flatchain_1[:, 7]
-            ebv_1 = flatchain_1[:, 8]
-        if flag.model == 'beatlas':
-            mas_1 = flatchain_1[:, 0]
-            obl_1 = flatchain_1[:, 1]
-            rh0_1 = flatchain_1[:, 2]
-            nix_1 = flatchain_1[:, 3]
-            inc_1 = flatchain_1[:, 4]
-            dis_1 = flatchain_1[:, 5]
-            ebv_1 = flatchain_1[:, 6]
-
-        if flag.include_rv is True:
-            rv_1 = flatchain_1[:, 6]
-            par_list = np.zeros([len(mas_1), 7])
-        else:
-            if flag.model == 'befavor' or flag.model == 'aeri':
-                par_list = np.zeros([len(mas_1), 6])
-            if flag.model == 'aara' or flag.model == 'acol' or flag.model == 'bcmi':
-                par_list = np.zeros([len(mas_1), 9])
-            if flag.model == 'beatlas':
-                par_list = np.zeros([len(mas_1), 7])
-
-        for i in range(len(mas_1)):
-            if flag.include_rv is True:
-                par_list[i] = [mas_1[i], obl_1[i], age_1[i],
-                               inc_1[i], dis_1[i], ebv_1[i],
-                               rv_1[i]]
-            else:
-                if flag.model == 'aeri':
-                    par_list[i] = [mas_1[i], W_1[i], tms_1[i],
-                                   inc_1[i], dis_1[i], ebv_1[i]]
-                if flag.model == 'befavor':
-                    par_list[i] = [mas_1[i], obl_1[i], age_1[i],
-                                   inc_1[i], dis_1[i], ebv_1[i]]
-                if flag.model == 'aara' or flag.model == 'acol' or flag.model == 'bcmi':
-                    par_list[i] = [mas_1[i], obl_1[i], age_1[i],
-                                   rh0_1[i], rdk_1[i], nix_1[i],
-                                   inc_1[i], dis_1[i], ebv_1[i]]
-                if flag.model == 'beatlas':
-                    par_list[i] = [mas_1[i], obl_1[i], rh0_1[i],
-                                   nix_1[i], inc_1[i], dis_1[i],
-                                   ebv_1[i]]
-
-        # plot corner
-        if flag.include_rv is True:
-            samples = np.vstack((mas_1, obl_1, age_1,
-                                inc_1, dis_1, ebv_1, rv_1)).T
-        else:
-            if flag.model == 'aeri':
-                samples = np.vstack((mas_1, W_1, tms_1,
-                                    inc_1, dis_1, ebv_1)).T
-            if flag.model == 'befavor':
-                samples = np.vstack((mas_1, obl_1, age_1,
-                                    inc_1, dis_1, ebv_1)).T
-            if flag.model == 'aara' or flag.model == 'acol' or flag.model == 'bcmi':
-                samples = np.vstack((mas_1, obl_1, age_1,
-                                     rh0_1, rdk_1, nix_1,
-                                    inc_1, dis_1, ebv_1)).T
-            if flag.model == 'beatlas':
-                samples = np.vstack((mas_1, obl_1, rh0_1,
-                                     nix_1, inc_1, dis_1, ebv_1)).T
-
-        k, arr_t_tc, arr_Xc = t_tms_from_Xc(mass_true,
-                                            savefig=False,
-                                            plot_fig=False)
-        ttms_ip = np.arange(0.001, 1., 0.001)
-        Xc_ip = np.interp(ttms_ip, arr_t_tc[k], arr_Xc[k])
-
-        for i in range(len(samples)):
-            if flag.model == 'befavor' or flag.model == 'aara' or\
-               flag.model == 'acol' or flag.model == 'bcmi':
-                # Calculating logg for the non_rotating case
-                Mstar, oblat, Hfrac = samples[i][0], samples[i][1],\
-                    samples[i][2]
-            else:
-                Mstar, oblat, Hfrac = samples[i][0], samples[i][1], 0.3
-
-            t = np.max(np.array([hfrac2tms(Hfrac), 0.]))
-
-            #Rpole, logL = geneva_interp_fast(Mstar, oblat, t,
-            #                                 neighbours_only=True,
-            #                                 isRpole=False)        # conforme rotina no utils
-            
-
-            # Converting oblat to W
-            samples[i][1] = obl2W(samples[i][1])
-
-            if flag.model == 'befavor':
-                # Converting angles to degrees
-                samples[i][3] = (np.arccos(samples[i][3])) * (180. / np.pi)
-                # Converting Xc to t(tms)
-                samples[i][2] = ttms_ip[find_nearest(Xc_ip, samples[i][2])[1]]
-            if flag.model == 'aara':
-                # Converting Xc to t(tms)
-                samples[i][2] = ttms_ip[find_nearest(Xc_ip, samples[i][2])[1]]
-                samples[i][5] = samples[i][5] + 1.5
-                samples[i][6] = (np.arccos(samples[i][6])) * (180. / np.pi)
-            if flag.model == 'acol' or flag.model == 'bcmi':
-                # Converting Xc to t(tms)
-                samples[i][2] = ttms_ip[find_nearest(Xc_ip, samples[i][2])[1]]
-                samples[i][6] = (np.arccos(samples[i][6])) * (180. / np.pi)
-            if flag.model == 'beatlas':
-                samples[i][4] = (np.arccos(samples[i][4])) * (180. / np.pi)
-
-        # plot corner
-        quantiles = [0.16, 0.5, 0.84]
-        if flag.include_rv is True:
-            labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
-                      r'$i[\mathrm{^o}]$', r'$d\,[pc]$', r'E(B-V)',
-                      r'$R_\mathrm{V}$']
-        else:
-            if flag.model == 'befavor':
-                labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
-                          r'$i[\mathrm{^o}]$', r'$d\,[pc]$', r'E(B-V)']
-            if flag.model == 'aara' or flag.model == 'acol' or flag.model == 'bcmi':
-                labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
-                          r'$\log \, n_0 \, [cm^{-3}]$',
-                          r'$R_\mathrm{D}\, [R_\star]$',
-                          r'$n$', r'$i[\mathrm{^o}]$', r'$d\,[pc]$', r'E(B-V)']
-            if flag.model == 'beatlas':
-                labels = [r'$M\,[M_\odot]$', r'$W$', r'$\Sigma_0$', r'$n$',
-                          r'$i[\mathrm{^o}]$', r'$d\,[pc]$', r'E(B-V)']
-        if flag.model == 'befavor':
-            ranges[1] = obl2W(ranges[1])
-            ranges[2][0] = ttms_ip[find_nearest(Xc_ip, ranges[2][1])[1]]
-            ranges[2][1] = ttms_ip[find_nearest(Xc_ip, ranges[2][0])[1]]
-            ranges[3] = (np.arccos(ranges[3])) * (180. / np.pi)
-            ranges[3] = np.array([ranges[3][1], ranges[3][0]])
-        if flag.model == 'aara':
-            ranges[1] = obl2W(ranges[1])
-            ranges[2][0] = ttms_ip[find_nearest(Xc_ip, ranges[2][1])[1]]
-            ranges[2][1] = ttms_ip[find_nearest(Xc_ip, ranges[2][0])[1]]
-            ranges[3] = np.array([ranges[3][1], ranges[3][0]])
-            ranges[5] = ranges[5] + 1.5
-            ranges[6] = (np.arccos(ranges[6])) * (180. / np.pi)
-            ranges[6] = np.array([ranges[6][1], ranges[6][0]])
-        if flag.model == 'acol' or flag.model == 'bcmi':
-            ranges[1] = obl2W(ranges[1])
-            ranges[2][0] = ttms_ip[find_nearest(Xc_ip, ranges[2][1])[1]]
-            ranges[2][1] = ttms_ip[find_nearest(Xc_ip, ranges[2][0])[1]]
-            ranges[3] = np.array([ranges[3][1], ranges[3][0]])
-            ranges[6] = (np.arccos(ranges[6])) * (180. / np.pi)
-            ranges[6] = np.array([ranges[6][1], ranges[6][0]])
-        if flag.model == 'beatlas':
-            ranges[1] = obl2W(ranges[1])
-            ranges[3] = np.array([ranges[3][-1], ranges[3][0]])
-            ranges[4] = (np.arccos(ranges[4])) * (180. / np.pi)
-            ranges[4] = np.array([ranges[4][1], ranges[4][0]])
-        
-        best_pars = []
-        for i in range(Ndim):
-            #mode_val = mode1(np.round(samples[:,i], decimals=2))
-            qvalues = hpd(samples[:,i], alpha=0.32)
-            cut = samples[samples[:,i] > qvalues[0], i]
-            cut = samples[samples[:,i] < qvalues[1], i]
-            median_val = np.median(cut)
-            
-            #ax1 = plt.subplot(3, 3, i+1)
-            #x1, x2 = hpd(samples[:,i], alpha=0.32)
-            #quantiles.append([x1, x2])
-            best_pars.append(median_val)
-        
-        #elif flag.lbd_range == 'Ha':
-        truth_color='xkcd:wine'
-        color='xkcd:pinky'
-        color_hist='xkcd:light pink'
-        color_dens='xkcd:pink red'
-        
-        
-        corner_HDR.corner(samples, labels=labels, labels2=labels2, range=ranges, quantiles=None, plot_contours=True, show_titles=True, 
-                title_kwargs={'fontsize': 15}, label_kwargs={'fontsize': 19}, truths = best_pars, hdr=True,
-                truth_color=truth_color, color=color, color_hist=color_hist, color_dens=color_dens, 
-                smooth=1, plot_datapoints=False, fill_contours=True, combined=True)
-
-
-        current_folder = 'figures/' + str(flag.stars) + '/'
-        fig_name = 'Walkers_' + np.str(Nwalk) + '_Nmcmc_' +\
-            np.str(nint_mcmc) + '_af_' + str(af) + '_a_' +\
-            str(flag.a_parameter) + tag
-        plt.savefig(current_folder + fig_name + '.png', dpi=100)
-        plt.close()
-
-        plot_residuals_new(params, wave, logF, dlogF, minfo, listpar, lbdarr, logF_grid,
-                       isig, dims, Nwalk, Nmcmc, ranges, npy, box_lim, lista_obs, current_folder, fig_name)
-
-        plt.savefig(current_folder + fig_name + '_residuals' + '.png', dpi=100)
-
-        plot_convergence(file_npy, file_npy[:-4] + '_convergence', model)
-
-        return
 
 
 # ==============================================================================
-def run(input_params):
-    ctrlarr, minfo, models, lbdarr, listpar, dims, isig, tags, pool, lista_obs = input_params
-
-    if flag.stellar_prior is True:
-        chain = np.load('npys/' + flag.npy_star)
-        Ndim = np.shape(chain)[-1]
-        flatchain = chain.reshape((-1, Ndim))
-
-        mas = flatchain[:, 0]
-        obl = flatchain[:, 1]
-        age = flatchain[:, 2]
-        dis = flatchain[:, -2]
-        ebv = flatchain[:, -1]
-
-        # grid_mas = np.linspace(np.min(mas), np.max(mas), 100)
-        # grid_obl = np.linspace(np.min(obl), np.max(obl), 100)
-        # grid_age = np.linspace(np.min(age), np.max(age), 100)
-        # grid_ebv = np.linspace(np.min(ebv), np.max(ebv), 100)
-
-        grid_mas = np.linspace(3.4, 14.6, 100)
-        grid_obl = np.linspace(1.00, 1.45, 100)
-        grid_age = np.linspace(0.08, 0.78, 100)
-        grid_dis = np.linspace(0.00, 140, 100)
-        grid_ebv = np.linspace(0.00, 0.10, 100)
-
-        pdf_mas = kde_scipy(x=mas, x_grid=grid_mas, bandwidth=0.005)
-        pdf_obl = kde_scipy(x=obl, x_grid=grid_obl, bandwidth=0.005)
-        pdf_age = kde_scipy(x=age, x_grid=grid_age, bandwidth=0.01)
-        pdf_dis = kde_scipy(x=dis, x_grid=grid_dis, bandwidth=0.01)
-        pdf_ebv = kde_scipy(x=ebv, x_grid=grid_ebv, bandwidth=0.0005)
-
-    else:
-        grid_mas = 0
-        grid_obl = 0
-        grid_age = 0
-        grid_dis = 0
-        grid_ebv = 0
-
-        pdf_mas = 0
-        pdf_obl = 0
-        pdf_age = 0
-        pdf_dis = 0
-        pdf_ebv = 0
-
-
-
-    if np.size(flag.stars) == 1:
-        star= np.copy(flag.stars)
-        ranges, dist_pc, sig_dist_pc, vsin_obs, sig_vsin_obs,\
-            Ndim = read_star_info(star, lista_obs, listpar)
-
-
-        logF, dlogF, logF_grid, wave, box_lim =\
-                read_observables( models, lbdarr, lista_obs)
-                                
-
-        
-        if flag.model == 'aeri' or flag.model == 'acol':
-            new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF,
-                                dlogF, minfo, listpar, logF_grid, vsin_obs,
-                                sig_vsin_obs, dist_pc, sig_dist_pc, isig,
-                                dims, tags, pool, pdf_mas, pdf_obl, pdf_age,
-                                pdf_dis, pdf_ebv, grid_mas, grid_obl,
-                                grid_age, grid_dis, grid_ebv,
-                                box_lim, lista_obs, models)
-
-        else:
-            emcee_inference( star, Ndim, ranges, lbdarr, wave, logF, dlogF,
-                        minfo, listpar, logF_grid, vsin_obs, sig_vsin_obs,
-                        dist_pc, sig_dist_pc, isig, dims,  tag, pool, pdf_mas, pdf_obl, pdf_age,
-                        pdf_dis, pdf_ebv, grid_mas, grid_obl,
-                        grid_age, grid_dis, grid_ebv)
-    else:
-        for i in range(np.size(flag.stars)):
-            star=np.copy(flag.stars[i])
-            ranges, dist_pc, sig_dist_pc, vsin_obs, sig_vsin_obs,\
-                Ndim = read_star_info(star,lista_obs, listpar)
-
-            wave0, flux0, sigma0 = read_votable(star)
-
-            logF, dlogF, logF_grid, wave =\
-                read_iue(models, lbdarr, wave0, flux0, sigma0, star, cut_iue_regions)
-
-            if flag.model == 'aeri':
-                new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF,
-                            dlogF, minfo, listpar, logF_grid, vsin_obs,
-                            sig_vsin_obs, dist_pc, sig_dist_pc, isig,
-                            dims, tag, pool, pdf_mas, pdf_obl, pdf_age,
-                            pdf_dis, pdf_ebv, grid_mas, grid_obl,
-                            grid_age, grid_dis, grid_ebv)
-            else:
-                emcee_inference(star, Ndim, ranges, lbdarr, wave, logF,
-                            dlogF, minfo, listpar, logF_grid, vsin_obs,
-                            sig_vsin_obs, dist_pc, sig_dist_pc, isig,
-                            dims, tag, pool, pdf_mas, pdf_obl, pdf_age,
-                            pdf_dis, pdf_ebv, grid_mas, grid_obl,
-                            grid_age, grid_dis, grid_ebv)
-    return
+#def run(input_params):
+#
+#
+#
+#    if np.size(flag.stars) == 1:
+#        star= np.copy(flag.stars)
+#        ranges, dist_pc, sig_dist_pc, vsin_obs, sig_vsin_obs,\
+#            Ndim = read_star_info(star, gv.flag.lista_obs, listpar)
+#
+#
+#        logF, dlogF, logF_grid, wave, box_lim =\
+#                read_observables( models, lbdarr, flag.lista_obs)
+#                                
+#
+#        
+#        if flag.model == 'aeri' or flag.model == 'acol':
+#            new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF,
+#                                dlogF, flag.minfo, listpar, logF_grid, vsin_obs,
+#                                sig_vsin_obs, dist_pc, sig_dist_pc, isig,
+#                                flag.dims, tags, pool, pdf_mas, pdf_obl, pdf_age,
+#                                pdf_dis, pdf_ebv, grid_mas, grid_obl,
+#                                grid_age, grid_dis, grid_ebv,
+#                                box_lim, flag.lista_obs, models)
+#
+#        else:
+#            emcee_inference( star, Ndim, ranges, lbdarr, wave, logF, dlogF,
+#                        flag.minfo, listpar, logF_grid, vsin_obs, sig_vsin_obs,
+#                        dist_pc, sig_dist_pc, isig, flag.dims,  tag, pool, pdf_mas, pdf_obl, pdf_age,
+#                        pdf_dis, pdf_ebv, grid_mas, grid_obl,
+#                        grid_age, grid_dis, grid_ebv)
+#    else:
+#        for i in range(np.size(flag.stars)):
+#            star=np.copy(flag.stars[i])
+#            ranges, dist_pc, sig_dist_pc, vsin_obs, sig_vsin_obs,\
+#                Ndim = read_star_info(star,flag.lista_obs, listpar)
+#
+#            wave0, flux0, sigma0 = read_votable(star)
+#
+#            logF, dlogF, logF_grid, wave =\
+#                read_iue(models, lbdarr, wave0, flux0, sigma0, star, cut_iue_regions)
+#
+#            if flag.model == 'aeri':
+#                new_emcee_inference(star, Ndim, ranges, lbdarr, wave, logF,
+#                            dlogF, flag.minfo, listpar, logF_grid, vsin_obs,
+#                            sig_vsin_obs, dist_pc, sig_dist_pc, isig,
+#                            flag.dims, tag, pool, pdf_mas, pdf_obl, pdf_age,
+#                            pdf_dis, pdf_ebv, grid_mas, grid_obl,
+#                            grid_age, grid_dis, grid_ebv)
+#            else:
+#                emcee_inference(star, Ndim, ranges, lbdarr, wave, logF,
+#                            dlogF, flag.minfo, listpar, logF_grid, vsin_obs,
+#                            sig_vsin_obs, dist_pc, sig_dist_pc, isig,
+#                            flag.dims, tag, pool, pdf_mas, pdf_obl, pdf_age,
+#                            pdf_dis, pdf_ebv, grid_mas, grid_obl,
+#                            grid_age, grid_dis, grid_ebv)
+#    return
 

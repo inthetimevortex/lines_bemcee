@@ -9,9 +9,8 @@ matplotlib.rcParams['font.family'] = "sans-serif"
 font_color = "black"
 tick_color = "black"
 
-
 # ==============================================================================
-def plot_convergence(npy, file_name, file_npy_burnin,  lista_obs, linspace, param_to_latex):
+def plot_convergence(npy, file_name, file_npy_burnin, linspace, param_to_latex):
 
     converged_idx = 0
 
@@ -147,6 +146,9 @@ def plot_convergence(npy, file_name, file_npy_burnin,  lista_obs, linspace, para
         # dai comecar o these_chains com np.arange(len(walker)) + numero-steps-burnin
         # fazer teste no ipython de leitura da chain e o que significa these_chains
         if ii == 3 and flag.model == 'aeri':
+            linspace[ii] = np.cos(linspace[ii] * (np.pi/180))
+            param_to_latex[ii] = r'cosi'
+        elif ii==6 and flag.model == 'acol':
             linspace[ii] = np.cos(linspace[ii] * (np.pi/180))
             param_to_latex[ii] = r'cosi'
         
