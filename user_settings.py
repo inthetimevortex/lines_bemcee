@@ -27,14 +27,14 @@ from lines_reading import read_models, create_tag, create_list, read_stellar_pri
 
 # ==============================================================================
 # General Options
-a_parameter =       3.   # Set internal steps of each walker
+a_parameter =       1.1   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
-include_rv =        True  # If False: fix Rv = 3.1, else Rv will be inferead
+include_rv =        False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
 long_process =      False  # Run with few walkers or many?
-list_of_stars =     'HD6226'  # Star name
-Nsigma_dis =        7.  # Set the range of values for the distance
-model =             'aeri'  # 'beatlas', 'befavor', 'aara', or 'acol'
+list_of_stars =     'HD37795'  # Star name
+Nsigma_dis =        3.  # Set the range of values for the distance
+model =             'acol'  # 'beatlas', 'befavor', 'aara', or 'acol'
 
 
 binary_star = False
@@ -46,10 +46,10 @@ folder_tables = '../tables/'
 folder_models = '../models/'
 
 
-vsini_prior =   True # Uses a gaussian vsini prior
-dist_prior =    True # Uses a gaussian distance prior
+vsini_prior =   False # Uses a gaussian vsini prior
+dist_prior =    False # Uses a gaussian distance prior
 
-box_W =         True # Constrain the W lower limit, not actual a prior, but restrain the grid
+box_W =         False # Constrain the W lower limit, not actual a prior, but restrain the grid
 box_W_min, box_W_max = [0.6, 'max']
 
 incl_prior =    False # Uses a gaussian inclination prior 
@@ -64,7 +64,7 @@ remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too mu
 
 UV =            True
 iue =           True
-votable =       False
+votable =       True
 data_table=     False
 Ha =            True
 Hb =            False
