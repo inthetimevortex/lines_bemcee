@@ -87,7 +87,7 @@ npy_star = 'Walkers_500_Nmcmc_1000_af_0.28_a_1.4_rv_false+hip.npy'
 
 # ------------------------------------------------------------------------------
 # Alphacrucis' options
-acrux = False # If True, it will run in Nproc processors in the cluster
+acrux = True # If True, it will run in Nproc processors in the cluster
 Nproc = 24  # Number of processors to be used in the cluster
 
 # ==============================================================================
