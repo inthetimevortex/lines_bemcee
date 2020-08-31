@@ -2063,8 +2063,10 @@ def create_tag():
         tag = tag + '_boxW'
     if flag.incl_prior:
         tag = tag + '_inclPrior'
-    if flag.UV:
-        tag = tag + '+UV'
+    if flag.votable:
+        tag = tag + '+votable'
+    if flag.iue:
+        tag = tag + '+iue'
     if flag.Ha:
         tag = tag + '+Ha'
     if flag.Hb:

@@ -469,13 +469,13 @@ def new_emcee_inference(pool):
 
 # emcee inference for new stellar grid 
         if flag.long_process is True:
-            Nwalk = 500  # 200  # 500
-            nint_burnin = 600  # 50
-            nint_mcmc = 2000  # 500  # 1000
+            Nwalk = 200  # 200  # 500
+            nint_burnin = 70  # 50
+            nint_mcmc = 500  # 500  # 1000
         else:
-            Nwalk = 20
-            nint_burnin = 30
-            nint_mcmc = 80
+            Nwalk = 100
+            nint_burnin = 60
+            nint_mcmc = 300
             
         
             
