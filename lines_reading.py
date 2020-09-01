@@ -1738,11 +1738,11 @@ def read_iue(models, lbdarr):
     #    waves, fluxes, errors = waves[indx3], fluxes[indx3], errors[indx3]
 
     #else: # remove observations outside the range
-    #    wave_lim_min_iue = min(waves)
-    #    wave_lim_max_iue = 0.300
-    #    indx = np.where(((waves >= wave_lim_min_iue) &
-    #                     (waves <= wave_lim_max_iue)))
-    #    waves, fluxes, errors = waves[indx], fluxes[indx], errors[indx]
+    wave_lim_min_iue = min(waves)
+    wave_lim_max_iue = 0.300
+    indx = np.where(((waves >= wave_lim_min_iue) &
+                     (waves <= wave_lim_max_iue)))
+    waves, fluxes, errors = waves[indx], fluxes[indx], errors[indx]
 
     # sort the combined observations in all files
     new_wave, new_flux, new_sigma = \

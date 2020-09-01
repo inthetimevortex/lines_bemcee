@@ -505,6 +505,7 @@ def plot_residuals_new(par, Nwalk, Nmcmc, npy,
             rv=3.1
         
         oblat = 1 + 0.5*(W**2) # Rimulo 2017
+        par[3] = np.cos(par[3] * np.pi/180.)
             
     
     if flag.model == 'acol':
@@ -524,12 +525,17 @@ def plot_residuals_new(par, Nwalk, Nmcmc, npy,
                 Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, M2 = par
             else:
                 Mstar, oblat, Hfrac, Sig0, Rd, n, cosi = par
-        tms = hfrac2tms(Hfrac)
+        oblat = 1 + 0.5*(oblat**2) # Rimulo 2017
+        par[1] = 1 + 0.5*(par[1]**2)
+        tms = hfrac2tms(Hfrac, inverse=True)
+        par[2] = hfrac2tms(par[2], inverse=True)
         rv = 3.1
+        par[6] = np.cos(par[6] * np.pi/180.)
 
 
     cosi = np.cos(cosi*np.pi/180.)
-    par[3] = np.cos(par[3] * np.pi/180.)
+    print(par)
+    print(flag.listpar)
     Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
     
     # ***
@@ -615,7 +621,10 @@ def plot_residuals_new(par, Nwalk, Nmcmc, npy,
         ax2.plot(lbd_UV, (flux_UV - flux_mod_UV) / dflux, 'bs', alpha=0.2)
         ax2.set_ylim(-10,10)
         if flag.votable:
+            ax2.set_xscale('log')
             ax1.set_xscale('log')
+            ax1.set_yscale('log')
+            
         # Plot Data
         keep = np.where(flux_UV > 0) # avoid plot zero flux
         ax1.errorbar(lbd_UV[keep], flux_UV[keep], yerr=dflux[keep], ls='', marker='o',

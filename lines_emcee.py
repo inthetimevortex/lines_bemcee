@@ -473,9 +473,9 @@ def new_emcee_inference(pool):
             nint_burnin = 70  # 50
             nint_mcmc = 500  # 500  # 1000
         else:
-            Nwalk = 100
-            nint_burnin = 60
-            nint_mcmc = 300
+            Nwalk = 20
+            nint_burnin = 10
+            nint_mcmc = 50
             
         
             

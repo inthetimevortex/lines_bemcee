@@ -24,6 +24,7 @@
 import numpy as np
 import random
 from lines_reading import read_models, create_tag, create_list, read_stellar_prior, read_star_info, read_observables
+import matplotlib.pylab as plt
 
 # ==============================================================================
 # General Options
@@ -87,7 +88,7 @@ npy_star = 'Walkers_500_Nmcmc_1000_af_0.28_a_1.4_rv_false+hip.npy'
 
 # ------------------------------------------------------------------------------
 # Alphacrucis' options
-acrux = True # If True, it will run in Nproc processors in the cluster
+acrux = False # If True, it will run in Nproc processors in the cluster
 Nproc = 24  # Number of processors to be used in the cluster
 
 # ==============================================================================
@@ -151,3 +152,6 @@ ranges, dist_pc, sig_dist_pc, vsin_obs, sig_vsin_obs,\
 
 logF, dlogF, logF_grid, wave, box_lim =\
         read_observables(models, lbdarr, lista_obs)
+
+plt.plot(wave[0], 10.**logF[0], 'X')
+plt.show()
