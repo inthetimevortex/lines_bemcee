@@ -534,8 +534,8 @@ def plot_residuals_new(par, Nwalk, Nmcmc, npy,
 
 
     cosi = np.cos(cosi*np.pi/180.)
-    print(par)
-    print(flag.listpar)
+    #print(par)
+    #print(flag.listpar)
     Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
     
     # ***

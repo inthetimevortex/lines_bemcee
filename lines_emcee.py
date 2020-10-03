@@ -469,13 +469,13 @@ def new_emcee_inference(pool):
 
 # emcee inference for new stellar grid 
         if flag.long_process is True:
-            Nwalk = 200  # 200  # 500
-            nint_burnin = 70  # 50
-            nint_mcmc = 500  # 500  # 1000
+            Nwalk = 300  # 200  # 500
+            nint_burnin =300  # 50
+            nint_mcmc = 700  # 500  # 1000
         else:
-            Nwalk = 20
-            nint_burnin = 10
-            nint_mcmc = 50
+            Nwalk = 30
+            nint_burnin = 20
+            nint_mcmc = 80
             
         
             
@@ -727,8 +727,8 @@ def new_emcee_inference(pool):
         
         plt.savefig(current_folder + fig_name + '.png', dpi=100)
 
-        print(params_fit)
-        print(best_pars)
+        #print(params_fit)
+        #print(best_pars)
         plt.close()
         plot_residuals_new(best_pars,Nwalk,nint_mcmc,
                            file_npy,current_folder, fig_name)

@@ -24,16 +24,15 @@
 import numpy as np
 import random
 from lines_reading import read_models, create_tag, create_list, read_stellar_prior, read_star_info, read_observables
-import matplotlib.pylab as plt
 
 # ==============================================================================
 # General Options
 
-a_parameter =       1.1   # Set internal steps of each walker
+a_parameter =       1.8   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
-long_process =      False  # Run with few walkers or many?
+long_process =      True  # Run with few walkers or many?
 list_of_stars =     'HD37795'  # Star name
 Nsigma_dis =        3.  # Set the range of values for the distance
 model =             'acol'  # 'beatlas', 'befavor', 'aara', or 'acol'
@@ -106,7 +105,7 @@ def read_stars(stars_table):
                                        'sig_vsini', 'pre_ebmv', 'inc', 'sinc', 'lbd_range'),
                              'formats': ('S9', 'f2', 'f2', 'f4',
                                          'f4', 'f4', 'f4', 'f4', 
-                                         'U24')})
+                                         'U40')})
 
     stars, list_plx, list_sig_plx, list_vsini_obs, list_sig_vsini_obs,\
         list_pre_ebmv, incl0, sig_incl0,  lbd_range =\
@@ -124,10 +123,13 @@ def read_stars(stars_table):
 
 # ==============================================================================
 # Reading the list of stars
+
 list_of_stars = list_of_stars + '/' + list_of_stars + '.txt'
 stars, list_plx, list_sig_plx, list_vsini_obs, list_sig_vsini_obs,\
     list_pre_ebmv, incl0, sig_incl0, lbd_range =\
     read_stars(list_of_stars)
+
+lbd_range = 'UV+VIS+NIR+MIR+FIR+MICROW+RADIO'
 
 #############################################################################################################################
 if corner_color == 'random' or corner_color == '':
@@ -140,7 +142,7 @@ lista_obs = create_list()
 tags = create_tag()
 
 print(tags)
-
+print(lbd_range)
 ctrlarr, minfo, models, lbdarr, listpar, dims, isig = read_models(lista_obs)
 
 grid_priors, pdf_priors = read_stellar_prior()
@@ -153,5 +155,4 @@ ranges, dist_pc, sig_dist_pc, vsin_obs, sig_vsin_obs,\
 logF, dlogF, logF_grid, wave, box_lim =\
         read_observables(models, lbdarr, lista_obs)
 
-plt.plot(wave[0], 10.**logF[0], 'X')
-plt.show()
+

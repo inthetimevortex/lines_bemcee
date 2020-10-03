@@ -1849,7 +1849,7 @@ def read_votable():
     #wave, flux, sigma = table[:,0], table[:,1], table[:,2]
     
     try:
-        t1 = atpy.Table(vo_file)
+        t1 = atpy.Table(vo_file, pedantic=False)
         wave = t1['Wavelength'][:]  # Angstrom
         flux = t1['Flux'][:]  # erg/cm2/s/A
         sigma = t1['Error'][:]  # erg/cm2/s/A
