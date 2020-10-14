@@ -700,7 +700,7 @@ def read_star_info(star, lista_obs, listpar):
                 ebmv, rv = [[0.0, 0.8], [1., 5.8]]
             else:
                 rv = 3.1
-                ebmv, rv = [[0.0, 0.8], None]
+                ebmv, rv = [[0.0, 1.8], None]
             
             dist_min = dist_pc - flag.Nsigma_dis * sig_dist_pc
             dist_max = dist_pc + flag.Nsigma_dis * sig_dist_pc
@@ -1781,34 +1781,34 @@ def combine_sed(wave, flux, sigma, models, lbdarr):
         wave_lim_max = 350.  # mum
     if flag.lbd_range == 'UV+VIS+NIR+MIR+FIR+MICROW+RADIO':
         wave_lim_min = 0.1  # mum
-        wave_lim_max = np.max(lbdarr)  # mum
+        wave_lim_max = np.max(wave)  # mum
     if flag.lbd_range == 'VIS+NIR+MIR+FIR+MICROW+RADIO':
         wave_lim_min = 0.39  # mum
-        wave_lim_max = np.max(lbdarr)  # mum
+        wave_lim_max = np.max(wave)  # mum
     if flag.lbd_range == 'NIR+MIR+FIR+MICROW+RADIO':
         wave_lim_min = 0.7  # mum
-        wave_lim_max = np.max(lbdarr)  # mum
+        wave_lim_max = np.max(wave)  # mum
     if flag.lbd_range == 'MIR+FIR+MICROW+RADIO':
         wave_lim_min = 5.0  # mum
-        wave_lim_max = np.max(lbdarr)  # mum
+        wave_lim_max = np.max(wave)  # mum
     if flag.lbd_range == 'FIR+MICROW+RADIO':
         wave_lim_min = 40.0  # mum
-        wave_lim_max = np.max(lbdarr)  # mum
+        wave_lim_max = np.max(wave)  # mum
     if flag.lbd_range == 'MICROW+RADIO':
         wave_lim_min = 1e3  # mum
-        wave_lim_max = np.max(lbdarr)  # mum
+        wave_lim_max = np.max(wave)  # mum
     if flag.lbd_range == 'RADIO':
         wave_lim_min = 1e6  # mum
-        wave_lim_max = np.max(lbdarr)  # mum
+        wave_lim_max = np.max(wave)  # mum
 
 
     band = np.copy(flag.lbd_range)
-
+    #print(wave_lim_max)
     ordem = wave.argsort()
     wave = wave[ordem]
     flux = flux[ordem]
     sigma = sigma[ordem]
-
+    #print(sigma)
 # ------------------------------------------------------------------------------
     # select lbdarr to coincide with lbd
     #models_new = np.zeros([len(models), len(wave)])
@@ -1874,8 +1874,8 @@ def read_votable():
     wave = np.copy(new_wave) * 1e-4
     flux = np.copy(new_flux) * 1e4
     sigma = np.copy(new_sigma) * 1e4
-    keep = wave > 0.34
-    wave, flux, sigma = wave[keep], flux[keep], sigma[keep]
+    #keep = wave > 0.34
+    #wave, flux, sigma = wave[keep], flux[keep], sigma[keep]
     
     if flag.stars == 'HD37795':
         fname = flag.folder_data + '/HD37795/alfCol.txt'
@@ -2191,14 +2191,17 @@ def read_observables(models, lbdarr, lista_obs):
             wave0, flux0, sigma0 = read_table()
         else:    
             wave0, flux0, sigma0 = [], [], []
-            
-        wave = np.hstack([wave0, wave])
-        flux = np.hstack([flux0, flux])
-        sigma = np.hstack([sigma0, sigma])
         
+        
+        wave = np.hstack([wave, wave0])
+        flux = np.hstack([flux, flux0])
+        sigma = np.hstack([sigma, sigma0])
+        #print(wave)
         logF_UV, dlogF_UV, logF_grid_UV, wave_UV =\
             combine_sed(wave, flux, sigma/2., models[index], lbdarr[index])
-
+        
+        #print(dlogF_UV)
+        
         logF_combined.append(logF_UV)
         dlogF_combined.append(dlogF_UV)
         logF_grid_combined.append(logF_grid_UV) 

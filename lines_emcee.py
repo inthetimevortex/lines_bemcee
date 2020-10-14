@@ -8,7 +8,7 @@ import emcee
 import matplotlib as mpl
 from matplotlib import ticker
 from matplotlib import *
-from utils import find_nearest,griddataBAtlas, griddataBA, kde_scipy, quantile, geneva_interp_fast, linfit
+from utils import find_nearest,griddataBAtlas, griddataBA, kde_scipy, quantile, geneva_interp_fast, linfit, jy2cgs
 from be_theory import hfrac2tms
 import corner_HDR
 from pymc3.stats import hpd
@@ -18,6 +18,7 @@ from lines_convergence import plot_convergence
 from astropy.stats import SigmaClip
 import seaborn as sns
 import user_settings as flag
+from scipy.special import erf
 
 sns.set_style("white", {"xtick.major.direction": 'in',
               "ytick.major.direction": 'in'})
@@ -76,7 +77,8 @@ def lnlike(params, logF_mod):
         #print(logF_UV)
         dist = 1e3 / dist
         norma = (10 / dist)**2
-        uplim = dlogF_UV == 0
+        uplim = dlogF_UV == 0.0
+        
         keep = np.logical_not(uplim)
         
         #if flag.binary_star:
@@ -99,8 +101,12 @@ def lnlike(params, logF_mod):
         flux_mod = pyasl.unred(flag.wave[index] * 1e4, tmp_flux, ebv=-1 * ebmv, R_V=RV)
         logF_mod_UV = np.log10(flux_mod)
             
+        rms = np.array([jy2cgs(1e-3*0.1, 20000), jy2cgs(1e-3*0.1, 35000), jy2cgs(1e-3*0.1, 63000)])
+        #print(rms)
+        upper_lim = logF_UV[uplim]
+        #print(upper_lim)
         
-        chi2_UV = np.sum(((logF_UV[keep] - logF_mod_UV[keep])**2. / (dlogF_UV[keep])**2.))
+        chi2_UV = np.sum(((logF_UV[keep] - logF_mod_UV[keep])**2. / (dlogF_UV[keep])**2.)) - 2. * np.sum( np.log( (np.pi/2.)**0.5 * rms * (1. + erf(((upper_lim- logF_mod_UV[uplim])/((2**0.5)*rms))))))
         N_UV = len(logF_UV[keep])
         chi2_UV_red = chi2_UV/N_UV
         
@@ -469,9 +475,9 @@ def new_emcee_inference(pool):
 
 # emcee inference for new stellar grid 
         if flag.long_process is True:
-            Nwalk = 300  # 200  # 500
-            nint_burnin =300  # 50
-            nint_mcmc = 700  # 500  # 1000
+            Nwalk = 40  # 200  # 500
+            nint_burnin =150  # 50
+            nint_mcmc = 500  # 500  # 1000
         else:
             Nwalk = 30
             nint_burnin = 20

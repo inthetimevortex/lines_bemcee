@@ -2,12 +2,13 @@ from PyAstronomy import pyasl
 import numpy as np
 import matplotlib.pylab as plt
 from be_theory import hfrac2tms, oblat2w
-from utils import beta, geneva_interp_fast, griddataBAtlas, griddataBA, linfit
+from utils import beta, geneva_interp_fast, griddataBAtlas, griddataBA, linfit, jy2cgs
 from lines_reading import check_list, find_lim
 import corner
 from constants import G, Msun, Rsun, sigma, Lsun
 import seaborn as sns
 import user_settings as flag
+from scipy.special import erf
 
 sns.set_style("white", {"xtick.major.direction": 'in',
               "ytick.major.direction": 'in'})
@@ -555,8 +556,9 @@ def plot_residuals_new(par, Nwalk, Nmcmc, npy,
         
         dist = 1e3/dist
         norma = (10. / dist)**2  # (Lstar*Lsun) / (4. * pi * (dist*pc)**2)
-        uplim = flag.dlogF[index] == 0
+        uplim = flag.dlogF[index] == 0.0
         keep = np.logical_not(uplim) 
+
             
         if flag.binary_star:
                 logF_mod_UV_1 = griddataBA(flag.minfo, flag.logF_grid[index], par[:-lim], flag.listpar, flag.dims)
@@ -574,9 +576,12 @@ def plot_residuals_new(par, Nwalk, Nmcmc, npy,
         dflux = dlogF_UV * flux_UV
         
         flux_mod_UV = pyasl.unred(lbd_UV * 1e4, flux_mod_UV, ebv=-1 * ebv, R_V=rv)
-
         
-        chi2_UV = np.sum((flux_UV - flux_mod_UV)**2. / dflux**2.)
+        rms = np.array([jy2cgs(1e-3*0.1, 20000), jy2cgs(1e-3*0.1, 35000), jy2cgs(1e-3*0.1, 63000)])
+        #print(rms)
+        upper_lim = logF_UV[uplim]
+        
+        chi2_UV = np.sum(((logF_UV[keep] - logF_mod_UV[keep])**2. / (dlogF_UV[keep])**2.)) - 2. * np.sum( np.log( (np.pi/2.)**0.5 * rms * (1. + erf(((upper_lim- logF_mod_UV[uplim])/((2**0.5)*rms))))))
         N_UV = len(logF_UV)
         chi2_UV = chi2_UV/N_UV
         
