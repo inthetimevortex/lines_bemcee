@@ -33,8 +33,9 @@ import corner
 import corner_HDR
 from constants import G, Msun, Rsun
 import seaborn as sns
-from pymc3.stats import hpd
+#from pymc3.stats import hpd
 import user_settings as flag
+from hpd import hpd_grid 
 
 lines_dict = {
 'Ha':6562.801,
@@ -58,9 +59,9 @@ logF, dlogF, logF_grid, wave, box_lim = read_observables(models, lbdarr, lista_o
 
 
 
-Nwalk = 20
-nint_mcmc = 80 
-af = 0.28
+Nwalk = 300
+nint_mcmc = 1000 
+af = 0.16
 
 current_folder = str(flag.folder_fig) + str(flag.stars) + '/'
 fig_name = 'Walkers_' + np.str(Nwalk) + '_Nmcmc_' +\
@@ -89,16 +90,27 @@ if flag.model == 'aeri':
 best_pars = []
 best_errs = []
 
-for i in range(Ndim):
-    #mode_val = mode1(np.round(samples[:,i], decimals=2))
-    qvalues = hpd(samples[:,i], alpha=0.32)
-    cut = samples[samples[:,i] > qvalues[0], i]
-    cut = cut[cut < qvalues[1]]
-    median_val = np.median(cut)
 
-    best_errs.append([qvalues[1] - median_val, median_val - qvalues[0]])
-    best_pars.append(median_val)
-    
+for i in range(Ndim):
+    hpd_mu, x_mu, y_mu, modes_mu = hpd_grid(samples[:,i], alpha=0.32)
+    #mode_val = mode1(np.round(samples[:,i], decimals=2))
+    bpars = []
+    epars = []
+    print(i, hpd_mu)
+    for (x0, x1) in hpd_mu:
+        #qvalues = hpd(samples[:,i], alpha=0.32)
+        #cut = samples[samples[:,i] > qvalues[0], i]
+        #cut = cut[cut < qvalues[1]]
+        cut = samples[samples[:,i] > x0, i]
+        cut = cut[cut < x1]
+        median_val = np.median(cut)
+        
+        bpars.append(median_val)
+        epars.append([x1- median_val, median_val - x0])
+        #best_errs.append([x1- median_val, median_val - x0])
+        #best_pars.append(median_val)
+    best_errs.append(epars)
+    best_pars.append(bpars)
 
 if flag.model == 'aeri':
     if check_list(lista_obs, 'UV'):
@@ -406,12 +418,15 @@ elif flag.corner_color == 'pink':
 
 truth_color = 'k'
 
-corner_HDR.corner(samples, labels=labels, labels2=labels, range=ranges, quantiles=None, plot_contours=True, show_titles=True, 
+corner_HDR.corner(samples, labels=labels, labels2=labels, range=ranges, quantiles=None, plot_contours=True, show_titles=False, 
                 title_kwargs={'fontsize': 15}, label_kwargs={'fontsize': 19}, truths = best_pars, hdr=True,
                 truth_color=truth_color, color=color, color_hist=color_hist, color_dens=color_dens, 
                 smooth=1, plot_datapoints=False, fill_contours=True, combined=True)
 
-plot_residuals_new(best_pars, wave, logF, dlogF, minfo,
+add_res_plots=False
+
+if add_res_plots:
+    plot_residuals_new(best_pars, wave, logF, dlogF, minfo,
                            listpar, lbdarr, logF_grid, isig, dims,
                            Nwalk, nint_mcmc, file_npy, box_lim,
                            lista_obs, current_folder, fig_name)

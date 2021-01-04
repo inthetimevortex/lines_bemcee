@@ -11,7 +11,7 @@
 #  (at your option) any later version.
 #  
 #  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
 #  
@@ -28,14 +28,14 @@ from lines_reading import read_models, create_tag, create_list, read_stellar_pri
 # ==============================================================================
 # General Options
 
-a_parameter =       1.8   # Set internal steps of each walker
+a_parameter =       2.0   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
 long_process =      True  # Run with few walkers or many?
-list_of_stars =     'HD37795'  # Star name
-Nsigma_dis =        3.  # Set the range of values for the distance
-model =             'acol'  # 'beatlas', 'befavor', 'aara', or 'acol'
+list_of_stars =     'MT91-213'  # Star name
+Nsigma_dis =        2.  # Set the range of values for the distance
+model =             'aeri'  # 'beatlas', 'befavor', 'aara', or 'acol'
 
 
 binary_star = False
@@ -48,10 +48,13 @@ folder_models = '../models/'
 
 
 vsini_prior =   False # Uses a gaussian vsini prior
-dist_prior =    False # Uses a gaussian distance prior
+dist_prior =    True # Uses a gaussian distance prior
 
-box_W =         False # Constrain the W lower limit, not actual a prior, but restrain the grid
+box_W =         True # Constrain the W lower limit, not actual a prior, but restrain the grid
 box_W_min, box_W_max = [0.6, 'max']
+
+box_i =         True # Constrain the i limits, not actual a prior, but restrain the grid
+box_i_min, box_i_max = [np.cos(50.*np.pi/180.), 'max']
 
 incl_prior =    False # Uses a gaussian inclination prior 
 
@@ -63,10 +66,10 @@ remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too mu
 
 # Line and continuum combination
 
-UV =            True
-iue =           True
-votable =       True
-data_table=     False
+UV =            False
+iue =           False
+votable =       False
+data_table=     True
 Ha =            True
 Hb =            False
 Hd =            False
@@ -87,7 +90,7 @@ npy_star = 'Walkers_500_Nmcmc_1000_af_0.28_a_1.4_rv_false+hip.npy'
 
 # ------------------------------------------------------------------------------
 # Alphacrucis' options
-acrux = False # If True, it will run in Nproc processors in the cluster
+acrux = True # If True, it will run in Nproc processors in the cluster
 Nproc = 24  # Number of processors to be used in the cluster
 
 # ==============================================================================
@@ -129,7 +132,7 @@ stars, list_plx, list_sig_plx, list_vsini_obs, list_sig_vsini_obs,\
     list_pre_ebmv, incl0, sig_incl0, lbd_range =\
     read_stars(list_of_stars)
 
-lbd_range = 'UV+VIS+NIR+MIR+FIR+MICROW+RADIO'
+#lbd_range = 'UV+VIS+NIR+MIR+FIR+MICROW+RADIO'
 
 #############################################################################################################################
 if corner_color == 'random' or corner_color == '':

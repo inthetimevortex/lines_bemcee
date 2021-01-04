@@ -12,7 +12,8 @@ from scipy.special import erf
 
 sns.set_style("white", {"xtick.major.direction": 'in',
               "ytick.major.direction": 'in'})
-
+plt.rc('xtick',labelsize=8)
+plt.rc('ytick',labelsize=8)
 
 # ==============================================================================
 def par_errors(flatchain):
@@ -61,7 +62,8 @@ def print_output(params_fit, errors_fit):
 
 
 def print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels):
-    
+    params_fit=params_fit[0]
+    errors_fit=errors_fit[0]
     fname = current_folder+fig_name+ '.txt'
     if flag.model == 'aeri':
         names = ['Mstar', 'W', 't/tms', 'i', 'Dist', 'E(B-V)']
@@ -482,69 +484,40 @@ def plot_residuals_new(par, Nwalk, Nmcmc, npy,
     Create residuals plot separated from the corner 
 
     '''
-    
-    lim = find_lim()
-    
-    if flag.model == 'aeri':
-        if check_list(flag.lista_obs, 'UV'):
-    
-            if flag.include_rv and flag.binary_star:
-                Mstar, W, tms, cosi, dist, ebv, rv, M2 = par
-            elif flag.include_rv and not flag.binary_star:
-                Mstar, W, tms, cosi, dist, ebv, rv = par
-            elif flag.binary_star and not flag.include_rv:
-                Mstar, W, tms, cosi, dist, ebv, M2 = par
-                rv = 3.1
-            else:
-                Mstar, W, tms, cosi, dist, ebv = par
-                
-        else:
-            if flag.binary_star:
-                Mstar, W, tms, cosi, M2 = par
-            else:
-                Mstar, W, tms, cosi = par
-            rv=3.1
         
-        oblat = 1 + 0.5*(W**2) # Rimulo 2017
-        par[3] = np.cos(par[3] * np.pi/180.)
-            
-    
-    if flag.model == 'acol':
-        if check_list(flag.lista_obs, 'UV'):
-            if flag.include_rv and flag.binary_star:
-                Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv, rv, M2 = par
-            elif flag.include_rv and not flag.binary_star:
-                Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv, rv = par
-            elif flag.binary_star and not flag.include_rv:
-                Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv, M2 = par
-                rv = 3.1
-            else:
-                Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv = par
-                rv=3.1
-        else:
-            if flag.binary_star:
-                Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, M2 = par
-            else:
-                Mstar, oblat, Hfrac, Sig0, Rd, n, cosi = par
-        oblat = 1 + 0.5*(oblat**2) # Rimulo 2017
-        par[1] = 1 + 0.5*(par[1]**2)
-        tms = hfrac2tms(Hfrac, inverse=True)
-        par[2] = hfrac2tms(par[2], inverse=True)
-        rv = 3.1
-        par[6] = np.cos(par[6] * np.pi/180.)
-
-
-    cosi = np.cos(cosi*np.pi/180.)
-    #print(par)
-    #print(flag.listpar)
-    Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
-    
-    # ***
+    lim = find_lim()
     chain = np.load(npy)
-    par_list = chain[:, -1, :]
+    par_list=[]
+    flat_samples = chain.reshape((-1, flag.Ndim))
+    inds = np.random.randint(len(flat_samples), size=100)
+    for ind in inds:
+        params = flat_samples[ind]
+        #if flag.model == 'aeri':
+        #    params[3] = np.cos(params[3] * np.pi/180.)
+        #elif flag.model == 'acol':
+        #    params[1] = 1 + 0.5*(params[1]**2)
+        #    params[2] = hfrac2tms(params[2], inverse=True)
+        #    params[6] = np.cos(params[6] * np.pi/180.)
+        par_list.append(params)
+    
+
     
     if check_list(flag.lista_obs, 'UV'):
-		# Finding position
+        if flag.model == 'aeri':
+            dist = par[4][0]
+            ebv = par[5][0]
+            if flag.include_rv:
+                rv = par[6][0]
+            else:
+                rv=3.1
+        elif flag.model == 'acol':
+            dist = par[7][0]
+            ebv = par[8][0]
+            if flag.include_rv:
+                rv = par[9][0]
+            else:
+                rv=3.1
+        #print(dist)
         u = np.where(flag.lista_obs == 'UV')
         index = u[0][0]
           
@@ -557,60 +530,161 @@ def plot_residuals_new(par, Nwalk, Nmcmc, npy,
         dist = 1e3/dist
         norma = (10. / dist)**2  # (Lstar*Lsun) / (4. * pi * (dist*pc)**2)
         uplim = flag.dlogF[index] == 0.0
-        keep = np.logical_not(uplim) 
-
-            
-        if flag.binary_star:
-                logF_mod_UV_1 = griddataBA(flag.minfo, flag.logF_grid[index], par[:-lim], flag.listpar, flag.dims)
-                logF_mod_UV_2 = griddataBA(flag.minfo, flag.logF_grid[index], np.array([M2, 0.1, par[2], par[3]]), flag.listpar, flag.dims)
-                logF_mod_UV = np.log10(10.**logF_mod_UV_1 + 10**logF_mod_UV_2)
-            
-        else:
-            logF_mod_UV = griddataBA(flag.minfo, flag.logF_grid[index], par[:-lim], flag.listpar, flag.dims)
-        
-
-        # convert to physical units
-        logF_mod_UV += np.log10(norma)
-        
-        flux_mod_UV = 10.**logF_mod_UV
+        keep = np.logical_not(uplim)
         dflux = dlogF_UV * flux_UV
+        logF_list = np.zeros([len(par_list), len(logF_UV)])
         
-        flux_mod_UV = pyasl.unred(lbd_UV * 1e4, flux_mod_UV, ebv=-1 * ebv, R_V=rv)
-        
-        rms = np.array([jy2cgs(1e-3*0.1, 20000), jy2cgs(1e-3*0.1, 35000), jy2cgs(1e-3*0.1, 63000)])
-        #print(rms)
-        upper_lim = logF_UV[uplim]
-        
-        chi2_UV = np.sum(((logF_UV[keep] - logF_mod_UV[keep])**2. / (dlogF_UV[keep])**2.)) - 2. * np.sum( np.log( (np.pi/2.)**0.5 * rms * (1. + erf(((upper_lim- logF_mod_UV[uplim])/((2**0.5)*rms))))))
-        N_UV = len(logF_UV)
-        chi2_UV = chi2_UV/N_UV
-        
-        logF_list = np.zeros([len(par_list), len(logF_mod_UV)])
-        chi2 = np.zeros(len(logF_list))
-        for i in range(len(par_list)):
+        #par_list = chain[:, -1, :]
+        #inds = np.random.randint(len(flat_samples), size=100)
+        for i, params in enumerate(par_list):
             if flag.binary_star:
-                logF_mod_UV_1_list = griddataBA(flag.minfo, flag.logF_grid[index], par_list[i, :-lim], flag.listpar, flag.dims)
-                logF_mod_UV_2_list = griddataBA(flag.minfo, flag.logF_grid[index], np.array([par_list[i, -1], 0.1, par_list[i, 2], par_list[i, 3]]), flag.listpar, flag.dims)
+                logF_mod_UV_1_list = griddataBA(flag.minfo, flag.logF_grid[index], params[:-lim], flag.listpar, flag.dims)
+                logF_mod_UV_2_list = griddataBA(flag.minfo, flag.logF_grid[index], np.array([params[-1], 0.1, params[2], params[3]]), flag.listpar, flag.dims)
                 logF_list[i] = np.log10(10.**np.array(logF_mod_UV_1_list) + 10.**np.array(logF_mod_UV_2_list))
             else:
-                logF_list[i] = griddataBA(flag.minfo, flag.logF_grid[index], par_list[i, :-lim],
+                logF_list[i] = griddataBA(flag.minfo, flag.logF_grid[index], params[:-lim],
                                       flag.listpar, flag.dims)
-        # Plot
-        fig, (ax1,ax2) = plt.subplots(2,1,gridspec_kw={'height_ratios': [3, 1]})
-        
+            #par_list[i] = params
         logF_list += np.log10(norma)
+        
+        
+    
+    
+    
+    
+    
+    
+    #if flag.model == 'aeri':
+    #    if check_list(flag.lista_obs, 'UV'):
+    #
+    #        if flag.include_rv and flag.binary_star:
+    #            Mstar, W, tms, cosi, dist, ebv, rv, M2 = par
+    #        elif flag.include_rv and not flag.binary_star:
+    #            Mstar, W, tms, cosi, dist, ebv, rv = par
+    #        elif flag.binary_star and not flag.include_rv:
+    #            Mstar, W, tms, cosi, dist, ebv, M2 = par
+    #            rv = 3.1
+    #        else:
+    #            Mstar, W, tms, cosi, dist, ebv = par
+    #            rv = 3.1
+    #    else:
+    #        if flag.binary_star:
+    #            Mstar, W, tms, cosi, M2 = par
+    #        else:
+    #            Mstar, W, tms, cosi = par
+    #        rv=3.1
+    #    
+    #    if isinstance(W, list):
+    #        oblat = 1 + 0.5*(np.array(W)**2) # Rimulo 2017
+    #    else:
+    #        oblat = 1 + 0.5*(W**2)
+    #    
+    #    par[3] = np.cos(par[3] * np.pi/180.)
+    #        
+    #
+    #if flag.model == 'acol':
+    #    if check_list(flag.lista_obs, 'UV'):
+    #        if flag.include_rv and flag.binary_star:
+    #            Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv, rv, M2 = par
+    #        elif flag.include_rv and not flag.binary_star:
+    #            Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv, rv = par
+    #        elif flag.binary_star and not flag.include_rv:
+    #            Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv, M2 = par
+    #            rv = 3.1
+    #        else:
+    #            Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, dist, ebv = par
+    #            rv=3.1
+    #    else:
+    #        if flag.binary_star:
+    #            Mstar, oblat, Hfrac, Sig0, Rd, n, cosi, M2 = par
+    #        else:
+    #            Mstar, oblat, Hfrac, Sig0, Rd, n, cosi = par
+    #    oblat = 1 + 0.5*(oblat**2) # Rimulo 2017
+    #    par[1] = 1 + 0.5*(par[1]**2)
+    #    tms = hfrac2tms(Hfrac, inverse=True)
+    #    par[2] = hfrac2tms(par[2], inverse=True)
+    #    rv = 3.1
+    #    par[6] = np.cos(par[6] * np.pi/180.)
+    #
+    #
+    #cosi = np.cos(cosi*np.pi/180.)
+    ##print(par)
+    ##print(flag.listpar)
+    #Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
+    #
+    ## ***
+    #
+    #
+    #if check_list(flag.lista_obs, 'UV'):
+	#	# Finding position
+    #    u = np.where(flag.lista_obs == 'UV')
+    #    index = u[0][0]
+    #      
+    #    # Observations
+    #    logF_UV = flag.logF[index]
+    #    flux_UV = 10.**logF_UV
+    #    dlogF_UV = flag.dlogF[index]
+    #    lbd_UV = flag.wave[index]
+    #    
+    #    dist = 1e3/dist
+    #    norma = (10. / dist)**2  # (Lstar*Lsun) / (4. * pi * (dist*pc)**2)
+    #    uplim = flag.dlogF[index] == 0.0
+    #    keep = np.logical_not(uplim) 
+    #
+    #        
+    #    if flag.binary_star:
+    #            logF_mod_UV_1 = griddataBA(flag.minfo, flag.logF_grid[index], par[:-lim], flag.listpar, flag.dims)
+    #            logF_mod_UV_2 = griddataBA(flag.minfo, flag.logF_grid[index], np.array([M2, 0.1, par[2], par[3]]), flag.listpar, flag.dims)
+    #            logF_mod_UV = np.log10(10.**logF_mod_UV_1 + 10**logF_mod_UV_2)
+    #        
+    #    else:
+    #        logF_mod_UV = griddataBA(flag.minfo, flag.logF_grid[index], par[:-lim], flag.listpar, flag.dims)
+    #    
+    #
+    #    # convert to physical units
+    #    logF_mod_UV += np.log10(norma)
+    #    
+    #    flux_mod_UV = 10.**logF_mod_UV
+    #    dflux = dlogF_UV * flux_UV
+    #    
+    #    flux_mod_UV = pyasl.unred(lbd_UV * 1e4, flux_mod_UV, ebv=-1 * ebv, R_V=rv)
+    #    
+    #    rms = np.array([1e-3*0.1, 1e-3*0.1, 1e-3*0.1])
+    #
+    #    upper_lim = jy2cgs(10**logF_UV[uplim], lbd_UV[uplim], inverse=True)
+    #    mod_upper = jy2cgs(10**logF_mod_UV[uplim], lbd_UV[uplim], inverse=True)
+    #    
+    #    chi2_UV = np.sum(((logF_UV[keep] - logF_mod_UV[keep])**2. / (dlogF_UV[keep])**2.)) - 2. * np.sum( np.log( (np.pi/2.)**0.5 * rms * (1. + erf(((upper_lim- mod_upper)/((2**0.5)*rms))))))
+    #    N_UV = len(logF_UV)
+    #    chi2_UV = chi2_UV/N_UV
+    #    
+    #    logF_list = np.zeros([len(par_list), len(logF_mod_UV)])
+    #    chi2 = np.zeros(len(logF_list))
+    #    for i in range(len(par_list)):
+    #        if flag.binary_star:
+    #            logF_mod_UV_1_list = griddataBA(flag.minfo, flag.logF_grid[index], par_list[i, :-lim], flag.listpar, flag.dims)
+    #            logF_mod_UV_2_list = griddataBA(flag.minfo, flag.logF_grid[index], np.array([par_list[i, -1], 0.1, par_list[i, 2], par_list[i, 3]]), flag.listpar, flag.dims)
+    #            logF_list[i] = np.log10(10.**np.array(logF_mod_UV_1_list) + 10.**np.array(logF_mod_UV_2_list))
+    #        else:
+    #            logF_list[i] = griddataBA(flag.minfo, flag.logF_grid[index], par_list[i, :-lim],
+    #                                  flag.listpar, flag.dims)
+    #    
+    #    
+    #    logF_list += np.log10(norma)
 
         
         
-        for j in range(len(logF_list)):
-            chi2[j] = np.sum((logF_UV[keep] - logF_list[j][keep])**2 / (dlogF_UV[keep])**2)
+        #for j in range(len(logF_list)):
+        #    chi2[j] = np.sum((logF_UV[keep] - logF_list[j][keep])**2 / (dlogF_UV[keep])**2)
         
-        
+        fig, (ax1,ax2) = plt.subplots(2,1,gridspec_kw={'height_ratios': [3, 1]})
 
         # Plot Models
         for i in range(len(par_list)):
-            
-            ebv_temp = np.copy(ebv)
+            if flag.model == 'aeri':
+                ebv_temp = par_list[i][5]
+            else:
+                ebv_temp = par_list[i][8]
             F_temp = pyasl.unred(lbd_UV * 1e4, 10**logF_list[i],
                                  ebv=-1 * ebv_temp, R_V=rv)
             ax1.plot(lbd_UV, F_temp, color='gray', alpha=0.1)
@@ -620,10 +694,11 @@ def plot_residuals_new(par, Nwalk, Nmcmc, npy,
         # Applying reddening to the best model
  
         # Best fit
-        ax1.plot(lbd_UV, flux_mod_UV, color='red', ls='-', lw=3.5, alpha=0.4,
-                 label='Best fit \n chi2 = {0:.2f}'.format(chi2_UV))
+        #ax1.plot(lbd_UV, flux_mod_UV, color='red', ls='-', lw=3.5, alpha=0.4,
+        #         label='Best fit \n chi2 = {0:.2f}'.format(chi2_UV))
 
-        ax2.plot(lbd_UV, (flux_UV - flux_mod_UV) / dflux, 'bs', alpha=0.2)
+        #ax2.plot(lbd_UV, (flux_UV - flux_mod_UV) / dflux, 'bs', alpha=0.2)
+        ax2.plot(lbd_UV, (flux_UV - F_temp) / dflux, 'bs', alpha=0.2)
         ax2.set_ylim(-10,10)
         if flag.votable:
             ax2.set_xscale('log')
@@ -637,7 +712,7 @@ def plot_residuals_new(par, Nwalk, Nmcmc, npy,
 
                      
         ax2.set_xlabel('$\lambda\,\mathrm{[\mu m]}$', fontsize=14)
-        ax1.set_ylabel(r'$F_{\lambda}\,\mathrm{[erg\, s^{-1}\, cm^{-2}]}$',
+        ax1.set_ylabel(r'$F_{\lambda}\,\mathrm{[erg\, s^{-1}\, cm^{-2}\, \mu m^{-1}]}$',
                    fontsize=14)	
         ax2.set_ylabel('$(F-F_\mathrm{m})/\sigma$', fontsize=14)
         #plt.tick_params(labelbottom='off')
@@ -645,7 +720,7 @@ def plot_residuals_new(par, Nwalk, Nmcmc, npy,
         #ax2.set_xlim(min(lbd_UV), max(lbd_UV))
         #plt.tick_params(direction='in', length=6, width=2, colors='gray',
         #    which='both')
-        ax1.legend(loc='upper right')
+        #ax1.legend(loc='upper right')
         #ax1.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
         plt.tight_layout()
         plt.savefig(current_folder + fig_name + '_new_residuals-UV' + '.png', dpi=100)
@@ -682,18 +757,18 @@ def plot_line(line, par, par_list, current_folder, fig_name):
     #else:
     #    logF_mod_line = griddataBA(minfo, logF_grid[index], par ,listpar, dims)
         
-    if flag.binary_star:
-        F_mod_line_1 = griddataBA(flag.minfo, flag.logF_grid[index], par[:-lim], flag.listpar, flag.dims)
-        F_mod_line_2 = griddataBA(flag.minfo, flag.logF_grid[index], np.array([par[-1], 0.1, par[2], par[3]]), flag.listpar, flag.dims)
-        flux_mod_line = linfit(lbd[index], F_mod_line_1 + F_mod_line_2)
-        #logF_mod_line = np.log10(F_mod_line)
-        #logF_mod_Ha = np.log(norm_spectra(lbd[index], F_mod_Ha_unnormed))
-    else:
-        F_mod_line_unnorm = griddataBA(flag.minfo, flag.logF_grid[index], par[:-lim], flag.listpar, flag.dims)
-        flux_mod_line = linfit(flag.wave[index], F_mod_line_unnorm)
-        #logF_mod_Ha = np.log10(F_mod_Ha)
-        #logF_mod_line = np.log(norm_spectra(lbd[index], F_mod_line_unnormed))
-        #logF_mod_line = np.log10(10.**logF_mod_line_1 + 10.**logF_mod_line_2)
+    #if flag.binary_star:
+    #    F_mod_line_1 = griddataBA(flag.minfo, flag.logF_grid[index], par[:-lim], flag.listpar, flag.dims)
+    #    F_mod_line_2 = griddataBA(flag.minfo, flag.logF_grid[index], np.array([par[-1], 0.1, par[2], par[3]]), flag.listpar, flag.dims)
+    #    flux_mod_line = linfit(lbd[index], F_mod_line_1 + F_mod_line_2)
+    #    #logF_mod_line = np.log10(F_mod_line)
+    #    #logF_mod_Ha = np.log(norm_spectra(lbd[index], F_mod_Ha_unnormed))
+    #else:
+    #    F_mod_line_unnorm = griddataBA(flag.minfo, flag.logF_grid[index], par[:-lim], flag.listpar, flag.dims)
+    #    flux_mod_line = linfit(flag.wave[index], F_mod_line_unnorm)
+    #    #logF_mod_Ha = np.log10(F_mod_Ha)
+    #    #logF_mod_line = np.log(norm_spectra(lbd[index], F_mod_line_unnormed))
+    #    #logF_mod_line = np.log10(10.**logF_mod_line_1 + 10.**logF_mod_line_2)
 
         
     #logF_mod_line = griddataBA(minfo, logF_grid[index], par[:-lim],listpar, dims)
@@ -707,46 +782,46 @@ def plot_line(line, par, par_list, current_folder, fig_name):
     keep = np.where(flux_line > 0) # avoid plot zero flux
     lbd_line = flag.wave[index]
     
-    F_list = np.zeros([len(par_list), len(flux_mod_line)])
-    F_list_unnorm = np.zeros([len(par_list), len(flux_mod_line)])
-    chi2 = np.zeros(len(F_list))
-    for i in range(len(par_list)):
+    F_list = np.zeros([len(par_list), len(flux_line)])
+    F_list_unnorm = np.zeros([len(par_list), len(flux_line)])
+    #chi2 = np.zeros(len(F_list))
+    for i, params in enumerate(par_list):
         if flag.binary_star:
-            F_mod_line_1_list = griddataBA(flag.minfo, flag.logF_grid[index], par_list[i, :-lim],flag.listpar, flag.dims)
-            F_mod_line_2_list = griddataBA(flag.minfo, flag.logF_grid[index], np.array([par_list[i, -1], 0.1, par_list[i, 2], par_list[i, 3]]), flag.listpar, flag.dims)
+            F_mod_line_1_list = griddataBA(flag.minfo, flag.logF_grid[index], params[:-lim],flag.listpar, flag.dims)
+            F_mod_line_2_list = griddataBA(flag.minfo, flag.logF_grid[index], np.array([params[-1], 0.1,params[2], params[3]]), flag.listpar, flag.dims)
             F_list[i]  = linfit(lbd[index], F_mod_line_1_list + F_mod_line_2_list)
             #logF_list[i] = np.log(norm_spectra(lbd[index], F_list))
         else:
-            F_list_unnorm[i] = griddataBA(flag.minfo, flag.logF_grid[index], par_list[i, :-lim], flag.listpar, flag.dims)
+            F_list_unnorm[i] = griddataBA(flag.minfo, flag.logF_grid[index], params[:-lim], flag.listpar, flag.dims)
             F_list[i]  = linfit(flag.wave[index], F_list_unnorm[i])
             
     #logF_list[i]= np.log10(flux_mod_line_list)
-    chi2_line = np.sum((flux_line[keep] - flux_mod_line[keep])**2 / (dflux_line[keep])**2.)
-    N_line = len(flux_line[keep])
-    chi2_line = chi2_line/N_line
+    #chi2_line = np.sum((flux_line[keep] - flux_mod_line[keep])**2 / (dflux_line[keep])**2.)
+    #N_line = len(flux_line[keep])
+    #chi2_line = chi2_line/N_line
     # Data
 
     #print(len(lbd), lbd)
     
     
-    np.savetxt(current_folder + fig_name + '_new_residuals_' + line +'.dat', np.array([lbd_line, flux_mod_line]).T)
+    #np.savetxt(current_folder + fig_name + '_new_residuals_' + line +'.dat', np.array([lbd_line, flux_mod_line]).T)
     
     # Plot
     fig, (ax1,ax2) = plt.subplots(2,1,gridspec_kw={'height_ratios': [3, 1]})                              
     # Plot models
     for i in range(len(par_list)):
         ax1.plot(lbd_line, F_list[i], color='gray', alpha=0.1)
-    ax1.errorbar(lbd_line[keep], flux_line[keep], yerr= dflux_line[keep], ls='', marker='o', alpha=0.5, ms=5, color='blue', linewidth=1) 
+    ax1.errorbar(lbd_line, flux_line, yerr= dflux_line, ls='', marker='o', alpha=0.5, ms=5, color='blue', linewidth=1) 
 
     # Best fit
-    ax1.plot(lbd_line, flux_mod_line, color='red', ls='-', lw=3.5, alpha=0.4, label='Best fit \n chi2 = {0:.2f}'.format(chi2_line))
+    #ax1.plot(lbd_line, flux_mod_line, color='red', ls='-', lw=3.5, alpha=0.4, label='Best fit \n chi2 = {0:.2f}'.format(chi2_line))
     
     ax1.set_ylabel('Normalized Flux',fontsize=14)
     ax1.set_xlim(min(lbd_line), max(lbd_line))
-    ax1.legend(loc='lower right')
+    #ax1.legend(loc='lower right')
     ax1.set_title(line)
     # Residuals
-    ax2.plot(lbd_line[keep], (flux_line[keep] - flux_mod_line[keep])/dflux_line[keep], marker='o', alpha=0.5)
+    ax2.plot(lbd_line, (flux_line - F_list[-1])/dflux_line, marker='o', alpha=0.5)
     
     ax2.set_ylabel('$(F-F_\mathrm{m})/\sigma$', fontsize=14)
     ax2.set_xlabel('$\lambda\,\mathrm{[\mu m]}$', fontsize=14)

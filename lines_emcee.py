@@ -11,12 +11,14 @@ from matplotlib import *
 from utils import find_nearest,griddataBAtlas, griddataBA, kde_scipy, quantile, geneva_interp_fast, linfit, jy2cgs
 from be_theory import hfrac2tms
 import corner_HDR
-from pymc3.stats import hpd
+#from pymc3.stats import hpd
+from hpd import hpd_grid
 from lines_plot import print_output, par_errors, plot_residuals_new, print_output_means, print_to_latex
 from lines_reading import read_iue, read_votable, read_star_info, read_line_spectra, read_observables, check_list, Sliding_Outlier_Removal, find_lim
 from lines_convergence import plot_convergence
 from astropy.stats import SigmaClip
 import seaborn as sns
+import datetime
 import user_settings as flag
 from scipy.special import erf
 
@@ -54,6 +56,7 @@ def lnlike(params, logF_mod):
         u = np.where(flag.lista_obs == 'UV')
         index = u[0][0]
         
+        lbd_UV = flag.wave[index]
         logF_UV = flag.logF[index]
         dlogF_UV = flag.dlogF[index]
 		
@@ -102,14 +105,21 @@ def lnlike(params, logF_mod):
         logF_mod_UV = np.log10(flux_mod)
             
         rms = np.array([jy2cgs(1e-3*0.1, 20000), jy2cgs(1e-3*0.1, 35000), jy2cgs(1e-3*0.1, 63000)])
-        #print(rms)
-        upper_lim = logF_UV[uplim]
-        #print(upper_lim)
+        #rms = np.array([1e-3*0.1, 1e-3*0.1, 1e-3*0.1])
+        #
+        upper_lim = jy2cgs(10**logF_UV[uplim], lbd_UV[uplim], inverse=True)
+        mod_upper = jy2cgs(10**logF_mod_UV[uplim], lbd_UV[uplim], inverse=True)
         
-        chi2_UV = np.sum(((logF_UV[keep] - logF_mod_UV[keep])**2. / (dlogF_UV[keep])**2.)) - 2. * np.sum( np.log( (np.pi/2.)**0.5 * rms * (1. + erf(((upper_lim- logF_mod_UV[uplim])/((2**0.5)*rms))))))
+        
+        #a parte dos uplims não é em log!
+        chi2_UV = np.sum(((logF_UV[keep] - logF_mod_UV[keep])**2. / (dlogF_UV[keep])**2.)) 
+        #chi2_uplim = - 2. * np.sum( np.log( (np.pi/2.)**0.5 * rms * (1. + erf(((upper_lim - mod_upper)/((2**0.5)*rms))))))
+        #chi2_UV = chi2_UV + chi2_uplim
         N_UV = len(logF_UV[keep])
         chi2_UV_red = chi2_UV/N_UV
-        
+        #print('chi2_UV = {:.2f}'.format(chi2_UV))
+        #print(upper_lim-mod_upper)
+        #print('chi2_uplim = {:.2f}'.format(chi2_uplim))
     else:
         chi2_UV_red = 0.
         N_UV = 0.
@@ -127,6 +137,7 @@ def lnlike(params, logF_mod):
         chi2_Ha = np.sum(((logF_Ha[keep] - logF_mod_Ha[keep])**2 / (dlogF_Ha[keep])**2.))
         N_Ha = len(logF_Ha[keep])
         chi2_Ha_red = chi2_Ha/N_Ha
+
     
     else:
         chi2_Ha_red = 0.
@@ -214,6 +225,7 @@ def lnprior(params):
     if flag.model == 'beatlas':
         Mstar, oblat, Hfrac, cosi, dist, ebv = params[0], params[1],\
             0.3, params[4], params[5], params[6]
+    
 
     # Reading Stellar Priors
     if flag.stellar_prior is True:
@@ -277,10 +289,10 @@ def lnprior(params):
         chi2_incl = 0.
 
        
-    chi2_prior = chi2_vsi + chi2_dis + chi2_stellar_prior +  chi2_incl
+    chi2_prior =  chi2_vsi + chi2_dis + chi2_stellar_prior +  chi2_incl
 
     if chi2_prior is np.nan:
-        chi2_prior = np.inf
+        chi2_prior = -np.inf
 
     return -0.5 * chi2_prior
 
@@ -299,12 +311,12 @@ def lnprob(params):
         inside_ranges = (params[count] >= flag.ranges[count, 0]) *\
             (params[count] <= flag.ranges[count, 1])
         count += 1
-
+    
     if inside_ranges:
         
         lim = find_lim()
-
     
+        
         logF_mod = []
         if check_list(flag.lista_obs, 'UV'):
             u = np.where(flag.lista_obs == 'UV')
@@ -363,23 +375,24 @@ def lnprob(params):
             else:
                 logF_mod_Hg = griddataBA(flag.minfo, flag.logF_grid[index], params, flag.listpar, flag.dims)
             logF_mod.append(logF_mod_Hg)
-
-
+    
+    
         lp = lnprior(params)
-
+    
         lk = lnlike(params, logF_mod)
-
-
+        
+        lpost = lp + lk
+    
         #lp = lnprior(params, vsin_obs, sig_vsin_obs, dist_pc,
         #             sig_dist_pc, ranges, pdf_mas, pdf_obl, pdf_age, pdf_dis, pdf_ebv,
         #             grid_mas, grid_obl, grid_age, grid_dis, grid_ebv)
         #
         #lk = lnlike(params, lbd, logF, dlogF, logF_mod, ranges,
         #            box_lim, flag.lista_obs)
-        lpost = lp + lk
-
+        #lpost = lp + lk
+    
         # print('{0:.2f} , {1:.2f}, {2:.2f}'.format(lp, lk, lpost))
-
+    
         if not np.isfinite(lpost):
             return -np.inf
         else:
@@ -405,7 +418,8 @@ def run_emcee(p0, sampler, nib, nimc, Ndim, Nwalk, file_name):
 
     # Saving the burn-in phase #########
     chain = sampler.chain
-    file_npy_burnin = flag.folder_fig + str(file_name) + '/' + 'Burning_'+\
+    date = datetime.datetime.today().strftime('%y-%m-%d-%H%M%S')
+    file_npy_burnin = flag.folder_fig + str(file_name) + '/' + date + 'Burning_'+\
                       str(nib)+"steps_Nwalkers_"+str(Nwalk)+"normal-spectra_"+\
                       str(flag.normal_spectra)+"af_"+str(af)+".npy"
     np.save(file_npy_burnin, chain)
@@ -475,16 +489,16 @@ def new_emcee_inference(pool):
 
 # emcee inference for new stellar grid 
         if flag.long_process is True:
-            Nwalk = 40  # 200  # 500
-            nint_burnin =150  # 50
-            nint_mcmc = 500  # 500  # 1000
+            Nwalk = 100  # 200  # 500
+            nint_burnin = 700  # 50
+            nint_mcmc = 10000  # 500  # 1000
         else:
             Nwalk = 30
             nint_burnin = 20
-            nint_mcmc = 80
-            
+            nint_mcmc = 120
         
-            
+        #p0 = np.mean(flag.ranges, axis=1) + 1e-3 * np.random.randn(Nwalk, len(flag.ranges))
+        
         p0 = [np.random.rand(flag.Ndim) * (flag.ranges[:, 1] - flag.ranges[:, 0]) +
               flag.ranges[:, 0] for i in range(Nwalk)]
         
@@ -516,9 +530,10 @@ def new_emcee_inference(pool):
             af = np.mean(af)
 
         af = str('{0:.2f}'.format(af))
-
+        
+        date = datetime.datetime.today().strftime('%y-%m-%d-%H%M%S')
         # Saving first sample
-        file_npy = flag.folder_fig + str(flag.stars) + '/' + 'Walkers_' +\
+        file_npy = flag.folder_fig + str(flag.stars) + '/' + date + 'Walkers_' +\
             str(Nwalk) + '_Nmcmc_' + str(nint_mcmc) +\
             '_af_' + str(af) + '_a_' + str(flag.a_parameter) +\
             flag.tags + ".npy"
@@ -673,22 +688,42 @@ def new_emcee_inference(pool):
 
         best_pars = []
         best_errs = []
+        #for i in range(flag.Ndim):
+        #    #mode_val = mode1(np.round(samples[:,i], decimals=2))
+        #    qvalues = hpd(samples[:,i], alpha=0.32)
+        #    cut = samples[samples[:,i] > qvalues[0], i]
+        #    cut = cut[cut < qvalues[1]]
+        #    median_val = np.median(cut)
+        #    
+        #
+        #    best_errs.append([qvalues[1] - median_val, median_val - qvalues[0]])
+        #    best_pars.append(median_val)
         for i in range(flag.Ndim):
+            print(samples[:,i])
+            hpd_mu, x_mu, y_mu, modes_mu = hpd_grid(samples[:,i], alpha=0.32)
             #mode_val = mode1(np.round(samples[:,i], decimals=2))
-            qvalues = hpd(samples[:,i], alpha=0.32)
-            cut = samples[samples[:,i] > qvalues[0], i]
-            cut = cut[cut < qvalues[1]]
-            median_val = np.median(cut)
-            
+            bpars = []
+            epars = []
+            print(i, hpd_mu)
+            for (x0, x1) in hpd_mu:
+                #qvalues = hpd(samples[:,i], alpha=0.32)
+                #cut = samples[samples[:,i] > qvalues[0], i]
+                #cut = cut[cut < qvalues[1]]
+                cut = samples[samples[:,i] > x0, i]
+                cut = cut[cut < x1]
+                median_val = np.median(cut)
+                
+                bpars.append(median_val)
+                epars.append([x1- median_val, median_val - x0])
+                #best_errs.append([x1- median_val, median_val - x0])
+                #best_pars.append(median_val)
+            best_errs.append(epars)
+            best_pars.append(bpars)
 
-            best_errs.append([qvalues[1] - median_val, median_val - qvalues[0]])
-            best_pars.append(median_val)
-        
-
-        
+        print(best_pars)
         truth_color='k'
 
-        fig_corner = corner_HDR.corner(samples, labels=labels, labels2=labels2, range=new_ranges, quantiles=None, plot_contours=True, show_titles=True, 
+        fig_corner = corner_HDR.corner(samples, labels=labels, labels2=labels2, range=new_ranges, quantiles=None, plot_contours=True, show_titles=False, 
                 title_kwargs={'fontsize': 15}, label_kwargs={'fontsize': 19}, truths = best_pars, hdr=True,
                 truth_color=truth_color, color=color, color_hist=color_hist, color_dens=color_dens, 
                 smooth=1, plot_datapoints=False, fill_contours=True, combined=True)
@@ -723,11 +758,12 @@ def new_emcee_inference(pool):
 
 
         current_folder = str(flag.folder_fig) + str(flag.stars) + '/'
-        fig_name = 'Walkers_' + np.str(Nwalk) + '_Nmcmc_' +\
+        
+        fig_name = date + 'Walkers_' + np.str(Nwalk) + '_Nmcmc_' +\
             np.str(nint_mcmc) + '_af_' + str(af) + '_a_' +\
             str(flag.a_parameter) + flag.tags
         
-        params_to_print = print_to_latex(best_pars, best_errs, current_folder, fig_name, labels)
+        #params_to_print = print_to_latex(best_pars, best_errs, current_folder, fig_name, labels)
 
         print_output_means(samples)    
         
@@ -742,7 +778,7 @@ def new_emcee_inference(pool):
         
         plot_convergence(file_npy, file_npy[:-4] + '_convergence', 
                          file_npy_burnin,new_ranges,labels)
-                         
+                       
         end = time.time()
         serial_data_time = end - start_time
         print("Serial took {0:.1f} seconds".format(serial_data_time))

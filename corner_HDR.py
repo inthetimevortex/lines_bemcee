@@ -8,8 +8,8 @@ import matplotlib.pyplot as pl
 from matplotlib.ticker import MaxNLocator
 from matplotlib.colors import LinearSegmentedColormap, colorConverter
 from matplotlib.ticker import ScalarFormatter
-from pymc3.stats import hpd
-
+#from pymc3.stats import hpd
+from hpd import hpd_grid
 
 try:
     from scipy.ndimage import gaussian_filter
@@ -269,13 +269,24 @@ def corner(xs, bins=20, range=None, weights=None, color="k",
             ax.plot(x0, y0, **hist_kwargs)
 
         if truths is not None and truths[i] is not None:
-            ax.axvline(truths[i], color=truth_color)
+            if isinstance(truths[i], list):
+                for trutru in truths[i]:
+                    ax.axvline(trutru, color=truth_color)
+            else:
+                ax.axvline(truths[i], color=truth_color)
 
         # Plot quantiles if wanted.
         if hdr:
-            qvalues = hpd(x, alpha=0.32) #quantile(x, quantiles, weights=weights)
-            for q in qvalues:
-                ax.axvline(q, ls="dashed", color=color_dens)
+            hpd_mu, x_mu, y_mu, modes_mu = hpd_grid(x, alpha=0.32)
+            for (x0, x1) in hpd_mu:
+                #ax.hlines(y=0, xmin=x0, xmax=x1, linewidth=5)
+                ax.axvspan(x0, x1, color=color_dens, alpha=0.1)
+                ax.axvline(x=x0, color='grey', linestyle='--', linewidth=1)
+                ax.axvline(x=x1, color='grey', linestyle='--', linewidth=1)
+
+            #qvalues = hpd(x, alpha=0.32) #quantile(x, quantiles, weights=weights)
+            #for q in qvalues:
+            #    ax.axvline(q, ls="dashed", color=color_dens)
         if len(quantiles) > 0:
             qvalues = quantile(x, quantiles, weights=weights)
             for q in qvalues:
@@ -355,12 +366,21 @@ def corner(xs, bins=20, range=None, weights=None, color="k",
                    **hist2d_kwargs)
 
             if truths is not None:
-                if truths[i] is not None and truths[j] is not None:
-                    ax.plot(truths[j], truths[i], "s", color=truth_color)
-                if truths[j] is not None:
-                    ax.axvline(truths[j], color=truth_color, zorder=10)
-                if truths[i] is not None:
-                    ax.axhline(truths[i], color=truth_color, zorder=10)
+                #if np.array(truths[i]).any() is not None and np.array(truths[j]).any() is not None:
+                #    ax.plot(truths[j], truths[i], "s", color=truth_color)
+                if np.array(truths[j]).any() is not None:
+                    if isinstance(truths[j], list):
+                        for truj in truths[j]:
+                            ax.axvline(truj, color=truth_color, zorder=10)
+                    else:
+                        ax.axvline(truths[j], color=truth_color, zorder=10)
+                if np.array(truths[i]).any() is not None:
+                    if isinstance(truths[i], list):
+                        for trui in truths[i]:
+                            ax.axhline(trui, color=truth_color, zorder=10)
+                    else:
+                        ax.axhline(truths[i], color=truth_color, zorder=10)
+
 
             ax.xaxis.set_major_locator(MaxNLocator(max_n_ticks, prune="lower"))
             ax.yaxis.set_major_locator(MaxNLocator(max_n_ticks, prune="lower"))

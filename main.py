@@ -5,7 +5,8 @@
 import emcee
 from lines_emcee import new_emcee_inference
 import sys
-import user_settings as flag
+import importlib
+#import user_settings as flag
 from schwimmbad import MPIPool
 #from emcee.utils import MPIPool
 #import os
@@ -13,6 +14,10 @@ from schwimmbad import MPIPool
 #os.environ["OMP_NUM_THREADS"] = "1"
 
 # ==============================================================================
+
+mod_name = sys.argv[1]+'_'+'user_settings'
+#print(sys.argv[1])
+flag = importlib.import_module(mod_name)
 
 
 # Acrux

@@ -121,8 +121,8 @@ def read_BAphot2_xdr(lista_obs):
 # =============================================================================
 def select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc):
     line_peak = find_nearest2(lbdarr, lbdc)
-    keep_a = find_nearest2(lbdarr, 0.6540)
-    keep_b = find_nearest2(lbdarr, 0.6590)
+    keep_a = find_nearest2(lbdarr, 0.6535)
+    keep_b = find_nearest2(lbdarr, 0.6595)
     lbd_line = lbdarr[keep_a:keep_b]
     models_line = models[:, keep_a:keep_b]
     lbdarr_line = lbd_line*1e4
@@ -700,7 +700,7 @@ def read_star_info(star, lista_obs, listpar):
                 ebmv, rv = [[0.0, 0.8], [1., 5.8]]
             else:
                 rv = 3.1
-                ebmv, rv = [[0.0, 1.8], None]
+                ebmv, rv = [[0.0, 0.8], None]
             
             dist_min = dist_pc - flag.Nsigma_dis * sig_dist_pc
             dist_max = dist_pc + flag.Nsigma_dis * sig_dist_pc
@@ -795,10 +795,20 @@ def read_star_info(star, lista_obs, listpar):
             else:
                 ranges[1][0], ranges[1][1] = flag.box_W_min, flag.box_W_max
         
+        
+            if flag.box_i:
+                if flag.model == 'aeri':
+                    indx = 3
+                elif flag.model == 'acol':
+                    indx = 6
+                if flag.box_i_max == 'max':
+                    ranges[indx][0] = flag.box_i_min
+                elif flag.box_i_min == 'min':
+                    ranges[indx][1] = flag.box_i_max
+                else:
+                    ranges[indx][0], ranges[indx][1] = flag.box_i_min, flag.box_i_max
+        
         Ndim = len(ranges)
-        
-        
-        
 
         return ranges, dist_pc, sig_dist_pc, vsin_obs,\
             sig_vsin_obs, Ndim
@@ -1356,8 +1366,10 @@ def read_line_spectra(models, lbdarr, linename):
         wl = wl[inf:sup]
         fluxes = normal_flux[inf:sup]
 
-    
-    radv = delta_v(vel, fluxes, 'Ha')
+    if flag.stars == 'MT91-213':
+        radv = 2.8
+    else:
+        radv = delta_v(vel, fluxes, 'Ha')
 #AMANDA_VOLTAR: o que fazer quando o 
     #radv = 2.8
     print('RADIAL VELOCITY = {0}'.format(radv))
@@ -1395,6 +1407,10 @@ def read_line_spectra(models, lbdarr, linename):
 #AMANDA_VOLTAR: erros devem ser estimados numa rotina de precondicionamento
 #HD6226: 0.04
 #MT91-213: 0.01 
+    if flag.stars == 'HD6226':
+        erval = 0.04
+    else:
+        erval = 0.02
     for i in range(len(box_lim) - 1):
         # lbd observations inside the box
         index = np.argwhere((waves > box_lim[i]) & (waves < box_lim[i+1]))
@@ -1402,11 +1418,11 @@ def read_line_spectra(models, lbdarr, linename):
             bin_flux[i] = -np.inf
         elif len(index) == 1:
             bin_flux[i] = fluxes[index[0][0]]
-            errors[i] = 0.04
+            errors[i] = erval
         else: 
             # Calculating the mean flux in the box
             bin_flux[i] = np.sum(fluxes[index[0][0]:index[-1][0]])/len(fluxes[index[0][0]:index[-1][0]])
-            errors[i] = 0.04/np.sqrt(len(index))
+            errors[i] = erval/np.sqrt(len(index))
 
     flux = bin_flux
     
@@ -1428,23 +1444,23 @@ def read_line_spectra(models, lbdarr, linename):
         novo_models[i] = models[i][1:-1]
     #logF_grid = np.log10(models)  
     
-    if linename == 'Ha':
-        if flag.remove_partHa:
-            lbdarr1 = lbdarr[:149]
-            lbdarr2 = lbdarr[194:]
-            lbdarr = np.append(lbdarr1,lbdarr2)
-            novo_models = np.zeros((5500,191))
-            obs_new1 = flux[:149]
-            obs_new2 = flux[194:]
-            flux = np.append(obs_new1,obs_new2)
-            #logF = np.log10(obs_new)
-            errors = np.append(errors[:149], errors[194:])
-            #dlogF = sigma_new2 / obs_new
-            i = 0
-            while i < len(models):
-                novo_models[i] = np.append(novo_models[i][:149],novo_models[i][194:])
-                i+=1
-            #logF_grid = np.log10(novo_models)       
+    #if linename == 'Ha':
+    #    if flag.remove_partHa:
+    #        lbdarr1 = lbdarr[:149]
+    #        lbdarr2 = lbdarr[194:]
+    #        lbdarr = np.append(lbdarr1,lbdarr2)
+    #        novo_models = np.zeros((5500,191))
+    #        obs_new1 = flux[:149]
+    #        obs_new2 = flux[194:]
+    #        flux = np.append(obs_new1,obs_new2)
+    #        #logF = np.log10(obs_new)
+    #        errors = np.append(errors[:149], errors[194:])
+    #        #dlogF = sigma_new2 / obs_new
+    #        i = 0
+    #        while i < len(models):
+    #            novo_models[i] = np.append(novo_models[i][:149],novo_models[i][194:])
+    #            i+=1
+    #        #logF_grid = np.log10(novo_models)       
     
     
     if flag.only_wings:
@@ -1478,7 +1494,7 @@ def read_line_spectra(models, lbdarr, linename):
         plt.close()
         #H_peak = find_nearest2(lbdarr, lines_dict[linename])
         keep_a = find_nearest2(lbdarr, point_a[0])
-        keep_a = find_nearest2(lbdarr, point_b[0])
+        keep_b = find_nearest2(lbdarr, point_b[0])
         lbdarr1 = lbdarr[keep_a:]
         lbdarr2 = lbdarr[:keep_b]
         lbdarr = np.concatenate([lbdarr1,lbdarr2])
@@ -1494,7 +1510,34 @@ def read_line_spectra(models, lbdarr, linename):
         novo_models2 = novo_models[:, :keep_b]
         novo_models = np.hstack((novo_models1, novo_models2))
         #logF_grid = np.log10(novo_models)
-  
+    
+    if flag.remove_partHa:
+        if not flag.acrux:
+            plt.plot(waves, fluxes)
+            point_a, point_b = plt.ginput(2)
+            plt.close()
+        else:
+            point_a = [0.6573]
+            point_b = [0.6585]
+
+        #H_peak = find_nearest2(lbdarr, lines_dict[linename])
+        keep_a = find_nearest2(lbdarr, point_a[0])
+        keep_b = find_nearest2(lbdarr, point_b[0])
+        lbdarr1 = lbdarr[:keep_a]
+        lbdarr2 = lbdarr[keep_b:]
+        lbdarr = np.concatenate([lbdarr1,lbdarr2])
+        obs_new1 = flux[:keep_a]
+        obs_new2 = flux[keep_b:]
+        flux = np.concatenate([obs_new1,obs_new2])
+        #logF = np.log10(obs_neww)
+        sigma_new1 = errors[:keep_a]
+        sigma_new2 = errors[keep_b:]
+        errors = np.concatenate([sigma_new1, sigma_new2])
+        #dlogF = sigma_new/obs_neww
+        novo_models1 = novo_models[:, :keep_a]
+        novo_models2 = novo_models[:, keep_b:]
+        novo_models = np.hstack((novo_models1, novo_models2))
+    
     #print(len(flux), len(errors), len(novo_models[0]))
     return flux, errors, novo_models, lbdarr, box_lim
     
@@ -1769,7 +1812,7 @@ def combine_sed(wave, flux, sigma, models, lbdarr):
         wave_lim_max = 0.3  # mum
     if flag.lbd_range == 'UV+VIS':
         wave_lim_min = 0.1  # mum
-        wave_lim_max = 0.7  # mum
+        wave_lim_max = 0.8  # mum
     if flag.lbd_range == 'UV+VIS+NIR':
         wave_lim_min = 0.1  # mum
         wave_lim_max = 5.0  # mum
@@ -2061,6 +2104,8 @@ def create_tag():
         tag = tag + '_distPrior'
     if flag.box_W:
         tag = tag + '_boxW'
+    if flag.box_i:
+        tag = tag + '_boxi'
     if flag.incl_prior:
         tag = tag + '_inclPrior'
     if flag.votable:
