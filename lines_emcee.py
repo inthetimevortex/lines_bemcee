@@ -19,8 +19,13 @@ from lines_convergence import plot_convergence
 from astropy.stats import SigmaClip
 import seaborn as sns
 import datetime
-import user_settings as flag
+#import user_settings as flag
 from scipy.special import erf
+import sys
+import importlib
+mod_name = sys.argv[1]+'_'+'user_settings'
+#print(sys.argv[1])
+flag = importlib.import_module(mod_name)
 
 sns.set_style("white", {"xtick.major.direction": 'in',
               "ytick.major.direction": 'in'})
@@ -493,9 +498,9 @@ def new_emcee_inference(pool):
             nint_burnin = 700  # 50
             nint_mcmc = 10000  # 500  # 1000
         else:
-            Nwalk = 30
-            nint_burnin = 20
-            nint_mcmc = 120
+            Nwalk = 100
+            nint_burnin = 50
+            nint_mcmc = 300
         
         #p0 = np.mean(flag.ranges, axis=1) + 1e-3 * np.random.randn(Nwalk, len(flag.ranges))
         
@@ -688,6 +693,7 @@ def new_emcee_inference(pool):
 
         best_pars = []
         best_errs = []
+        hpds = []
         #for i in range(flag.Ndim):
         #    #mode_val = mode1(np.round(samples[:,i], decimals=2))
         #    qvalues = hpd(samples[:,i], alpha=0.32)
@@ -704,22 +710,20 @@ def new_emcee_inference(pool):
             #mode_val = mode1(np.round(samples[:,i], decimals=2))
             bpars = []
             epars = []
-            print(i, hpd_mu)
+            hpds.append(hpd_mu)
+            #print(i, hpd_mu)
             for (x0, x1) in hpd_mu:
                 #qvalues = hpd(samples[:,i], alpha=0.32)
-                #cut = samples[samples[:,i] > qvalues[0], i]
-                #cut = cut[cut < qvalues[1]]
                 cut = samples[samples[:,i] > x0, i]
                 cut = cut[cut < x1]
                 median_val = np.median(cut)
                 
                 bpars.append(median_val)
                 epars.append([x1- median_val, median_val - x0])
-                #best_errs.append([x1- median_val, median_val - x0])
-                #best_pars.append(median_val)
+
             best_errs.append(epars)
             best_pars.append(bpars)
-
+        
         print(best_pars)
         truth_color='k'
 
@@ -763,7 +767,7 @@ def new_emcee_inference(pool):
             np.str(nint_mcmc) + '_af_' + str(af) + '_a_' +\
             str(flag.a_parameter) + flag.tags
         
-        #params_to_print = print_to_latex(best_pars, best_errs, current_folder, fig_name, labels)
+        params_to_print = print_to_latex(best_pars, best_errs, current_folder, fig_name, labels, hpds)
 
         print_output_means(samples)    
         

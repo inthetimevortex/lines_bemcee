@@ -1,7 +1,12 @@
 import numpy as np
 import matplotlib.pylab as plt
 from utils import find_nearest
-import user_settings as flag
+#import user_settings as flag
+import sys
+import importlib
+mod_name = sys.argv[1]+'_'+'user_settings'
+#print(sys.argv[1])
+flag = importlib.import_module(mod_name)
 
 # ==============================================================================
 def oblat2w(oblat):

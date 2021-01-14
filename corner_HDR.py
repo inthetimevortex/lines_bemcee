@@ -409,7 +409,7 @@ def corner(xs, bins=20, range=None, weights=None, color="k",
                 ax.yaxis.set_major_formatter(
                     ScalarFormatter(useMathText=use_math_text))
 
-    return fig
+    return fig, axes
 
 
 def quantile(x, q, weights=None):

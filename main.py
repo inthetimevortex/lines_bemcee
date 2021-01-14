@@ -26,7 +26,6 @@ if flag.acrux is True:
         if not pool.is_master():
             pool.wait()
             sys.exit(0)
-        print('HELLO')
         new_emcee_inference(pool)
 else:
     pool = False

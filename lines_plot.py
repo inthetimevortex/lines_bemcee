@@ -7,8 +7,13 @@ from lines_reading import check_list, find_lim
 import corner
 from constants import G, Msun, Rsun, sigma, Lsun
 import seaborn as sns
-import user_settings as flag
+#import user_settings as flag
 from scipy.special import erf
+import sys
+import importlib
+mod_name = sys.argv[1]+'_'+'user_settings'
+#print(sys.argv[1])
+flag = importlib.import_module(mod_name)
 
 sns.set_style("white", {"xtick.major.direction": 'in',
               "ytick.major.direction": 'in'})
@@ -61,7 +66,7 @@ def print_output(params_fit, errors_fit):
     return
 
 
-def print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels):
+def print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels, hpds):
     params_fit=params_fit[0]
     errors_fit=errors_fit[0]
     fname = current_folder+fig_name+ '.txt'
@@ -93,6 +98,8 @@ def print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels):
         params_to_print.append(names[i] + '= {0:.2f} +{1:.2f} -{2:.2f}'.format(params_fit[i], errors_fit[i][0], errors_fit[i][1]))
         file1.writelines(labels[i] + '& ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Free \\\ \n'.format(params_fit[i], errors_fit[i][0], errors_fit[i][1]))
     
+    #if len(hpds[0]) > 1:
+        
     
     Mstar = params_fit[0]
     Mstar_range = [Mstar + errors_fit[0][0], Mstar - errors_fit[0][1]]

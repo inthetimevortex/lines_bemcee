@@ -34,8 +34,13 @@ import corner_HDR
 from constants import G, Msun, Rsun
 import seaborn as sns
 #from pymc3.stats import hpd
-import user_settings as flag
+#import user_settings as flag
 from hpd import hpd_grid 
+import sys
+import importlib
+mod_name = sys.argv[1]+'_'+'user_settings'
+#print(sys.argv[1])
+flag = importlib.import_module(mod_name)
 
 lines_dict = {
 'Ha':6562.801,
@@ -58,16 +63,17 @@ ranges, dist_pc, sig_dist_pc, vsin_obs, sig_vsin_obs, Ndim = read_star_info(star
 logF, dlogF, logF_grid, wave, box_lim = read_observables(models, lbdarr, lista_obs)
 
 
-
-Nwalk = 300
-nint_mcmc = 1000 
-af = 0.16
+#Walkers_100_Nmcmc_10000_af_0.26_a_2.0+aeri_SigmaClipData_distPrior_boxW+votable+iue+Ha
+Nwalk = 100
+nint_mcmc = 10000
+af = '0.26'
+date = '21-01-11-161949'
 
 current_folder = str(flag.folder_fig) + str(flag.stars) + '/'
 fig_name = 'Walkers_' + np.str(Nwalk) + '_Nmcmc_' +\
             np.str(nint_mcmc) + '_af_' + str(af) + '_a_' +\
             str(flag.a_parameter) + tag
-file_npy = flag.folder_fig + str(flag.stars) + '/' + 'Walkers_' +\
+file_npy = flag.folder_fig + str(flag.stars) + '/' + date + 'Walkers_' +\
             str(Nwalk) + '_Nmcmc_' + str(nint_mcmc) +\
             '_af_' + str(af) + '_a_' + str(flag.a_parameter) +\
             tag + ".npy"
@@ -89,14 +95,16 @@ if flag.model == 'aeri':
     
 best_pars = []
 best_errs = []
-
+hpds = []
 
 for i in range(Ndim):
     hpd_mu, x_mu, y_mu, modes_mu = hpd_grid(samples[:,i], alpha=0.32)
+    print(hpd_mu, x_mu, y_mu, modes_mu)
     #mode_val = mode1(np.round(samples[:,i], decimals=2))
     bpars = []
     epars = []
-    print(i, hpd_mu)
+    #print(i, hpd_mu)
+    hpds.append(hpd_mu)
     for (x0, x1) in hpd_mu:
         #qvalues = hpd(samples[:,i], alpha=0.32)
         #cut = samples[samples[:,i] > qvalues[0], i]
@@ -109,6 +117,7 @@ for i in range(Ndim):
         epars.append([x1- median_val, median_val - x0])
         #best_errs.append([x1- median_val, median_val - x0])
         #best_pars.append(median_val)
+        
     best_errs.append(epars)
     best_pars.append(bpars)
 
@@ -430,6 +439,62 @@ if add_res_plots:
                            listpar, lbdarr, logF_grid, isig, dims,
                            Nwalk, nint_mcmc, file_npy, box_lim,
                            lista_obs, current_folder, fig_name)
-                           
-                           
+
 plt.savefig(current_folder + fig_name + '_REDONE.png', dpi=100)
+plt.close()
+
+for i in range(len(hpds)):
+    if len(hpds[i]) > 1:
+        value = input(labels[i]+' has more than 1 solution. To choose this parameters, type ' + str(i)+'\n')
+        if value != '':
+            break
+
+   
+value = int(value)
+
+#value=0
+
+orange =  [ 'xkcd:light peach',  'xkcd:bright orange']
+violet =  [ 'xkcd:pale violet',  'xkcd:blue violet']
+green =   ['xkcd:light grey green',  'xkcd:grass green']
+
+color_list = [orange, violet, green]
+plt.ioff()
+
+fig, ax = corner_HDR.corner(samples, labels=labels, range=ranges, quantiles=None, truths=None,
+                           hist_kwargs={'lw':2, 'alpha':0., 'fill':False, 'color':None, 'edgecolor':None},
+                           label_kwargs={'fontsize':19}, plot_contours=False, plot_density=False, no_fill_contours=True,
+                           fill_contours=False,color=None, smooth=1, plot_datapoints=False, alpha=0.,
+                           levels=None, combined=True)
+
+for hh, (x0, x1) in enumerate(hpds[value]):
+    newsamps = samples[np.where((samples[:,0] < x1) & (samples[:,0] > x0))[0]]
+    for i in range(len(ax)):
+        h1 = ax[i, i].hist(newsamps[:, i], histtype='step', bins=20, stacked=True, fill=True,
+                          color=color_list[hh][1], label=labels, edgecolor=None,
+                          zorder=-1, lw=2, alpha=.6, range=ranges[i])
+
+        ### 2-d histograms
+        if i <= len(ax):
+            for j in np.arange(i+1, len(ax.T)):
+    
+                # contour levels
+                levels = 1.0 - np.exp(-0.5 * np.arange(1., 2.1, 0.5) ** 2)
+    
+                # poly
+                corner_HDR.hist2d(newsamps[:, i], newsamps[:, j],  smooth=1, 
+                                range=[ranges[i], ranges[j]], plot_datapoints=False, plot_contours=True,
+                                plot_density=False, no_fill_contours=True, ax=ax[j, i], alpha=.4, fill_contours=True,
+                                color=color_list[hh][1], color_dens=color_list[hh][0], levels=levels, zorder=-1)
+
+
+    #corner_HDR.corner(newsamps, labels=labels, labels2=labels, range=ranges, quantiles=None, plot_contours=True, show_titles=False, 
+    #            title_kwargs={'fontsize': 15}, label_kwargs={'fontsize': 19}, truths = best_pars, hdr=True,
+    #            truth_color=color_list[i][0], color=color_list[i][1], color_hist=color_list[i][2], color_dens=color_list[i][3], 
+    #            smooth=1, plot_datapoints=False, fill_contours=True, combined=True)
+
+
+plt.savefig(current_folder + fig_name + '_REDONE_SEPARATE.png', dpi=100)
+
+
+

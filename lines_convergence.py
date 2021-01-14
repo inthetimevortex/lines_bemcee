@@ -3,8 +3,13 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.gridspec as gridspec
 import numpy as np
-import user_settings as flag
+#import user_settings as flag
 from lines_reading import check_list
+import sys
+import importlib
+mod_name = sys.argv[1]+'_'+'user_settings'
+#print(sys.argv[1])
+flag = importlib.import_module(mod_name)
 matplotlib.rcParams['font.family'] = "sans-serif"
 font_color = "black"
 tick_color = "black"

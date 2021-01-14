@@ -16,9 +16,12 @@ from astropy.stats import SigmaClip
 from astropy.stats import median_absolute_deviation as MAD
 from scipy.signal import detrend
 from lines_radialv import delta_v, Ha_delta_v
-import user_settings as flag
-
-
+#import user_settings as flag
+import sys
+import importlib
+mod_name = sys.argv[1]+'_'+'user_settings'
+#print(sys.argv[1])
+flag = importlib.import_module(mod_name)
 
 lines_dict = {
 'Ha':6562.801,
@@ -700,7 +703,7 @@ def read_star_info(star, lista_obs, listpar):
                 ebmv, rv = [[0.0, 0.8], [1., 5.8]]
             else:
                 rv = 3.1
-                ebmv, rv = [[0.0, 0.8], None]
+                ebmv, rv = [[0.0, 1.8], None]
             
             dist_min = dist_pc - flag.Nsigma_dis * sig_dist_pc
             dist_max = dist_pc + flag.Nsigma_dis * sig_dist_pc
@@ -2241,10 +2244,8 @@ def read_observables(models, lbdarr, lista_obs):
         wave = np.hstack([wave, wave0])
         flux = np.hstack([flux, flux0])
         sigma = np.hstack([sigma, sigma0])
-        #print(wave)
         logF_UV, dlogF_UV, logF_grid_UV, wave_UV =\
             combine_sed(wave, flux, sigma/2., models[index], lbdarr[index])
-        
         #print(dlogF_UV)
         
         logF_combined.append(logF_UV)
