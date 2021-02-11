@@ -3,7 +3,7 @@
 # ==============================================================================
 
 
-star =              'piAqr'  # Star name
+stars =             'piAqr'  # Star name
 a_parameter =       2.0   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        False  # If False: fix Rv = 3.1, else Rv will be inferead
@@ -12,6 +12,15 @@ long_process =      False  # Run with few walkers or many?
 Nsigma_dis =        2.  # Set the range of values for the distance
 model =             'beatlas'  # 'beatlas', 'aeri', or 'acol'
 
+
+if long_process is True:
+    Nwalk = 100  
+    Sburn = 700  
+    Smcmc = 10000  
+else:
+    Nwalk = 70
+    Sburn = 25
+    Smcmc = 100
 
 binary_star = False
 

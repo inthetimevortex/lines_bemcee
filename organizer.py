@@ -16,8 +16,9 @@ from __init__ import mod_name
 flag = importlib.import_module(mod_name)
 
 
-from lines_bemcee import read_models, create_tag, create_list, read_stellar_prior, read_observables
+from bemcee import read_models, create_tag, create_list, read_stellar_prior, read_observables
 
+# ==============================================================================
 def read_stars(stars_table):
     ''' Reads info in the star.txt file in data/star folder
         
@@ -50,6 +51,7 @@ def read_stars(stars_table):
     return list_plx, list_sig_plx, list_vsini_obs, list_sig_vsini_obs,\
         list_pre_ebmv, incl0, sig_incl0
 
+# ==============================================================================
 def find_lim():
     ''' Defines the value of "lim", to only use the model params in the 
     interpolation
@@ -58,7 +60,7 @@ def find_lim():
     lim = find_lim()
         
     '''
-    if flag.UV:
+    if flag.SED:
         if flag.include_rv and not flag.binary_star:
             lim = 3
         elif flag.include_rv and flag.binary_star:
@@ -78,6 +80,7 @@ def find_lim():
     
     return lim
 
+# ==============================================================================
 def set_ranges(star, lista_obs, listpar):
     ''' Defines the ranges and Ndim
     
@@ -92,7 +95,7 @@ def set_ranges(star, lista_obs, listpar):
     print(75 * '=')
     
 
-    if flag.UV or flag.normal_spectra is False:
+    if flag.SED or flag.normal_spectra is False:
         if flag.include_rv:
             ebmv, rv = [[0.0, 0.8], [1., 5.8]]
         else:
@@ -208,6 +211,14 @@ def set_ranges(star, lista_obs, listpar):
     return ranges, Ndim
 
 
+
+
+
+
+###########################################################################
+#
+###########################################################################
+
 list_of_stars = flag.stars + '/' + flag.stars + '.txt'
 
 file_plx, file_dplx, file_vsini, file_dvsini,\
@@ -226,21 +237,13 @@ ctrlarr, minfo, models, lbdarr, listpar, dims, isig = read_models(lista_obs)
 
 grid_priors, pdf_priors = read_stellar_prior()
 
-ranges, Ndim = set_ranges(stars, lista_obs, listpar)
+ranges, Ndim = set_ranges(flag.stars, lista_obs, listpar)
 
 
 logF, dlogF, logF_grid, wave, box_lim =\
         read_observables(models, lbdarr, lista_obs)
 
 
-if flag.long_process is True:
-    Nwalk = 100  # 200  # 500
-    nint_burnin = 700  # 50
-    nint_mcmc = 10000  # 500  # 1000
-else:
-    Nwalk = 100
-    nint_burnin = 25
-    nint_mcmc = 100
 
 if flag.model == 'aeri':
     if UV:
@@ -255,7 +258,7 @@ if flag.model == 'aeri':
     labels2 = labels
     
 if flag.model == 'acol':
-    if flag.UV:
+    if flag.SED:
         labels = [r'$M\,[\mathrm{M_\odot}]$', r'$W$',
                     r"$t/t_\mathrm{ms}$",
                     r'$\log \, n_0 \, [\mathrm{cm^{-3}}]$',

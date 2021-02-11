@@ -54,7 +54,7 @@ __all__ = ('beta', 'bin_data', 'find_nearest', 'find_neighbours', 'geneva_interp
     'read_beatlas_xdr', 'read_befavor_xdr', 'read_espadons', 'read_iue', 'read_line_spectra','read_models', 'read_observables',
     'read_star_info', 'read_stellar_prior', 'read_table', 'read_votable', 'select_xdr_part', 'xdr_remove_lines', 'plot_convergence',
     'par_errors', 'plot_line', 'plot_residuals_new', 'print_output', 'print_output_means', 'print_to_latex', 'hpd_grid', 'lnlike',
-    'lnprob', 'lnprior', 'new_emcee_inference', 'run_emcee', 'corner', 'hist2d', 'quantile')
+    'lnprob', 'lnprior', 'emcee_inference', 'run_emcee', 'corner', 'hist2d', 'quantile')
 
 
 

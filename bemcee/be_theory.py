@@ -62,7 +62,7 @@ def obl2W(oblat):
     return W
 
 
-
+# ==============================================================================
 def t_tms_from_Xc(M, savefig=None, plot_fig=None, ttms_true=None, Xc=None, folder_tables='../tables'):
     '''
     Calculates the t(tms) for a given Xc and mass

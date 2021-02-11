@@ -80,7 +80,7 @@ def read_BAphot2_xdr(lista_obs):
     models_combined = []
     lbd_combined = []
     
-    if flag.UV:
+    if flag.SED:
         if flag.votable or flag.data_table:
             lbd_UV, models_UV = xdr_remove_lines(lbdarr, models)
 	    # UV is from lbdarr[0] to lbdarr[224]
@@ -650,7 +650,7 @@ def read_acol_Ha_xdr(lista_obs):
     lbd_combined = []
     
     
-    if flag.UV:
+    if flag.SED:
         lbd_UV, models_UV = xdr_remove_lines(lbdarr, models)
     
         models_combined.append(models_UV)
@@ -1571,13 +1571,13 @@ def read_line_spectra(models, lbdarr, linename):
 # ==============================================================================
 def read_iue(models, lbdarr):
 
-    table = flag.folder_data + flag.list_of_stars + '/' + 'list_iue.txt'
+    table = flag.folder_data + flag.stars + '/' + 'list_iue.txt'
 
     # os.chdir(flag.folder_data + str(flag.stars) + '/')
     if os.path.isfile(table) is False:
-        os.system('ls ' + flag.folder_data + flag.list_of_stars +
+        os.system('ls ' + flag.folder_data + flag.stars +
                   '/*.FITS | xargs -n1 basename >' +
-                  flag.folder_data + flag.list_of_stars + '/' + 'list_iue.txt')
+                  flag.folder_data + flag.stars + '/' + 'list_iue.txt')
     
     iue_list = np.genfromtxt(table, comments='#', dtype='str')
     file_name = np.copy(iue_list)
@@ -1585,7 +1585,7 @@ def read_iue(models, lbdarr):
     fluxes, waves, errors = [], [], []
     
     if file_name.tolist()[-3:] == 'csv':
-        file_iue = str(flag.folder_data) + flag.list_of_stars + '/' + str(file_name)
+        file_iue = str(flag.folder_data) + flag.stars + '/' + str(file_name)
         wave, flux, sigma = np.loadtxt(str(file_iue), delimiter=',').T
         fluxes = np.concatenate((fluxes, flux*1e4), axis=0)
         waves = np.concatenate((waves, wave*1e-4), axis=0)
@@ -1594,7 +1594,7 @@ def read_iue(models, lbdarr):
     else:
     # Combines the observations from all files in the folder, taking the good quality ones
         for k in range(len(file_name)):
-            file_iue = str(flag.folder_data) + flag.list_of_stars + '/' + str(file_name[k])
+            file_iue = str(flag.folder_data) + flag.stars + '/' + str(file_name[k])
             hdulist = fits.open(file_iue)
             tbdata = hdulist[1].data
             wave = tbdata.field('WAVELENGTH') * 1e-4  # mum
@@ -1617,8 +1617,8 @@ def read_iue(models, lbdarr):
             waves = np.concatenate((waves, wave), axis=0)
             errors = np.concatenate((errors, sigma), axis=0)
 
-    if os.path.isdir(flag.folder_fig + flag.list_of_stars) is False:
-        os.mkdir(flag.folder_fig + flag.list_of_stars)
+    if os.path.isdir(flag.folder_fig + flag.stars) is False:
+        os.mkdir(flag.folder_fig + flag.stars)
 
 # ------------------------------------------------------------------------------
     # Would you like to cut the spectrum?
@@ -1955,7 +1955,7 @@ def create_list():
     
     lista = np.array([])
     
-    if flag.UV:
+    if flag.SED:
         lista = np.append(lista,'UV')
     if flag.Ha:
         lista = np.append(lista,'Ha')
@@ -2036,7 +2036,7 @@ def read_observables(models, lbdarr, lista_obs):
     box_lim_combined = []
     
 
-    if flag.UV:     
+    if flag.SED:     
         
         u = np.where(lista_obs == 'UV')
         index = u[0][0]
