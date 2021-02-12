@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from .constants import G, Msun, Rsun
 from .be_theory import oblat2w, t_tms_from_Xc, obl2W, hfrac2tms
 import emcee
+from scipy.interpolate import griddata
 from .corner_HDR import corner
 import matplotlib as mpl
 from matplotlib import ticker
@@ -15,6 +16,7 @@ import bemcee.corner_HDR
 from .hpd import hpd_grid
 from .lines_plot import print_output, par_errors, plot_residuals, print_output_means, print_to_latex
 from .lines_convergence import plot_convergence
+from .lines_gauss import gaussconv
 from astropy.stats import SigmaClip
 import seaborn as sns
 import datetime
@@ -28,15 +30,16 @@ sns.set_style("white", {"xtick.major.direction": 'in',
               "ytick.major.direction": 'in'})
 
 # ==============================================================================
-def get_line_chi2(line):
+def get_line_chi2(line, lname, logF_mod):
     '''Get the chi2 for the lines
     
     Usage:
     chi2 = get_line_chi2(line)
     '''
     if line:
-        u = np.where(info.lista_obs == str(line).split('.')[-1])
+        u = np.where(info.lista_obs == lname)
         index = u[0][0]
+            
         
         logF_Ha = info.logF[index]
         dlogF_Ha = info.dlogF[index] 
@@ -44,7 +47,13 @@ def get_line_chi2(line):
         
         uplim = dlogF_Ha == 0
         keep = np.logical_not(uplim)
+        
+
+            
         chi2_Ha = np.sum(((logF_Ha[keep] - logF_mod_Ha[keep])**2 / (dlogF_Ha[keep])**2.))
+        
+        
+        
         N_Ha = len(logF_Ha[keep])
         chi2_Ha_red = chi2_Ha/N_Ha
 
@@ -99,19 +108,6 @@ def lnlike(params, logF_mod):
         
         keep = np.logical_not(uplim)
         
-        #if flag.binary_star:
-        #    M2, Lfrac = params[-2], params[-1]
-        #    logF_mod_UV_1, logF_mod_UV_2 = logF_mod[index]            
-        #    F_mod_UV_2 = Lfrac * 10**logF_mod_UV_2
-        #    F_mod_UV_1 = (1. - Lfrac) * 10**logF_mod_UV_1
-        #    logF_mod_UV_comb = np.log(F_mod_UV_1 + F_mod_UV_2)
-        #
-        #    logF_mod_UV_comb += np.log10(norma)
-        #    tmp_flux = 10**logF_mod_UV_comb
-        #    
-        #
-        #else:
-        
         logF_mod[index] += np.log10(norma)
         tmp_flux = 10**logF_mod[index]
         
@@ -140,32 +136,17 @@ def lnlike(params, logF_mod):
         N_UV = 0.
         
     #if flag.Ha:
-    chi2_Ha_red, N_Ha = get_line_chi2(flag.Ha)
+    chi2_Ha_red, N_Ha = get_line_chi2(flag.Ha, 'Ha', logF_mod)
     
     #if flag.Hb:
-    chi2_Hb_red, N_Hb = get_line_chi2(flag.Hb)
+    chi2_Hb_red, N_Hb = get_line_chi2(flag.Hb, 'Hb', logF_mod)
 
     #if flag.Hd:
-    chi2_Hd_red, N_Hd = get_line_chi2(flag.Hd)
+    chi2_Hd_red, N_Hd = get_line_chi2(flag.Hd, 'Hd', logF_mod)
     
     #if flag.Hg:
-    chi2_Hg_red, N_Hg = get_line_chi2(flag.Hg)
+    chi2_Hg_red, N_Hg = get_line_chi2(flag.Hg, 'Hg', logF_mod)
     
-    #    u = np.where(info.lista_obs == 'Hg')
-    #    index = u[0][0]
-	#
-    #    logF_Hg = info.logF[index]
-    #    dlogF_Hg = info.dlogF[index] 
-    #    logF_mod_Hg = logF_mod[index]           
-    #    
-    #    uplim = dlogF_Hg == 0
-    #    keep = np.logical_not(uplim)
-    #    chi2_Hg = np.sum(((logF_Hg[keep] - logF_mod_Hg[keep])**2 / (dlogF_Hg[keep])**2.))
-    #    N_Hg = len(logF_Hg[keep])
-    #    chi2_Hg_red = chi2_Hg/N_Hg
-    #else:
-    #    chi2_Hg_red = 0.
-    #    N_Hg = 0. 
 
     chi2 = (chi2_UV_red + chi2_Ha_red + chi2_Hb_red+ chi2_Hd_red+ chi2_Hg_red)*(N_UV + N_Ha + N_Hb + N_Hd+ N_Hg)
       
@@ -327,6 +308,12 @@ def lnprob(params):
             else:
                 logF_mod_Ha_unnorm = griddataBA(info.minfo, info.logF_grid[index], params[:-info.lim], info.listpar, info.dims)
                 F_mod_Ha = linfit(info.wave[index], logF_mod_Ha_unnorm)
+            
+            if flag.model == 'acol':
+                fac_e, v_h, v_e = params[-1], params[-2], params[-3]
+                wave_conv, flx_conv = gaussconv(fac_e, v_h, v_e, F_mod_Ha, info.wave[index])
+                F_mod_Ha = griddata(wave_conv, flx_conv, info.wave[index], method='linear',fill_value=1)
+                
             logF_mod.append(F_mod_Ha)
         
         if flag.Hb:

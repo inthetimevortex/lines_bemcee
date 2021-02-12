@@ -69,6 +69,8 @@ def find_lim():
             lim = 3
         else:
             lim = 2
+        if flag.Ha:
+            lim = lim+3
     else:
         if flag.binary_star:
             lim = 1
@@ -77,7 +79,8 @@ def find_lim():
                 lim = -4
             else:
                 lim= -7
-    
+        if flag.Ha:
+            lim = lim-3
     return lim
 
 # ==============================================================================
@@ -150,7 +153,14 @@ def set_ranges(star, lista_obs, listpar):
         if flag.binary_star:
             M2 = [listpar[0][0], listpar[0][-1]]
             ranges = np.concatenate([ranges, [M2]])
-            
+        
+        if flag.Ha:
+            fac_e = [0.2, 0.5] #Fraction of light scattered by electrons
+            v_e = [500.0, 650.0] #Speed of electron motion
+            v_h = [10.0, 20.0] #Sound speed of the disk
+            ranges = np.concatenate([ranges, [fac_e]])
+            ranges = np.concatenate([ranges, [v_e]])
+            ranges = np.concatenate([ranges, [v_h]])
 
 
     else:
@@ -184,6 +194,14 @@ def set_ranges(star, lista_obs, listpar):
         if flag.binary_star:
             M2 = [listpar[0][0], listpar[0][-1]]
             ranges = np.concatenate([ranges, [M2]])
+        
+        if flag.Ha:
+            fac_e = [0.2, 0.5] #Fraction of light scattered by electrons
+            v_e = [500.0, 650.0] #Speed of electron motion
+            v_h = [10.0, 20.0] #Sound speed of the disk
+            ranges = np.concatenate([ranges, [fac_e]])
+            ranges = np.concatenate([ranges, [v_e]])
+            ranges = np.concatenate([ranges, [v_h]])
     
     if flag.box_W:
         if flag.box_W_max == 'max':
@@ -209,9 +227,6 @@ def set_ranges(star, lista_obs, listpar):
     Ndim = len(ranges)
 
     return ranges, Ndim
-
-
-
 
 
 
@@ -285,6 +300,11 @@ if flag.model == 'acol':
                     r'$\log \, n_0 $',
                     r'$R_\mathrm{D}$',
                     r'$n$', r'$i$']
+                    
+    if flag.Ha:
+        labels = labels + [r'F_e', r'v_e \,[km/s]', r'v_h \,[km/s]']
+        labels2 = labels2 + [r'F_e', r'v_e', r'v_h']
+        
 if flag.model == 'beatlas':
     labels = [r'$M\,[\mathrm{M_\odot}]$', r'$W$',
                 r'$\Sigma_0 \, [\mathrm{g/cm^{-2}}]$',

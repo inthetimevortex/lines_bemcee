@@ -3,7 +3,7 @@ from scipy.interpolate import griddata
 import pyhdust.phc as phc
 from scipy.stats import gaussian_kde
 import struct as struct
-import constants as const
+import bemcee.constants as const
 import warnings as _warn
 from scipy.interpolate import UnivariateSpline
 

@@ -40,6 +40,8 @@ from .lines_plot import *
 
 from .hpd import *
 
+from .lines_gauss import *
+
 from .lines_emcee import *
 
 from .corner_HDR import *
