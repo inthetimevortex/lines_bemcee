@@ -10,7 +10,7 @@ include_rv =        False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
 long_process =      False  # Run with few walkers or many?
 Nsigma_dis =        2.  # Set the range of values for the distance
-model =             'beatlas'  # 'beatlas', 'aeri', or 'acol'
+model =             'aeri'  # 'beatlas', 'aeri', or 'acol'
 
 
 if long_process is True:
@@ -19,8 +19,8 @@ if long_process is True:
     Smcmc = 10000  
 else:
     Nwalk = 70
-    Sburn = 25
-    Smcmc = 100
+    Sburn = 70
+    Smcmc = 300
 
 binary_star = False
 
@@ -30,7 +30,7 @@ folder_defs = '../defs/'
 folder_tables = '../tables/'
 folder_models = '../models/'
 
-lbd_range = 'UV'
+lbd_range = 'UV+VIS+NIR'
 
 vsini_prior =   False # Uses a gaussian vsini prior
 dist_prior =    True # Uses a gaussian distance prior
@@ -54,7 +54,7 @@ remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too mu
 SED =           True #True if you have any kind of SED data (IUE, visible, etc)
 iue =           True
 votable =       False
-data_table=     False
+data_table=     True
 
 Ha =            False
 Hb =            False

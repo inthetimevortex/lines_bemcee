@@ -261,7 +261,7 @@ logF, dlogF, logF_grid, wave, box_lim =\
 
 
 if flag.model == 'aeri':
-    if UV:
+    if flag.SED:
         labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
               r'$i[\mathrm{^o}]$', r'$\pi\,[mas]$', r'E(B-V)']
         if flag.include_rv is True:

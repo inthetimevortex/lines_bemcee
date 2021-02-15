@@ -2024,6 +2024,22 @@ def read_table():
     
     return wave, flux, sigma  
 
+
+def read_table_piAqr():
+    table = flag.folder_data + str(flag.stars) + '/sed_data/' + 'list_sed.txt'
+
+    #os.chdir(folder_data + str(star) + '/')
+    #if os.path.isfile(table) is False or os.path.isfile(table) is True:
+    os.system('ls ' + flag.folder_data + str(flag.stars) + '/sed_data/*.dat /*.csv /*.txt | xargs -n1 basename >' +
+                flag.folder_data + str(flag.stars) + '/sed_data/' + 'list_sed.txt')
+    vo_list = np.genfromtxt(table, comments='#', dtype='str')
+    table_name = np.copy(vo_list)
+    table = flag.folder_data + str(flag.stars) + '/sed_data/' + str(table_name)
+    
+    lbds, flxs = np.loadtxt(table).T
+    
+    return lbds, flxs, flxs*0.03
+
 #=======================================================================
 # Read the data files
 
@@ -2049,7 +2065,10 @@ def read_observables(models, lbdarr, lista_obs):
         if flag.votable:
             wave0, flux0, sigma0 = read_votable()
         elif flag.data_table:
-            wave0, flux0, sigma0 = read_table()
+            if flag.stars == 'piAqr':
+                wave0, flux0, sigma0 = read_table_piAqr()
+            else:
+                wave0, flux0, sigma0 = read_table()
         else:    
             wave0, flux0, sigma0 = [], [], []
         

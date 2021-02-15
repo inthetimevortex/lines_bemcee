@@ -14,8 +14,8 @@ import organizer as info
 
 sns.set_style("white", {"xtick.major.direction": 'in',
               "ytick.major.direction": 'in'})
-plt.rc('xtick',labelsize=8)
-plt.rc('ytick',labelsize=8)
+#plt.rc('xtick',labelsize=8)
+#plt.rc('ytick',labelsize=8)
 
 # ==============================================================================
 def par_errors(flatchain):
@@ -291,7 +291,8 @@ def plot_residuals(par, npy, current_folder, fig_name):
     plot_residuals(par, npy, current_folder, fig_name)
 
     '''
-        
+    plt.rc('xtick', labelsize='medium')
+    plt.rc('ytick', labelsize='medium')
 
     chain = np.load(npy)
     par_list=[]
@@ -360,7 +361,7 @@ def plot_residuals(par, npy, current_folder, fig_name):
         logF_list += np.log10(norma)
         
         
-        fig, (ax1,ax2) = plt.subplots(2,1,gridspec_kw={'height_ratios': [3, 1]})
+        fig, (ax1,ax2) = plt.subplots(2,1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
 
         # Plot Models
         for i in range(len(par_list)):
@@ -372,26 +373,26 @@ def plot_residuals(par, npy, current_folder, fig_name):
                 ebv_temp = par_list[i][8]
             F_temp = pyasl.unred(lbd_UV * 1e4, 10**logF_list[i],
                                  ebv=-1 * ebv_temp, R_V=rv)
-            ax1.plot(lbd_UV, F_temp, color='gray', alpha=0.1)
+            ax1.plot(lbd_UV, F_temp, color='gray', alpha=0.1, lw=0.6)
 
         
-        ax2.plot(lbd_UV, (flux_UV - F_temp) / dflux, 'bs', alpha=0.2)
-        ax2.set_ylim(-10,10)
-        if flag.votable:
-            ax2.set_xscale('log')
+        ax2.plot(lbd_UV, (flux_UV - F_temp) / dflux, 'ks', ms = 5, alpha=0.2)
+        #ax2.set_ylim(-10,10)
+        if flag.votable or flag.data_table:
+            #ax2.set_xscale('log')
             ax1.set_xscale('log')
             ax1.set_yscale('log')
             
         # Plot Data
         keep = np.where(flux_UV > 0) # avoid plot zero flux
         ax1.errorbar(lbd_UV[keep], flux_UV[keep], yerr=dflux[keep], ls='', marker='o',
-                     alpha=0.5, ms=5, color='blue', linewidth=1)
+                     alpha=0.5, ms=5, color='k', linewidth=1)
 
                      
-        ax2.set_xlabel('$\lambda\,\mathrm{[\mu m]}$', fontsize=12)
-        ax1.set_ylabel(r'$F_{\lambda}\,\mathrm{[erg\, s^{-1}\, cm^{-2}\, \mu m^{-1}]}$',
-                   fontsize=12)	
-        ax2.set_ylabel('$(F-F_\mathrm{m})/\sigma$', fontsize=12)
+        ax2.set_xlabel('$\lambda\,\mathrm{[\mu m]}$')#, fontsize=12)
+        ax1.set_ylabel(r'$F_{\lambda}\,\mathrm{[erg\, s^{-1}\, cm^{-2}\, \mu m^{-1}]}$')
+                   #fontsize=12)	
+        ax2.set_ylabel('$(F-F_\mathrm{m})/\sigma$')#, fontsize=12)
 
         plt.tight_layout()
         plt.savefig(current_folder + fig_name + '_new_residuals-UV' + '.png', dpi=100)
