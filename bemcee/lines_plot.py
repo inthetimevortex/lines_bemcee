@@ -424,6 +424,8 @@ def plot_line(line, par, par_list, current_folder, fig_name):
     plot_line(line, par, par_list, current_folder, fig_name)
     '''
     # Finding position
+    plt.rc('xtick', labelsize='medium')
+    plt.rc('ytick', labelsize='medium')
     u = np.where(info.lista_obs == line)
     index = u[0][0]
 
@@ -453,7 +455,7 @@ def plot_line(line, par, par_list, current_folder, fig_name):
     #np.savetxt(current_folder + fig_name + '_new_residuals_' + line +'.dat', np.array([lbd_line, flux_mod_line]).T)
     
     # Plot
-    fig, (ax1,ax2) = plt.subplots(2,1,gridspec_kw={'height_ratios': [3, 1]})                              
+    fig, (ax1,ax2) = plt.subplots(2,1,sharex=True,gridspec_kw={'height_ratios': [3, 1]})                              
     # Plot models
     for i in range(len(par_list)):
         ax1.plot(lbd_line, F_list[i], color='gray', alpha=0.1)
@@ -462,15 +464,15 @@ def plot_line(line, par, par_list, current_folder, fig_name):
     # Best fit
     #ax1.plot(lbd_line, flux_mod_line, color='red', ls='-', lw=3.5, alpha=0.4, label='Best fit \n chi2 = {0:.2f}'.format(chi2_line))
     
-    ax1.set_ylabel('Normalized Flux',fontsize=14)
+    ax1.set_ylabel('Normalized Flux')#,fontsize=14)
     ax1.set_xlim(min(lbd_line), max(lbd_line))
     #ax1.legend(loc='lower right')
     ax1.set_title(line)
     # Residuals
     ax2.plot(lbd_line, (flux_line - F_list[-1])/dflux_line, marker='o', alpha=0.5)
     
-    ax2.set_ylabel('$(F-F_\mathrm{m})/\sigma$', fontsize=14)
-    ax2.set_xlabel('$\lambda\,\mathrm{[\mu m]}$', fontsize=14)
+    ax2.set_ylabel('$(F-F_\mathrm{m})/\sigma$')#, fontsize=14)
+    ax2.set_xlabel('$\lambda\,\mathrm{[\mu m]}$')#, fontsize=14)
     ax2.set_xlim(min(lbd_line), max(lbd_line))
     plt.tight_layout()
     plt.savefig(current_folder + fig_name + '_new_residuals_' + line +'.png', dpi=100)
