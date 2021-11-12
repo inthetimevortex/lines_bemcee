@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 #
 #  lines_gauss.py
-#  
+#
 #  Copyright 2021 Amanda Rubio <amanda.rubio@usp.br>
-#  
+#
 
 
 import numpy as np
 import scipy.stats as sp
-import scipy.constants as const   
+import scipy.constants as const
 import scipy.interpolate as interp
 import scipy.integrate as integrate
 import pyhdust.spectools as spc
@@ -17,27 +17,29 @@ import importlib
 import bemcee.constants as const
 from pyhdust import spectools as spt
 import operator
+import matplotlib.pyplot as plt
 
 from __init__ import mod_name
 flag = importlib.import_module(mod_name)
 
 #Makes a 1D Gaussian defined by its FWHM
 def gaussian1d(npix, fwhm, normalize=True):
-    # Initialize Gaussian params 
-    cntrd = (npix + 1.0) * 0.5 
+    # Initialize Gaussian params
+    cntrd = (npix + 1.0) * 0.5
     st_dev = 0.5 * fwhm / np.sqrt( 2.0 * np.log(2) )
     x = np.linspace(1,npix,npix)
-    
+
     # Make Gaussian
     ampl = (1/(np.sqrt(2*np.pi*(st_dev**2))))
     expo = np.exp(-((x - cntrd)**2)/(2*(st_dev**2)))
     gaussian = ampl * expo
-    
+
     # Normalize
-    if normalize:  gaussian /= gaussian.sum() 
-    
+    if normalize:
+        gaussian /= gaussian.sum()
+
     return gaussian
-    
+
 
 def gaussfold(lam, flux, fwhm):
 
@@ -45,12 +47,12 @@ def gaussfold(lam, flux, fwhm):
     lammax = max(lam)
 
     dlambda = fwhm / float(17)
-  
+
     interlam = lammin + dlambda * np.arange(float((lammax-lammin)/dlambda+1))
     x = interp.interp1d(lam, flux, kind='linear', fill_value='extrapolate')
     interflux = x(interlam)
 
-    
+
     fwhm_pix = fwhm / dlambda
     window = int(17 * fwhm_pix)
     #print(dlambda,window)
@@ -61,16 +63,16 @@ def gaussfold(lam, flux, fwhm):
     #print(len(interlam), len(gauss))
     # Convolve input spectrum with the Gaussian profile
     fold = np.convolve(interflux, gauss, mode='same')
-    
+
     y = interp.interp1d(interlam, fold, kind='linear', fill_value='extrapolate')
     fluxfold = y(lam)
-    
+
     return fluxfold
 
 
-def gaussconv(fac_e, v_h, v_e, F_mod_Ha, wave):
+def gaussconv(fac_e, v_e, F_mod_Ha, wave):
 
-    
+
     vel, flx = spt.lineProf(wave, F_mod_Ha, lbc=0.65628, hwidth=1380)
     #print(len(vel), len(flx))
     ##Adding junk ones to either side of the halpha continuum
@@ -94,19 +96,19 @@ def gaussconv(fac_e, v_h, v_e, F_mod_Ha, wave):
     #ss = np.argsort(vel)
     #vel = vel[ss]
     #flx=flx[ss]
-    
+
     ###fac_e = [0.2, 0.5] #Fraction of light scattered by electrons
     ###v_e = [500.0, 650.0] #Speed of electron motion
     ###v_h = [10.0, 20.0] #Sound speed of the disk
-    
+
     notscat_flux = [i*(1-fac_e) for i in flx]
     scat_flux = [i*fac_e for i in flx]
-    notscat_conv = gaussfold(vel, notscat_flux, v_h)
+    #notscat_conv = gaussfold(vel, notscat_flux, v_h)
     scat_conv = gaussfold(vel, scat_flux, v_e)
-    flux_conv = scat_conv + notscat_conv #flux after convolution
-    
-    
+    flux_conv = scat_conv + notscat_flux #flux after convolution
+    #plt.plot(vel, flux_conv)
+    #plt.plot(vel, flx)
+    #plt.show()
+
     #wave = const.c * 0.65628/(const.c - vel)
     return wave, flux_conv[2000:-2000]
-
-

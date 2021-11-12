@@ -10,6 +10,7 @@ import atpy
 import os
 from astropy.io import fits
 from pyhdust import spectools as spec
+from pyhdust import doFilterConvPol
 from matplotlib import pyplot as plt
 from astropy.stats import SigmaClip
 from astropy.stats import median_absolute_deviation as MAD
@@ -17,6 +18,7 @@ from scipy.signal import detrend
 from .lines_radialv import delta_v, Ha_delta_v
 import sys
 import importlib
+import pandas as pd
 #from main import flag
 #mod_name = sys.argv[1]+'_'+'user_settings'
 #print(sys.argv[1])
@@ -49,7 +51,7 @@ def read_BAphot2_xdr(lista_obs):
     dims = dict(zip(dims, range(len(dims))))
     isig = None # photospheric flag.model is None
 
-    ctrlarr = [np.NaN, np.NaN, np.NaN, np.NaN] 
+    ctrlarr = [np.NaN, np.NaN, np.NaN, np.NaN]
 
     tmp = 0
     cont = 0
@@ -61,10 +63,15 @@ def read_BAphot2_xdr(lista_obs):
             tmp = tmp + 1
 
     # Read the grid models, with the interval of parameters.
-    xdrPL = flag.folder_models + 'BAphot__UV2M_Ha_Hb_Hg_Hd.xdr'
+    #xdrPL = flag.folder_models + 'BAphot__UV2M_Ha_Hb_Hg_Hd.xdr'
+    xdrPL = flag.folder_models + 'BeAtlas2021_phot_Puxadinho.xdr'
     ninfo, ranges, lbdarr, minfo, models = readXDRsed(xdrPL, quiet=False)
     models = 1e-8 * models # erg/s/cm2/micron
     
+    #print(len(models))
+    #print(len(minfo))
+
+
     # Correction for negative parameter values (in cosi for instance)
     for i in range(np.shape(minfo)[0]):
         for j in range(np.shape(minfo)[1]):
@@ -75,64 +82,70 @@ def read_BAphot2_xdr(lista_obs):
         for j in range(np.shape(models)[1]):
             if models[i][j] < 0 and (j != 0 or j != len(models[i][j]) - 1):
                 models[i][j] = (models[i][j - 1] + models[i][j + 1]) / 2.
-    
+
     # Combining models and lbdarr
     models_combined = []
     lbd_combined = []
-    
+
     if flag.SED:
         if flag.votable or flag.data_table:
             lbd_UV, models_UV = xdr_remove_lines(lbdarr, models)
 	    # UV is from lbdarr[0] to lbdarr[224]
         else:
             j = 0
-            shape = (5500,225)
+            shape = (6600,225)
             models_UV = np.zeros(shape)
-            while j < 5500:
+            while j < 6600:
                 models_UV[j] = models[j][:225]
                 j += 1
-   
+
             lbd_UV = lbdarr[:225]
-        
+
         #plt.plot(lbd_UV, models_UV[30])
         #plt.xscale('log')
         #plt.yscale('log')
         models_combined.append(models_UV)
         lbd_combined.append(lbd_UV)
-   
-    if flag.Ha: 
+
+    if flag.Ha:
         lbdc = 0.656
         models_combined, lbd_combined = select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc)
-        
+
     if flag.Hb:
         lbdc = 0.486
         models_combined, lbd_combined = select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc)
-    
+
     if flag.Hd:
         lbdc = 0.410
         models_combined, lbd_combined = select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc)
-    
+
     if flag.Hg:
         lbdc = 0.434
         models_combined, lbd_combined = select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc)
-  
-          
-        
-    listpar = [np.unique(minfo[:,0]), np.unique(minfo[:,1]),np.unique(minfo[:,2]), np.unique(minfo[:,3])]
 
-    return ctrlarr, minfo, models_combined, lbd_combined, listpar, dims, isig  
+
+
+    listpar = [np.unique(minfo[:,0]), np.unique(minfo[:,1]),np.unique(minfo[:,2]), np.unique(minfo[:,3])]
+    #print(np.unique(minfo[:,2]))
+    return ctrlarr, minfo, models_combined, lbd_combined, listpar, dims, isig
 
 
 # =============================================================================
 def select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc):
     line_peak = find_nearest2(lbdarr, lbdc)
-    keep_a = find_nearest2(lbdarr, 0.6535)
-    keep_b = find_nearest2(lbdarr, 0.6595)
+    keep_a = find_nearest2(lbdarr, 0.6400)
+    keep_b = find_nearest2(lbdarr, 0.6700)
     lbd_line = lbdarr[keep_a:keep_b]
     models_line = models[:, keep_a:keep_b]
-    lbdarr_line = lbd_line*1e4
-    lbdarr_line = lbdarr_line/(1.0 + 2.735182E-4 + 131.4182/lbdarr_line**2 + 2.76249E8/lbdarr_line**4)
-    models_combined.append(models_line)
+    #lbdarr_line = lbd_line*1e4
+    new_models = np.zeros([len(models_line), len(models_line[0][1:-1])])
+    for i,mm in enumerate(models_line):
+        vl, fx = lineProf(lbd_line, mm, hwidth=3000., lbc=lbdc)
+        new_models[i]=fx
+    c = 299792.458
+    wl = c*lbdc/(c - vl) * 1e4
+    lbdarr_line = wl/(1.0 + 2.735182E-4 + 131.4182/wl**2 + 2.76249E8/wl**4)
+    models_combined.append(new_models)
     lbd_combined.append(lbdarr_line*1e-4)
 
     return models_combined, lbd_combined
@@ -148,9 +161,9 @@ def xdr_remove_lines(lbdarr, models):
         novo_models1 = models[:, :keep_a]
         novo_models2 = models[:, keep_b:]
         novo_models = np.hstack((novo_models1, novo_models2))
-        
+
     return lbdarr, novo_models
-        
+
 # ==============================================================================
 def read_aara_xdr():
 
@@ -171,7 +184,7 @@ def read_aara_xdr():
             tmp = tmp + 1
 
     # Read the grid models, with the interval of parameters.
-    xdrPL = flag.folder_models + 'aara_sed.xdr'  # 
+    xdrPL = flag.folder_models + 'aara_sed.xdr'  #
 
 
     listpar, lbdarr, minfo, models = readBAsed(xdrPL, quiet=False)
@@ -313,7 +326,7 @@ def read_befavor_xdr():
 #    # codigo segundo o Rodrigo
 #    ninfo, ranges, lbdarr, minfo, models = bat.readXDRsed(xdrPL, quiet=False)
 #    models = 1e-8 * models # erg/s/cm2/micron
-#    
+#
 #    #logmodels = np.log(1e-8 * models) # erg/s/cm2/micron, at 10 pc, warning de 'division by zero'
 #    #listpar, lbdarr, minfo, models = bat.readBAsed(xdrPL, quiet=False)
 #    # [models] = [F(lbd)]] = 10^-4 erg/s/cm2/Ang
@@ -336,7 +349,7 @@ def read_befavor_xdr():
 #    #minfo = np.delete(minfo, cols2delete, axis=1)
 #    #listpar[3].sort()
 #    #listpar[3][0] = 0.
-#    
+#
 #    # versao anterior tinha o cosi negativo no listpar, eu troquei agora para zero dado que o minfo de fato considera igual a 0
 #    listpar = [np.array([1.7000000476837158,2.0,2.5,3.0,4.0,5.0,7.0,9.0,12.0,15.0]), np.array([0.0,0.33000001311302185,0.4699999988079071,0.5699999928474426,0.6600000262260437,0.7400000095367432,0.8100000023841858,0.8700000047683716,0.9300000071525574]), np.array([0.0,0.25,0.5,0.75,1.0]), np.array([0,0.11146999895572662,0.22155000269412994,0.3338100016117096,0.44464001059532166,0.5548400282859802,0.6665300130844116,0.7782400250434875,0.8886200189590454,1.0])]
 #
@@ -368,7 +381,7 @@ def read_befavor_xdr():
 #    # codigo segundo o Rodrigo
 #    ninfo, ranges, lbdarr, minfo, models = bat.readXDRsed(xdrPL, quiet=False)
 #    models = 1e-8 * models # erg/s/cm2/micron
-#    
+#
 #    # Correction for negative parameter values (in cosi for instance)
 #    for i in range(np.shape(minfo)[0]):
 #        for j in range(np.shape(minfo)[1]):
@@ -379,7 +392,7 @@ def read_befavor_xdr():
 #        for j in range(np.shape(models)[1]):
 #            if models[i][j] < 0 and (j != 0 or j != len(models[i][j]) - 1):
 #                models[i][j] = (models[i][j - 1] + models[i][j + 1]) / 2.
-#    
+#
 #    # UV is from lbdarr[0] to lbdarr[224]
 #    j = 0
 #    shape = (5500,225)
@@ -387,7 +400,7 @@ def read_befavor_xdr():
 #    while j < 5500:
 #        models_UV[j] = models[j][:225]
 #        j += 1
-#    
+#
 #    listpar = [np.array([1.7000000476837158,2.0,2.5,3.0,4.0,5.0,7.0,9.0,12.0,15.0]), np.array([0.0,0.33000001311302185,0.4699999988079071,0.5699999928474426,0.6600000262260437,0.7400000095367432,0.8100000023841858,0.8700000047683716,0.9300000071525574]), np.array([0.0,0.25,0.5,0.75,1.0]), np.array([0,0.11146999895572662,0.22155000269412994,0.3338100016117096,0.44464001059532166,0.5548400282859802,0.6665300130844116,0.7782400250434875,0.8886200189590454,1.0])]
 #
 #    return ctrlarr, minfo, models_UV, lbdarr[:225], listpar, dims, isig
@@ -432,7 +445,7 @@ def read_befavor_xdr():
 #    listpar[4].sort()
 #    listpar = list([listpar[0], listpar[1], listpar[3], listpar[4],
 #                    listpar[5], listpar[7], listpar[8]])
-#    
+#
 #
 #        # Change vacuum wavelength to air wavelength
 #    lbdarr = lbdarr*1e4 # to Angstrom # estava lbdarr[255:495], que eh o flag.Halpha completo de fato
@@ -468,7 +481,7 @@ def read_befavor_xdr():
 #    # codigo segundo o Rodrigo
 #    ninfo, ranges, lbdarr, minfo, models = bat.readXDRsed(xdrPL, quiet=False)
 #    models = 1e-8 * models # erg/s/cm2/micron
-#    
+#
 #    # Correction for negative parameter values (in cosi for instance)
 #    for i in range(np.shape(minfo)[0]):
 #        for j in range(np.shape(minfo)[1]):
@@ -479,7 +492,7 @@ def read_befavor_xdr():
 #        for j in range(np.shape(models)[1]):
 #            if models[i][j] < 0 and (j != 0 or j != len(models[i][j]) - 1):
 #                models[i][j] = (models[i][j - 1] + models[i][j + 1]) / 2.
-#    
+#
 #    # flag.Halpha is from lbdarr[255] to lbdarr[495]
 #    j = 0
 #    shape = (5500,238) # Estava (5500,240)
@@ -487,17 +500,17 @@ def read_befavor_xdr():
 #    while j < 5500:
 #        models_flag.Halpha[j] = models[j][256:494] # estava models[j][255:495]
 #        j += 1
-#    
+#
 #    listpar = [np.array([1.7000000476837158,2.0,2.5,3.0,4.0,5.0,7.0,9.0,12.0,15.0]), np.array([0.0,0.33000001311302185,0.4699999988079071,0.5699999928474426,0.6600000262260437,0.7400000095367432,0.8100000023841858,0.8700000047683716,0.9300000071525574]), np.array([0.0,0.25,0.5,0.75,1.0]), np.array([0,0.11146999895572662,0.22155000269412994,0.3338100016117096,0.44464001059532166,0.5548400282859802,0.6665300130844116,0.7782400250434875,0.8886200189590454,1.0])]
 #
 #    # Change vacuum wavelength to air wavelength
 #    lbdarr = lbdarr[256:494]*1e4 # to Angstrom # estava lbdarr[255:495], que eh o flag.Halpha completo de fato
 #    lbdarr = lbdarr/(1.0 + 2.735182E-4 + 131.4182/lbdarr**2 + 2.76249E8/lbdarr**4) # valid if lbd in Angstrom
 #    lbdarr = lbdarr*1e-4 # to mum again
-#    
+#
 #
 #    return ctrlarr, minfo, models_flag.Halpha, lbdarr, listpar, dims, isig
-    
+
 # ==============================================================================
 def read_beatlas_xdr(lista_obs):
 
@@ -533,7 +546,7 @@ def read_beatlas_xdr(lista_obs):
                 models[i][j] = (models[i][j + 1] + models[i][j - 1]) / 2.
 
     listpar[-1][0] = 0.
-    
+
     listpar[2] = np.round(listpar[2], decimals=3)
 
     return ctrlarr, minfo, [models], [lbdarr], listpar, dims, isig
@@ -589,7 +602,7 @@ def read_beatlas_xdr(lista_obs):
 #    listpar[4].sort()
 #    listpar = list([listpar[0], listpar[1], listpar[3], listpar[4], listpar[5],
 #                    listpar[7], listpar[8]])
-#        
+#
 #    return ctrlarr, minfo, [models], [lbdarr], listpar, dims, isig
 
 
@@ -644,32 +657,143 @@ def read_acol_Ha_xdr(lista_obs):
     listpar[4].sort()
     listpar = list([listpar[0], listpar[1], listpar[3], listpar[4], listpar[5],
                     listpar[7], listpar[8]])
-    
+
     # Combining models and lbdarr
     models_combined = []
     lbd_combined = []
-    
-    
+
+
     if flag.SED:
         lbd_UV, models_UV = xdr_remove_lines(lbdarr, models)
-    
+
         models_combined.append(models_UV)
         lbd_combined.append(lbd_UV)
-   
-    if flag.Ha: 
+
+    if flag.Ha:
         lbdc = 0.6563
         models_combined, lbd_combined = select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc)
-    
-    
-    
-        
+
+
     return ctrlarr, minfo, models_combined, lbd_combined, listpar, dims, isig
 
 
 # ==============================================================================
 
+def read_acol_pol_xdr():
 
+    dims = ['M', 'ob', 'Hfrac', 'sig0', 'Rd', 'mr', 'cosi']
+    dims = dict(zip(dims, range(len(dims))))
+    isig = dims["sig0"]
 
+    ctrlarr = [np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN]
+
+    tmp = 0
+    cont = 0
+    while tmp < len(ctrlarr):
+        if math.isnan(ctrlarr[tmp]) is True:
+            cont = cont + 1
+            tmp = tmp + 1
+        else:
+            tmp = tmp + 1
+
+    # Read the grid models, with the interval of parameters.
+    xdrPL = flag.folder_models + 'acol_pol_Ha.xdr'
+
+    listpar, lbdarr, minfo, models = readBAsed(xdrPL, quiet=False)
+    models = np.array(models) * 100.  # in percentage
+    # minfo, models = minfo[3600:], models[3600:]
+
+#    new_models = []
+#    idx_lbd = np.where(lbdarr < 1.0)
+#
+#    for i in range(len(models)):
+#        tmp = np.copy(models[i])
+#        new_models.append(tmp[idx_lbd])
+#    lbdarr = lbdarr[idx_lbd]
+#    models = np.copy(new_models)
+#
+#    idx_lbd = np.where(lbdarr > 0.3)
+#    new_models = []
+#    for i in range(len(models)):
+#        tmp = np.copy(models[i])
+#        new_models.append(tmp[idx_lbd])
+#    lbdarr = lbdarr[idx_lbd]
+#    models = np.copy(new_models)
+
+    for i in range(np.shape(listpar)[0]):
+        for j in range(len(listpar[i])):
+            if listpar[i][j] < 0:
+                listpar[i][j] = 0.
+
+    mask = np.ones(len(minfo[0]), dtype=bool)
+    mask[[2, 6]] = False
+    result = []
+    for i in range(len(minfo)):
+        result.append(minfo[i][mask])
+    minfo = np.copy(result)
+
+    for i in range(np.shape(minfo)[0]):
+        minfo[i][3] = np.log10(minfo[i][3])
+
+    listpar[4] = np.log10(listpar[4])
+    listpar[4].sort()
+    listpar = list([listpar[0], listpar[1], listpar[3], listpar[4],
+                    listpar[5], listpar[7], listpar[8]])
+
+    tab = flag.folder_tables + '/qe_ixon.csv'
+    a = np.loadtxt(tab, delimiter=',')
+    temp_lbd = []
+    for i in range(len(a)):
+        temp_lbd.append(a[i][0])
+    temp_lbd = np.array(temp_lbd)
+    temp_lbd = temp_lbd * 1e-3
+
+    qe = []
+    for i in range(len(a)):
+        qe.append(a[i][1])
+    qe = np.array(qe) / 100.
+
+    lbd_temp = np.array([0.3656, 0.4353, 0.5477, 0.6349, 0.8797])
+    new_models = []
+    #print(len(models))
+    # THIS TOOK WAY TOO LONG, AND WAS ALWAYS THE SAME FOR ANY SIMULATION,
+    # SO I SAVED THE RESULT IN THE MODELS/ FOLDER
+    # for i in range(len(models)):
+    #     print(i)
+    #     temp, idx = find_nearest(temp_lbd, lbd_temp[0])
+    #     qet = qe[idx]
+    #     Uf = doFilterConvPol(x0=lbdarr * 1e4, intens=qet,
+    #                              pol=models[i], filt='U')
+    #     temp, idx = find_nearest(temp_lbd, lbd_temp[1])
+    #     qet = qe[idx]
+    #     Bf = doFilterConvPol(x0=lbdarr * 1e4, intens=qet,
+    #                              pol=models[i], filt='B')
+    #     temp, idx = find_nearest(temp_lbd, lbd_temp[2])
+    #     qet = qe[idx]
+    #     Vf = doFilterConvPol(x0=lbdarr * 1e4, intens=qet,
+    #                              pol=models[i], filt='V')
+    #     temp, idx = find_nearest(temp_lbd, lbd_temp[3])
+    #     qet = qe[idx]
+    #     Rf = doFilterConvPol(x0=lbdarr * 1e4, intens=qet,
+    #                              pol=models[i], filt='R')
+    #     temp, idx = find_nearest(temp_lbd, lbd_temp[4])
+    #     qet = qe[idx]
+    #     If = doFilterConvPol(x0=lbdarr * 1e4, intens=qet,
+    #                              pol=models[i], filt='I')
+    #
+    #     new_models.append(np.array([Uf, Bf, Vf, Rf, If]))
+    #
+    # np.save(flag.folder_models + 'acol_pol_models.npy', new_models)
+    new_models = np.load(flag.folder_models + 'acol_pol_models.npy')
+    #models = np.copy(new_models)
+
+        #new_models = np.load('models/' + 'models_pol_bcmi.npy')
+        #lbdarr = np.array([0.3656, 0.4353, 0.5477, 0.6349, 0.8797])
+        #models = np.copy(new_models)
+
+    return ctrlarr, minfo, new_models, lbdarr, listpar, dims, isig
+
+#=====================================================================
 
 def read_stellar_prior():
     if flag.stellar_prior is True:
@@ -712,23 +836,23 @@ def read_stellar_prior():
         pdf_age = 0
         pdf_dis = 0
         pdf_ebv = 0
-        
+
     grid_priors = [grid_mas, grid_obl, grid_age, grid_dis, grid_ebv]
     pdf_priors = [pdf_mas, pdf_obl, pdf_age, pdf_dis, pdf_ebv]
-    
-        
+
+
     return grid_priors, pdf_priors
 # ==============================================================================
 # function that returns the interpolated spectra from files
 #def read_Hg(models, lbdarr, flag.folder_data, folder_fig, star): # flag.Halpha is boolean
 #
 #    table = flag.folder_data + str(flag.stars) + '/' + 'spectra/' + 'list_spectra.txt'
-#    
+#
 #    if os.path.isfile(table) is False or os.path.isfile(table) is True:
 #        os.system('ls ' + flag.folder_data + str(flag.stars) + '/spectra' + '/* | xargs -n1 basename >' + flag.folder_data + '/' + 'list_feros.txt')
 #        spectra_list = np.genfromtxt(table, comments='#', dtype='str')
 #        file_name = np.copy(spectra_list)
-#    
+#
 #    fluxes, waves, errors = [], [], []
 #    #
 #    ## Collecting just the first file
@@ -736,11 +860,11 @@ def read_stellar_prior():
 #    #    file_feros = str(flag.folder_data) + str(flag.stars) + '/' + 'feros/' + str(file_name)
 #    wl, normal_flux, MJD = read_espadons(lines[0])
 #
-#    
+#
 #    #--------- Selecting an approximate wavelength interval for flag.Halpha
 #    c = 299792.458 #km/s
-#    lbd_central = 4340.462  
-#        
+#    lbd_central = 4340.462
+#
 #    if flag.Sigma_Clip:
 #        #gives the line profiles in velocity space
 #        vl, fx = spec.lineProf(wl, normal_flux, hwidth=2500., lbc=lbd_central)
@@ -757,7 +881,7 @@ def read_stellar_prior():
 #        inf = lim_esq1[0][-1]
 #        sup = lim_dir1[0][0]
 #
-#        # flag.Halpha line 
+#        # flag.Halpha line
 #        wl = wl[inf:sup]
 #        fluxes = normal_flux[inf:sup]
 #
@@ -775,7 +899,7 @@ def read_stellar_prior():
 #    flux = fluxes[idx]
 #    sigma = errors[idx]
 #    obs_new = np.zeros(len(lbdarr))
-#    
+#
 #    new_wave = waves
 #    new_flux = fluxes
 #
@@ -786,7 +910,7 @@ def read_stellar_prior():
 #    for i in range(len(lbdarr) - 1):
 #        box_lim[i] = (lbdarr[i] + lbdarr[i+1])/2.
 #
-#    # Binned flux  
+#    # Binned flux
 #    bin_flux = np.zeros(len(box_lim) - 1)
 #
 #    lbdarr = lbdarr[1:-1]
@@ -800,7 +924,7 @@ def read_stellar_prior():
 #           bin_flux[i] = -np.inf
 #        elif len(index) == 1:
 #            bin_flux[i] = new_flux[index[0][0]]
-#        else: 
+#        else:
 #            # Calculating the mean flux in the box
 #            bin_flux[i] = np.sum(new_flux[index[0][0]:index[-1][0]])/len(new_flux[index[0][0]:index[-1][0]])
 #            sigma_new[i] = 10*0.006613449/np.sqrt(len(index))
@@ -813,8 +937,8 @@ def read_stellar_prior():
 #    mask = np.where(obs_new == -np.inf)
 #    logF[mask] = -np.inf # so that dlogF == 0 in these points and the chi2 will not be computed
 #    dlogF = sigma_new/obs_new
-#    
-#    
+#
+#
 #    #rmalize the flux of models to the continuum
 #    norm_flag.model = np.zeros((len(models),len(lbdarr)))
 #    for i in range(len(models)):
@@ -822,9 +946,9 @@ def read_stellar_prior():
 #    models = norm_model
 #
 #
-#    logF_grid = np.log10(models)  
-#        
-#    
+#    logF_grid = np.log10(models)
+#
+#
 #    #THIS IS NOT GENERAL!!!
 #    if flag.only_centerline:
 #        lbdarr = lbdarr[100:139]
@@ -836,7 +960,7 @@ def read_stellar_prior():
 #            novo_models[i] = models[i][100:139]
 #            i+=1
 #        logF_grid = np.log10(novo_models)
-#    
+#
 #    if flag.only_wings:
 #        Hd_peak = find_nearest2(lbdarr, 0.434046)
 #        keep_a = find_nearest2(lbdarr, 0.434046 - 0.0004)
@@ -855,7 +979,7 @@ def read_stellar_prior():
 #        novo_models1 = models[:, :keep_a]
 #        novo_models2 = models[:, keep_b:]
 #        novo_models = np.hstack((novo_models1, novo_models2))
-#    
+#
 #        logF_grid = np.log10(novo_models)
 #
 #    return logF, dlogF, logF_grid, lbdarr, box_lim
@@ -865,23 +989,23 @@ def read_stellar_prior():
 #                      model, flag.only_wings, flag.only_centerline, flag.Sigma_Clip): # flag.Halpha is boolean
 #
 #    table = flag.folder_data + str(flag.stars) + '/' + 'spectra/' + 'list_spectra.txt'
-#    
+#
 #    if os.path.isfile(table) is False or os.path.isfile(table) is True:
 #        os.system('ls ' + flag.folder_data + str(flag.stars) + '/spectra' + '/* | xargs -n1 basename >' + flag.folder_data + '/' + 'list_feros.txt')
 #        spectra_list = np.genfromtxt(table, comments='#', dtype='str')
 #        file_name = np.copy(spectra_list)
-#    
+#
 #    fluxes, waves, errors = [], [], []
 #    #
 #    ## Collecting just the first file
 #    #for k in range(1):
 #    #    file_feros = str(flag.folder_data) + str(flag.stars) + '/' + 'feros/' + str(file_name)
 #    wl, normal_flux, MJD = read_espadons(lines[0])
-#    
+#
 #    #--------- Selecting an approximate wavelength interval for flag.Halpha
 #    c = 299792.458 #km/s
-#    lbd_central = 4101.74   
-#        
+#    lbd_central = 4101.74
+#
 #    if flag.Sigma_Clip:
 #        #gives the line profiles of H-alpha in velocity space
 #        vl, fx = spec.lineProf(wl, normal_flux, hwidth=2500., lbc=lbd_central)
@@ -898,7 +1022,7 @@ def read_stellar_prior():
 #        inf = lim_esq1[0][-1]
 #        sup = lim_dir1[0][0]
 #
-#        # flag.Halpha line 
+#        # flag.Halpha line
 #        wl = wl[inf:sup]
 #        fluxes = normal_flux[inf:sup]
 #
@@ -916,7 +1040,7 @@ def read_stellar_prior():
 #        flux = fluxes[idx]
 #        sigma = errors[idx]
 #        obs_new = np.zeros(len(lbdarr))
-#    
+#
 #
 #
 #    new_wave = waves
@@ -929,7 +1053,7 @@ def read_stellar_prior():
 #    for i in range(len(lbdarr) - 1):
 #        box_lim[i] = (lbdarr[i] + lbdarr[i+1])/2.
 #
-#    # Binned flux  
+#    # Binned flux
 #    bin_flux = np.zeros(len(box_lim) - 1)
 #
 #    lbdarr = lbdarr[1:-1]
@@ -943,7 +1067,7 @@ def read_stellar_prior():
 #           bin_flux[i] = -np.inf
 #        elif len(index) == 1:
 #            bin_flux[i] = new_flux[index[0][0]]
-#        else: 
+#        else:
 #            # Calculating the mean flux in the box
 #            bin_flux[i] = np.sum(new_flux[index[0][0]:index[-1][0]])/len(new_flux[index[0][0]:index[-1][0]])
 #            sigma_new[i] = 10*0.00805128748/np.sqrt(len(index))
@@ -956,8 +1080,8 @@ def read_stellar_prior():
 #    mask = np.where(obs_new == -np.inf)
 #    logF[mask] = -np.inf # so that dlogF == 0 in these points and the chi2 will not be computed
 #    dlogF = sigma_new/obs_new
-#    
-#    
+#
+#
 #    #rmalize the flux of models to the continuum
 #    norm_flag.model = np.zeros((len(models),len(lbdarr)))
 #    for i in range(len(models)):
@@ -965,9 +1089,9 @@ def read_stellar_prior():
 #    models = norm_model
 #
 #
-#    logF_grid = np.log10(models)  
-#        
-#    
+#    logF_grid = np.log10(models)
+#
+#
 #    if flag.only_centerline:
 #        lbdarr = lbdarr[100:139]
 #        logF = np.log10(obs_new[100:139])
@@ -978,7 +1102,7 @@ def read_stellar_prior():
 #            novo_models[i] = models[i][100:139]
 #            i+=1
 #        logF_grid = np.log10(novo_models)
-#    
+#
 #    if flag.only_wings:
 #        Hd_peak = find_nearest2(lbdarr, 0.4102)
 #        keep_a = find_nearest2(lbdarr, 0.41017 - 0.0003)
@@ -1007,12 +1131,12 @@ def read_stellar_prior():
 #                      model, flag.only_wings, flag.only_centerline, flag.Sigma_Clip): # flag.Halpha is boolean
 #
 #    table = flag.folder_data + str(flag.stars) + '/' + 'spectra/' + 'list_spectra.txt'
-#    
+#
 #    if os.path.isfile(table) is False or os.path.isfile(table) is True:
 #        os.system('ls ' + flag.folder_data + str(flag.stars) + '/spectra' + '/* | xargs -n1 basename >' + flag.folder_data + '/' + 'list_feros.txt')
 #        spectra_list = np.genfromtxt(table, comments='#', dtype='str')
 #        file_name = np.copy(spectra_list)
-#    
+#
 #    fluxes, waves, errors = [], [], []
 #    #
 #    ## Collecting just the first file
@@ -1020,11 +1144,11 @@ def read_stellar_prior():
 #    #    file_feros = str(flag.folder_data) + str(flag.stars) + '/' + 'feros/' + str(file_name)
 #    wl, normal_flux, MJD = read_espadons(lines[0])
 #
-#    
+#
 #    #--------- Selecting an approximate wavelength interval for flag.Halpha
 #    c = 299792.458 #km/s
-#    lbd_central = 4861.363    
-#        
+#    lbd_central = 4861.363
+#
 #    if flag.Sigma_Clip:
 #        #gives the line profiles of H-alpha in velocity space
 #        vl, fx = spec.lineProf(wl, normal_flux, hwidth=2500., lbc=lbd_central)
@@ -1041,7 +1165,7 @@ def read_stellar_prior():
 #        inf = lim_esq1[0][-1]
 #        sup = lim_dir1[0][0]
 #
-#        # flag.Halpha line 
+#        # flag.Halpha line
 #        wl = wl[inf:sup]
 #        fluxes = normal_flux[inf:sup]
 #
@@ -1059,14 +1183,14 @@ def read_stellar_prior():
 #        flux = fluxes[idx]
 #        sigma = errors[idx]
 #        obs_new = np.zeros(len(lbdarr))
-#    
+#
 #
 #
 #    new_wave = waves
 #    new_flux = fluxes
 #    #sigma = np.zeros(len(new_wave))
-#    #sigma.fill(10*0.00344927) # new test 
-#    #sigma.fill(0.0017656218)  #uncertainty obtained from read_feros.py 
+#    #sigma.fill(10*0.00344927) # new test
+#    #sigma.fill(0.0017656218)  #uncertainty obtained from read_feros.py
 #
 #    # Bin the spectra data to the lbdarr (model)
 #    # Creating box limits array
@@ -1074,7 +1198,7 @@ def read_stellar_prior():
 #    for i in range(len(lbdarr) - 1):
 #        box_lim[i] = (lbdarr[i] + lbdarr[i+1])/2.
 #
-#    # Binned flux  
+#    # Binned flux
 #    bin_flux = np.zeros(len(box_lim) - 1)
 #
 #    lbdarr = lbdarr[1:-1]
@@ -1088,7 +1212,7 @@ def read_stellar_prior():
 #           bin_flux[i] = -np.inf
 #        elif len(index) == 1:
 #            bin_flux[i] = new_flux[index[0][0]]
-#        else: 
+#        else:
 #            # Calculating the mean flux in the box
 #            bin_flux[i] = np.sum(new_flux[index[0][0]:index[-1][0]])/len(new_flux[index[0][0]:index[-1][0]])
 #            sigma_new[i] = 10*0.00344927/np.sqrt(len(index))
@@ -1099,15 +1223,15 @@ def read_stellar_prior():
 #    #plt.show()
 #
 #
-#    
+#
 #    #que estou interpolando sao as observacoes nos modelos, entao nao eh models_new que tenho que fazer. o models ta pronto
 #    # log space
 #    logF = np.log10(obs_new)
 #    mask = np.where(obs_new == -np.inf)
 #    logF[mask] = -np.inf # so that dlogF == 0 in these points and the chi2 will not be computed
 #    dlogF = sigma_new/obs_new
-#    
-#    
+#
+#
 #    #rmalize the flux of models to the continuum
 #    norm_flag.model = np.zeros((len(models),len(lbdarr)))
 #    for i in range(len(models)):
@@ -1115,9 +1239,9 @@ def read_stellar_prior():
 #    models = norm_model
 #
 #
-#    logF_grid = np.log10(models)  
-#        
-#    
+#    logF_grid = np.log10(models)
+#
+#
 #    if flag.only_centerline:
 #        lbdarr = lbdarr[100:139]
 #        logF = np.log10(obs_new[100:139])
@@ -1128,7 +1252,7 @@ def read_stellar_prior():
 #            novo_models[i] = models[i][100:139]
 #            i+=1
 #        logF_grid = np.log10(novo_models)
-#    
+#
 #    if flag.only_wings:
 #        Hb_peak = find_nearest2(lbdarr, 0.486136)
 #        keep_a = find_nearest2(lbdarr, 0.486136 - 0.0004)
@@ -1160,7 +1284,7 @@ def read_espadons(fname):
         fits_data = hdr_list[0].data
         fits_header = hdr_list[0].header
     #read MJD
-        MJD = fits_header['MJDATE']   
+        MJD = fits_header['MJDATE']
         lat = fits_header['LATITUDE']
         lon = fits_header['LONGITUD']
         lbd = fits_data[0, :]
@@ -1173,7 +1297,7 @@ def read_espadons(fname):
 #    plt.plot (lbd, flux_norm)
 #    plt.show()
     return lbd, flux_norm, MJD
-    
+
 
 
 
@@ -1181,34 +1305,43 @@ def read_espadons(fname):
 # READS LINES FROM DATA
 # ==================================================================================
 def read_line_spectra(models, lbdarr, linename):
-        
-    
+
+
     table = flag.folder_data + str(flag.stars) + '/' + 'spectra/' + 'list_spectra.txt'
-    
+
     if os.path.isfile(table) is False or os.path.isfile(table) is True:
         os.system('ls ' + flag.folder_data + str(flag.stars) + '/spectra' + '/* | xargs -n1 basename >' + flag.folder_data + '/' + 'list_spectra.txt')
         spectra_list = np.genfromtxt(table, comments='#', dtype='str')
         file_name = np.copy(spectra_list)
-    
+
     fluxes, waves, errors = [], [], []
 
-    
+
     if file_name.tolist()[-3:] == 'csv':
         file_ha = str(flag.folder_data) + str(flag.stars) + '/spectra/' + str(file_name)
-        wl, normal_flux = np.loadtxt(file_ha, delimiter=' ').T
+        try:
+            wl, normal_flux = np.loadtxt(file_ha, delimiter=' ').T
+        except:
+            wl, normal_flux = np.loadtxt(file_ha)
+    elif file_name.tolist()[-4:] == 'fits' or file_name.tolist()[-7:] == 'fits.gz':
+        file_ha = str(flag.folder_data) + str(flag.stars) + '/spectra/' + str(file_name)
+        #print(file_ha)
+        wl, normal_flux, MJD = read_espadons(file_ha)
     else:
         file_ha = str(flag.folder_data) + str(flag.stars) + '/spectra/' + str(file_name)
-        #print(file_ha)  
-        wl, normal_flux, MJD = read_espadons(file_ha)
-    
-    #--------- Selecting an approximate wavelength interval 
+        wl = np.load(file_ha)['lbd']
+        normal_flux = np.load(file_ha)['flux']
+
+
+
+    #--------- Selecting an approximate wavelength interval
     c = 299792.458 #km/s
     lbd_central = lines_dict[linename]
-    
-        
+
+
     if flag.Sigma_Clip:
         #gives the line profiles in velocity space
-        vl, fx = lineProf(wl, normal_flux, hwidth=2500., lbc=lbd_central)
+        vl, fx = lineProf(wl, normal_flux, hwidth=3000., lbc=lbd_central)
         vel, fluxes = Sliding_Outlier_Removal(vl, fx, 50, 8, 15)
         wl = c*lbd_central/(c - vel)
     else:
@@ -1227,7 +1360,7 @@ def read_line_spectra(models, lbdarr, linename):
         radv = 2.8
     else:
         radv = delta_v(vel, fluxes, 'Ha')
-#AMANDA_VOLTAR: o que fazer quando o 
+#AMANDA_VOLTAR: o que fazer quando o
     #radv = 2.8
     print('RADIAL VELOCITY = {0}'.format(radv))
     vel = vel - radv
@@ -1238,10 +1371,16 @@ def read_line_spectra(models, lbdarr, linename):
     errors = np.zeros(len(waves)) # nao tenho informacao sobre os erros ainda
 
     # Aqui faz o corte pra pegar so o que ta no intervalo de lbd da grade (lbdarr)
-    idx = np.where((waves >= np.min(lbdarr)-0.001) & (waves <= np.max(lbdarr)+0.001))
-    #wave = waves[idx]
-    #flux = fluxes[idx]
-    #sigma = errors[idx]
+    #if np.min(waves) < np.min(lbdarr):
+    #    idx = np.where((waves >= np.min(lbdarr)-0.001) & (waves <= np.max(lbdarr)+0.001))
+    #    lbdarr = lbdarr[idx]
+    #    for i in range(len(models)):
+    #        models[i]=models[i][idx]
+    #else:
+    #    idx = np.where((waves <= np.min(lbdarr)-0.001) & (waves >= np.max(lbdarr)+0.001))
+    #    waves = waves[idx]
+    #    fluxes = fluxes[idx]
+    #    errors = errors[idx]
     #obs_new = np.zeros(len(lbdarr))
 
 
@@ -1255,7 +1394,7 @@ def read_line_spectra(models, lbdarr, linename):
     for i in range(len(lbdarr) - 1):
         box_lim[i] = (lbdarr[i] + lbdarr[i+1])/2.
 
-    # Binned flux  
+    # Binned flux
     bin_flux = np.zeros(len(box_lim) - 1)
 
     lbdarr = lbdarr[1:-1]
@@ -1263,11 +1402,11 @@ def read_line_spectra(models, lbdarr, linename):
     #sigma_new.fill(0.017656218)
 #AMANDA_VOLTAR: erros devem ser estimados numa rotina de precondicionamento
 #HD6226: 0.04
-#MT91-213: 0.01 
+#MT91-213: 0.01
     if flag.stars == 'HD6226':
         erval = 0.04
     else:
-        erval = 0.02
+        erval = 0.04
     for i in range(len(box_lim) - 1):
         # lbd observations inside the box
         index = np.argwhere((waves > box_lim[i]) & (waves < box_lim[i+1]))
@@ -1276,13 +1415,13 @@ def read_line_spectra(models, lbdarr, linename):
         elif len(index) == 1:
             bin_flux[i] = fluxes[index[0][0]]
             errors[i] = erval
-        else: 
+        else:
             # Calculating the mean flux in the box
             bin_flux[i] = np.sum(fluxes[index[0][0]:index[-1][0]])/len(fluxes[index[0][0]:index[-1][0]])
             errors[i] = erval/np.sqrt(len(index))
 
-    flux = bin_flux
-    
+    flx = bin_flux
+
     #que estou interpolando sao as observacoes nos modelos, entao nao eh models_new que tenho que fazer. o models ta pronto
     # log space
     #logF = np.log10(obs_new)
@@ -1290,17 +1429,24 @@ def read_line_spectra(models, lbdarr, linename):
     #logF[mask] = -np.inf # so that dlogF == 0 in these points and the chi2 will not be computed
     #dlogF = sigma_new/obs_new
     
-    
+    lbdarr = lbdarr[np.isfinite(flx)]
+    flux = flx[np.isfinite(flx)]
+    errors = errors[np.isfinite(flx)]
+
     #rmalize the flux of models to the continuum
     #norm_model = np.zeros((len(models),len(lbdarr)))
     #for i in range(len(models)):
     #    norm_model[i] = linfit(lbdarr, models[i][1:-1])
     #models = norm_model
+    #print(len(lbdarr))
+    #print(len(models[0]))
     novo_models = np.zeros((len(models),len(lbdarr)))
     for i in range(len(models)):
-        novo_models[i] = models[i][1:-1]
-    #logF_grid = np.log10(models)  
-    
+        mm = models[i][1:-1][np.isfinite(flx)]
+        #novo_models[i] = models[i][1:-1]
+        novo_models[i] = mm
+    #logF_grid = np.log10(models)
+
     #if linename == 'Ha':
     #    if flag.remove_partHa:
     #        lbdarr1 = lbdarr[:149]
@@ -1317,18 +1463,18 @@ def read_line_spectra(models, lbdarr, linename):
     #        while i < len(models):
     #            novo_models[i] = np.append(novo_models[i][:149],novo_models[i][194:])
     #            i+=1
-    #        #logF_grid = np.log10(novo_models)       
-    
-    
+    #        #logF_grid = np.log10(novo_models)
+
+
     if flag.only_wings:
-        plt.plot(waves, fluxes)
-        point_a, point_b = plt.ginput(2)
-        plt.close()
+        #plt.plot(waves, fluxes)
+        #point_a, point_b = plt.ginput(2)
+        #plt.close()
         #H_peak = find_nearest2(lbdarr, lines_dict[linename])
-        keep_a = find_nearest2(lbdarr, point_a[0])
-        keep_b = find_nearest2(lbdarr, point_b[0])
-        #keep_b = find_nearest2(lbdarr, lines_dict[linename] + 0.0009)
-        #keep_b = find_nearest2(lbdarr, lines_dict[linename] + 0.0009)
+        #keep_a = find_nearest2(lbdarr, point_a[0])
+        #keep_b = find_nearest2(lbdarr, point_b[0])
+        keep_a = find_nearest2(lbdarr, lines_dict[linename] - 0.0009)
+        keep_b = find_nearest2(lbdarr, lines_dict[linename] + 0.0009)
         lbdarr1 = lbdarr[:keep_a]
         lbdarr2 = lbdarr[keep_b:]
         lbdarr = np.concatenate([lbdarr1,lbdarr2])
@@ -1344,7 +1490,7 @@ def read_line_spectra(models, lbdarr, linename):
         novo_models2 = novo_models[:, keep_b:]
         novo_models = np.hstack((novo_models1, novo_models2))
         #logF_grid = np.log10(novo_models)
-        
+
     if flag.only_centerline:
         plt.plot(waves, fluxes)
         point_a, point_b = plt.ginput(2)
@@ -1367,15 +1513,15 @@ def read_line_spectra(models, lbdarr, linename):
         novo_models2 = novo_models[:, :keep_b]
         novo_models = np.hstack((novo_models1, novo_models2))
         #logF_grid = np.log10(novo_models)
-    
+
     if flag.remove_partHa:
-        if not flag.acrux:
-            plt.plot(waves, fluxes)
-            point_a, point_b = plt.ginput(2)
-            plt.close()
-        else:
-            point_a = [0.6573]
-            point_b = [0.6585]
+        #if not flag.acrux:
+        #    plt.plot(waves, fluxes)
+        #    point_a, point_b = plt.ginput(2)
+        #    plt.close()
+        #else:
+        point_a = [0.6573]
+        point_b = [0.6585]
 
         #H_peak = find_nearest2(lbdarr, lines_dict[linename])
         keep_a = find_nearest2(lbdarr, point_a[0])
@@ -1395,36 +1541,40 @@ def read_line_spectra(models, lbdarr, linename):
         novo_models2 = novo_models[:, keep_b:]
         novo_models = np.hstack((novo_models1, novo_models2))
     
-    #print(len(flux), len(errors), len(novo_models[0]))
+    
+    #limits = np.logical_and(lbdarr > 0.6541, lbdarr < 0.6585)
+
+    #print(bin_flux)
+    #print(len(flux), len(lbdarr), len(novo_models[0]))
     return flux, errors, novo_models, lbdarr, box_lim
-    
-    
-    
+
+
+
 # ===================================================================================
 #def read_Ha(models, lbdarr, flag.folder_data, folder_fig, star,
 #                      model, flag.only_wings, flag.only_centerline, flag.Sigma_Clip,
 #                      flag.remove_partHa):
 #
 #    table = flag.folder_data + str(flag.stars) + '/' + 'spectra/' + 'list_spectra.txt'
-#    
+#
 #    if os.path.isfile(table) is False or os.path.isfile(table) is True:
 #        os.system('ls ' + flag.folder_data + str(flag.stars) + '/spectra' + '/* | xargs -n1 basename >' + flag.folder_data + '/' + 'list_feros.txt')
 #        spectra_list = np.genfromtxt(table, comments='#', dtype='str')
 #        file_name = np.copy(spectra_list)
-#    
+#
 #    fluxes, waves, errors = [], [], []
 #
-#    
+#
 #    if file_name.tolist()[-3:] == 'csv':
 #        file_ha = str(flag.folder_data) + str(flag.stars) + '/spectra/' + str(file_name)
 #        wl, normal_flux = np.loadtxt(file_ha, delimiter=' ').T
-#    else:    
+#    else:
 #        wl, normal_flux, MJD = read_espadons(file_name)
-#    
+#
 #    #--------- Selecting an approximate wavelength interval for flag.Halpha
 #    c = 299792.458 #km/s
-#    lbd_central = 6562.801    
-#        
+#    lbd_central = 6562.801
+#
 #    if flag.Sigma_Clip:
 #        #gives the line profiles of H-alpha in velocity space
 #        vl, fx = spec.lineProf(wl, normal_flux, hwidth=2500., lbc=lbd_central)
@@ -1444,7 +1594,7 @@ def read_line_spectra(models, lbdarr, linename):
 #        wl = wl[inf:sup]
 #        fluxes = normal_flux[inf:sup]
 #
-#    
+#
 #    radv = Ha_delta_v(vel, fluxes, 'Ha')
 #    print('RADIAL VELOCITY = {0}'.format(radv))
 #    vel = vel - radv
@@ -1465,8 +1615,8 @@ def read_line_spectra(models, lbdarr, linename):
 #    new_wave = waves
 #    new_flux = fluxes
 #    #sigma = np.zeros(len(new_wave))
-#    #sigma.fill(0.017656218) # new test 
-#    #sigma.fill(0.0017656218)  #uncertainty obtained from read_feros.py 
+#    #sigma.fill(0.017656218) # new test
+#    #sigma.fill(0.0017656218)  #uncertainty obtained from read_feros.py
 #
 #    # Bin the spectra data to the lbdarr (model)
 #    # Creating box limits array
@@ -1474,7 +1624,7 @@ def read_line_spectra(models, lbdarr, linename):
 #    for i in range(len(lbdarr) - 1):
 #        box_lim[i] = (lbdarr[i] + lbdarr[i+1])/2.
 #
-#    # Binned flux  
+#    # Binned flux
 #    bin_flux = np.zeros(len(box_lim) - 1)
 #
 #    lbdarr = lbdarr[1:-1]
@@ -1488,21 +1638,21 @@ def read_line_spectra(models, lbdarr, linename):
 #            bin_flux[i] = -np.inf
 #        elif len(index) == 1:
 #            bin_flux[i] = new_flux[index[0][0]]
-#        else: 
+#        else:
 #            # Calculating the mean flux in the box
 #            bin_flux[i] = np.sum(new_flux[index[0][0]:index[-1][0]])/len(new_flux[index[0][0]:index[-1][0]])
 #            sigma_new[i] = 0.017656218/np.sqrt(len(index))
 #
 #    obs_new = bin_flux
-#    
+#
 #    #que estou interpolando sao as observacoes nos modelos, entao nao eh models_new que tenho que fazer. o models ta pronto
 #    # log space
 #    logF = np.log10(obs_new)
 #    mask = np.where(obs_new == -np.inf)
 #    logF[mask] = -np.inf # so that dlogF == 0 in these points and the chi2 will not be computed
 #    dlogF = sigma_new/obs_new
-#    
-#    
+#
+#
 #    #rmalize the flux of models to the continuum
 #    norm_flag.model = np.zeros((len(models),len(lbdarr)))
 #    for i in range(len(models)):
@@ -1510,8 +1660,8 @@ def read_line_spectra(models, lbdarr, linename):
 #    models = norm_model
 #
 #
-#    logF_grid = np.log10(models)  
-#    
+#    logF_grid = np.log10(models)
+#
 #    if flag.remove_partHa:
 #        lbdarr1 = lbdarr[:149]
 #        lbdarr2 = lbdarr[194:]
@@ -1527,8 +1677,8 @@ def read_line_spectra(models, lbdarr, linename):
 #        while i < len(models):
 #            novo_models[i] = np.append(models[i][:149],models[i][194:])
 #            i+=1
-#        logF_grid = np.log10(novo_models)       
-#    
+#        logF_grid = np.log10(novo_models)
+#
 #    if flag.only_centerline:
 #        lbdarr = lbdarr[100:139]
 #        logF = np.log10(obs_new[100:139])
@@ -1541,11 +1691,11 @@ def read_line_spectra(models, lbdarr, linename):
 #            novo_models[i] = models[i][100:139]
 #            i+=1
 #        logF_grid = np.log10(novo_models)
-#    
-#    
-#    
-#    
-#    
+#
+#
+#
+#
+#
 #    if flag.only_wings:
 #        Ha_peak = find_nearest2(lbdarr, 0.65628)
 #        keep_a = find_nearest2(lbdarr, 0.65628 - 0.0009)
@@ -1578,13 +1728,19 @@ def read_iue(models, lbdarr):
         os.system('ls ' + flag.folder_data + flag.stars +
                   '/*.FITS | xargs -n1 basename >' +
                   flag.folder_data + flag.stars + '/' + 'list_iue.txt')
-    
+
     iue_list = np.genfromtxt(table, comments='#', dtype='str')
-    file_name = np.copy(iue_list)
+    #print(iue_list.size)
+    if iue_list.size == 1:
+        #print(file_name)
+        file_name = str(iue_list)
+    else:
+        file_name = np.copy(iue_list)
 
     fluxes, waves, errors = [], [], []
-    
-    if file_name.tolist()[-3:] == 'csv':
+    print(file_name)
+
+    if file_name[0][-3:] == 'csv':
         file_iue = str(flag.folder_data) + flag.stars + '/' + str(file_name)
         wave, flux, sigma = np.loadtxt(str(file_iue), delimiter=',').T
         fluxes = np.concatenate((fluxes, flux*1e4), axis=0)
@@ -1593,26 +1749,27 @@ def read_iue(models, lbdarr):
 
     else:
     # Combines the observations from all files in the folder, taking the good quality ones
-        for k in range(len(file_name)):
-            file_iue = str(flag.folder_data) + flag.stars + '/' + str(file_name[k])
+        for fname in file_name:
+            file_iue = str(flag.folder_data) + flag.stars + '/' + str(fname)
+            #print(file_iue)
             hdulist = fits.open(file_iue)
             tbdata = hdulist[1].data
             wave = tbdata.field('WAVELENGTH') * 1e-4  # mum
             flux = tbdata.field('FLUX') * 1e4  # erg/cm2/s/A -> erg/cm2/s/mum
             sigma = tbdata.field('SIGMA') * 1e4  # erg/cm2/s/A -> erg/cm2/s/mum
-    
+
             # Filter of bad data: '0' is good data
             qualy = tbdata.field('QUALITY')
             idx = np.where((qualy == 0))
             wave = wave[idx]
             sigma = sigma[idx]
             flux = flux[idx]
-            
+
             idx = np.where((flux>0.))
             wave = wave[idx]
             sigma = sigma[idx]
             flux = flux[idx]
-    
+
             fluxes = np.concatenate((fluxes, flux), axis=0)
             waves = np.concatenate((waves, wave), axis=0)
             errors = np.concatenate((errors, sigma), axis=0)
@@ -1663,7 +1820,11 @@ def read_iue(models, lbdarr):
     return wave, flux, sigma
 
 
+#======================================================================
+
 def combine_sed(wave, flux, sigma, models, lbdarr):
+    '''Combines SED parts into 1 array
+    '''
     if flag.lbd_range == 'UV':
         wave_lim_min = 0.13  # mum
         wave_lim_max = 0.3  # mum
@@ -1712,14 +1873,14 @@ def combine_sed(wave, flux, sigma, models, lbdarr):
 # ------------------------------------------------------------------------------
     # select lbdarr to coincide with lbd
     #models_new = np.zeros([len(models), len(wave)])
-    
+
     idx = np.where((wave >= wave_lim_min) & (wave <= wave_lim_max))
     wave = wave[idx]
     flux = flux[idx]
     sigma = sigma[idx]
     models_new = np.zeros([len(models), len(wave)])
-    
-    for i in range(len(models)): # A interpolacao 
+
+    for i in range(len(models)): # A interpolacao
         models_new[i, :] = 10.**griddata(np.log10(lbdarr),
                                          np.log10(models[i]),
                                          np.log10(wave), method='linear')
@@ -1727,13 +1888,165 @@ def combine_sed(wave, flux, sigma, models, lbdarr):
     logF = np.log10(flux)
     dlogF = sigma / flux
     logF_grid = np.log10(models_new)
-    
-# ==============================================================================
 
     return logF, dlogF, logF_grid, wave
 
+
+
+# ==============================================================================
+def read_opd_pol(models):
+    '''
+    Reads polarization data_pos
+
+    Usage:
+    wave, flux, sigma = read_opd_pol
+
+    '''
+
+    table = flag.folder_data + str(flag.stars) + '/' + 'pol/' + 'list_pol.txt'
+
+    if os.path.isfile(table) is False or os.path.isfile(table) is True:
+        os.system('ls ' + flag.folder_data + str(flag.stars) + '/pol' + '/* | xargs -n1 basename >' + flag.folder_data + '/' + 'list_pol.txt')
+        pol_list = np.genfromtxt(table, comments='#', dtype='str')
+        table_csv = np.copy(pol_list)
+
+    # Reading opd data from csv (beacon site)
+    if table_csv != 'hpol.npy':
+        csv_file = flag.folder_data + str(flag.stars) + '/pol/' + str(table_csv)
+        df = pd.read_csv(csv_file)
+        JD = df['#MJD'] + 2400000
+        Filter = df['filt']
+        # flag = df['flag']
+        lbd = np.array([0.3656, 0.4353, 0.5477, 0.6349, 0.8797])
+        P = np.array(df['P'])  # * 100  # Units of percentage
+        SIGMA = np.array(df['sigP'])
+
+        # Plot P vs lambda
+        Pol, error, wave = [], [], []
+        nu, nb, nv, nr, ni = 0., 0., 0., 0., 0.
+        wu, wb, wv, wr, wi = 0., 0., 0., 0., 0.
+        eu, eb, ev, er, ei = 0., 0., 0., 0., 0.
+
+        filtros = np.unique(Filter)
+        for h in range(len(JD)):
+            for filt in filtros:
+                if Filter[h] == filt:  # and flag[h] is not 'W':
+                    if filt == 'u':
+                            wave.append(lbd[0])
+                            Pol.append(P[h])
+                            error.append(SIGMA[h])
+                            wu = wu + P[h]  # * 100.
+                            nu = nu + 1.
+                            eu = eu + (SIGMA[h])**2.
+                    if filt == 'b':
+                            wave.append(lbd[1])
+                            Pol.append(P[h])
+                            error.append(SIGMA[h])
+                            wb = wb + P[h]  # * 100.
+                            nb = nb + 1.
+                            eb = eb + (SIGMA[h])**2.
+                    if filt == 'v':
+                            wave.append(lbd[2])
+                            Pol.append(P[h])
+                            error.append(SIGMA[h])
+                            wv = wv + P[h]  # * 100.
+                            nv = nv + 1.
+                            ev = ev + (SIGMA[h])**2.
+                    if filt == 'r':
+                            wave.append(lbd[3])
+                            Pol.append(P[h])   # 100. * P[i])
+                            error.append(SIGMA[h])
+                            wr = wr + P[h]  # * 100.
+                            nr = nr + 1.
+                            er = er + (SIGMA[h])**2.
+                    if filt == 'i':
+                            wave.append(lbd[4])
+                            Pol.append(P[h])
+                            error.append(SIGMA[h])
+                            wi = wi + P[h]  # * 100.
+                            ni = ni + 1.
+                            ei = ei + (SIGMA[h])**2.
+        try:
+            eu = np.sqrt(eu / nu)
+            eb = np.sqrt(eb / nb)
+            ev = np.sqrt(ev / nv)
+            er = np.sqrt(er / nr)
+            ei = np.sqrt(ei / ni)
+        except:
+            # eu = np.sqrt(eu / nu)
+            eb = np.sqrt(eb / nb)
+            ev = np.sqrt(ev / nv)
+            er = np.sqrt(er / nr)
+            ei = np.sqrt(ei / ni)
+
+        # eu = np.sqrt(eu)
+        # eb = np.sqrt(eb)
+        # ev = np.sqrt(ev)
+        # er = np.sqrt(er)
+        # ei = np.sqrt(ei)
+        try:
+            sigma = np.array([eu, eb, ev, er, ei])  # * 100
+        except:
+            sigma = np.array([eb, ev, er, ei])  # * 100
+
+        try:
+            mean_u = wu / nu
+        except:
+            mean_u = 0.
+            print('u sem dado')
+
+        try:
+            mean_b = wb / nb
+        except:
+            mean_b = 0.
+            print('b sem dado')
+
+        try:
+            mean_v = wv / nv
+        except:
+            mean_v = 0.
+            print('v sem dado')
+
+        try:
+            mean_r = wr / nr
+        except:
+            mean_r = 0.
+            print('r sem dado')
+
+        try:
+            mean_i = wi / ni
+        except:
+            mean_i = 0.
+            print('i sem dado')
+
+        try:
+            flux = np.array([mean_u, mean_b, mean_v, mean_r, mean_i])
+        except:
+            flux = np.array([mean_b, mean_v, mean_r, mean_i])
+        # flux = np.array([mean_b, mean_v, mean_r, mean_i])
+        wave = np.copy(lbd)
+    else:
+        #print(table_csv, star, folder_data)
+        wave, flux, sigma = np.load(flag.folder_data + str(flag.stars) +
+                                    '/' + str(table_csv))
+
+
+    #logF = np.log10(flux)
+    #dlogF = sigma / flux
+
+    logF_grid = models
+    box_lim = 0.
+
+
+
+    return flux, sigma, logF_grid, wave, box_lim
+
+#============================================================================
+
+
+
 def read_votable():
-    
+
     table = flag.folder_data + str(flag.stars) + '/' + 'list.txt'
 
     #os.chdir(folder_data + str(star) + '/')
@@ -1747,7 +2060,7 @@ def read_votable():
     #thefile = 'data/HD37795/alfCol.sed.dat' #folder_data + str(star) + '/' + str(table_name)
     #table = np.genfromtxt(thefile, usecols=(1, 2, 3))
     #wave, flux, sigma = table[:,0], table[:,1], table[:,2]
-    
+
     try:
         t1 = atpy.Table(vo_file, pedantic=False)
         wave = t1['Wavelength'][:]  # Angstrom
@@ -1769,16 +2082,16 @@ def read_votable():
     #for h in range(len(new_sigma)):
     #    if new_sigma[h] == 0.:
     #        new_sigma[h] = 0.002 * new_flux[h]
-    
+
 
     wave = np.copy(new_wave) * 1e-4
     flux = np.copy(new_flux) * 1e4
     sigma = np.copy(new_sigma) * 1e4
     #keep = wave > 0.34
     #wave, flux, sigma = wave[keep], flux[keep], sigma[keep]
-    
+
     if flag.stars == 'HD37795':
-        fname = flag.folder_data + '/HD37795/alfCol.txt'
+        fname = flag.folder_data + '/HD37795/alfCol_no35.txt'
         data = np.loadtxt(fname, dtype={'names':('lbd', 'flux', 'dflux', 'source'), 'formats':(np.float, np.float, np.float, '|S20')})
         wave = np.hstack([wave, data['lbd']])
         flux = np.hstack([flux, jy2cgs(1e-3*data['flux'], data['lbd'])])
@@ -1803,6 +2116,8 @@ def read_models(lista_obs):
         ctrlarr, minfo, models, lbdarr, listpar, dims, isig = read_beatlas_xdr(lista_obs)
     if flag.model == 'acol':
         ctrlarr, minfo, models, lbdarr, listpar, dims, isig = read_acol_Ha_xdr(lista_obs)
+    if flag.model == 'pol':
+        ctrlarr, minfo, models, lbdarr, listpar, dims, isig = read_acol_pol_xdr()
 
     return ctrlarr, minfo, models, lbdarr, listpar, dims, isig
 
@@ -1814,12 +2129,12 @@ def Sliding_Outlier_Removal(x, y, window_size, sigma=3.0, iterate=1):
   x = x[~np.isnan(y)]
   y = y[~np.isnan(y)]
 
-  #make sure that the arrays are in order according to the x-axis 
+  #make sure that the arrays are in order according to the x-axis
   y = y[np.argsort(x)]
   x = x[np.argsort(x)]
 
   # tells you the difference between the last and first x-value
-  x_span = x.max() - x.min()  
+  x_span = x.max() - x.min()
   i = 0
   x_final = x
   y_final = y
@@ -1827,52 +2142,52 @@ def Sliding_Outlier_Removal(x, y, window_size, sigma=3.0, iterate=1):
     i+=1
     x = x_final
     y = y_final
-    
+
     # empty arrays that I will append not-clipped data points to
     x_good_ = np.array([])
     y_good_ = np.array([])
-    
+
     # Creates an array with all_entries = True. index where you want to remove outliers are set to False
     tf_ar = np.full((len(x),), True, dtype=bool)
     ar_of_index_of_bad_pts = np.array([]) #not used anymore
-    
+
     #this is how many days (or rather, whatever units x is in) to slide the window center when finding the outliers
-    slide_by = window_size / 5.0 
-    
+    slide_by = window_size / 5.0
+
     #calculates the total number of windows that will be evaluated
     Nbins = int((int(x.max()+1) - int(x.min()))/slide_by)
-    
+
     for j in range(Nbins+1):
         #find the minimum time in this bin, and the maximum time in this bin
         x_bin_min = x.min()+j*(slide_by)-0.5*window_size
         x_bin_max = x.min()+j*(slide_by)+0.5*window_size
-        
+
         # gives you just the data points in the window
         x_in_window = x[(x>x_bin_min) & (x<x_bin_max)]
         y_in_window = y[(x>x_bin_min) & (x<x_bin_max)]
-        
+
         # if there are less than 5 points in the window, do not try to remove outliers.
         if len(y_in_window) > 5:
-            
+
             # Removes a linear trend from the y-data that is in the window.
             y_detrended = detrend(y_in_window, type='linear')
             y_in_window = y_detrended
             #print(np.median(m_in_window_))
             y_med = np.median(y_in_window)
-            
+
             # finds the Median Absolute Deviation of the y-pts in the window
             y_MAD = MAD(y_in_window)
-            
-            #This mask returns the not-clipped data points. 
+
+            #This mask returns the not-clipped data points.
             # Maybe it is better to only keep track of the data points that should be clipped...
             mask_a = (y_in_window < y_med+y_MAD*sigma) & (y_in_window > y_med-y_MAD*sigma)
             #print(str(np.sum(mask_a)) + '   :   ' + str(len(m_in_window)))
             y_good = y_in_window[mask_a]
             x_good = x_in_window[mask_a]
-            
+
             y_bad = y_in_window[~mask_a]
             x_bad = x_in_window[~mask_a]
-            
+
             #keep track of the index --IN THE ORIGINAL FULL DATA ARRAY-- of pts to be clipped out
             try:
                 clipped_index = np.where([x == z for z in x_bad])[1]
@@ -1882,26 +2197,26 @@ def Sliding_Outlier_Removal(x, y, window_size, sigma=3.0, iterate=1):
                 #print('no data between {0} - {1}'.format(x_in_window.min(), x_in_window.max()))
                 pass
         # puts the 'good' not-clipped data points into an array to be saved
-        
+
         #x_good_= np.concatenate([x_good_, x_good])
         #y_good_= np.concatenate([y_good_, y_good])
-        
+
         #print(len(mask_a))
         #print(len(m
         #print(m_MAD)
-    
-    ##multiple data points will be repeated! We don't want this, so only keep unique values. 
+
+    ##multiple data points will be repeated! We don't want this, so only keep unique values.
     #x_uniq, x_u_indexs = np.unique(x_good_, return_index=True)
     #y_uniq = y_good_[x_u_indexs]
-    
+
     ar_of_index_of_bad_pts = np.unique(ar_of_index_of_bad_pts)
     #print('step {0}: remove {1} points'.format(i, len(ar_of_index_of_bad_pts)))
     #print(ar_of_index_of_bad_pts)
-    
+
     #x_bad = x[ar_of_index_of_bad_pts]
     #y_bad = y[ar_of_index_of_bad_pts]
     #x_final = x[
-    
+
     x_final = x[tf_ar]
     y_final = y[tf_ar]
   return(x_final, y_final)
@@ -1911,9 +2226,9 @@ def Sliding_Outlier_Removal(x, y, window_size, sigma=3.0, iterate=1):
 
 def create_tag():
 
-#def create_tag(model,Ha, Hb, Hd, Hg):    
+#def create_tag(model,Ha, Hb, Hd, Hg):
     tag = '+' + flag.model
-    
+
 
     if flag.only_wings:
         tag = tag + '_onlyWings'
@@ -1945,16 +2260,16 @@ def create_tag():
         tag = tag + '+Hd'
     if flag.Hg:
         tag = tag + '+Hg'
-                    
+
     return tag
 
 #=======================================================================
 # Creates list of observables
 
 def create_list():
-    
+
     lista = np.array([])
-    
+
     if flag.SED:
         lista = np.append(lista,'UV')
     if flag.Ha:
@@ -1965,9 +2280,9 @@ def create_list():
         lista = np.append(lista,'Hd')
     if flag.Hg:
         lista = np.append(lista,'Hg')
-        
+
     return lista
-    
+
 
 #========================================================================
 
@@ -1981,7 +2296,7 @@ def read_table():
     vo_list = np.genfromtxt(table, comments='#', dtype='str')
     table_name = np.copy(vo_list)
     table = flag.folder_data + str(flag.stars) + '/sed_data/' + str(table_name)
-    
+
 
     typ = (0, 1, 2, 3)
 
@@ -1989,7 +2304,7 @@ def read_table():
                       delimiter='\t', comments='#',
                       dtype={'names': ('B', 'V', 'R', 'I'),
                              'formats': ('f4', 'f4', 'f4', 'f4')})
-    
+
     B_mag, V_mag, R_mag, I_mag = a['B'], a['V'], a['R'], a['I']
 
     # lbd array (center of bands)
@@ -2003,26 +2318,26 @@ def read_table():
     V_flux0 = 3.64*10**(-20)
     R_flux0 = 3.08*10**(-20)
     I_flux0 = 2.55*10**(-20)
-	
+
     B_flux = B_flux0*10.**(- B_mag/2.5)
-    V_flux = V_flux0*10.**(- V_mag/2.5) 
-    R_flux = R_flux0*10.**(- R_mag/2.5) 
-    I_flux = I_flux0*10.**(- I_mag/2.5) 
-    
+    V_flux = V_flux0*10.**(- V_mag/2.5)
+    R_flux = R_flux0*10.**(- R_mag/2.5)
+    I_flux = I_flux0*10.**(- I_mag/2.5)
+
 	#---> convert to erg.s^-1.cm^2.um^-1
     B_flux = B_flux*c/(wave[0]**2)
-    V_flux = V_flux*c/(wave[1]**2) 
-    R_flux = R_flux*c/(wave[2]**2) 
+    V_flux = V_flux*c/(wave[1]**2)
+    R_flux = R_flux*c/(wave[2]**2)
     I_flux = I_flux*c/(wave[3]**2)
-	
+
     flux = np.array([B_flux, V_flux, R_flux, I_flux])
     logF = np.log10(np.array([B_flux, V_flux, R_flux, I_flux]))
-	# Uncertainty (?)	
-    #dlogF = 0.01*logF  
+	# Uncertainty (?)
+    #dlogF = 0.01*logF
     sigma = 0.01 * flux
-    
-    
-    return wave, flux, sigma  
+
+
+    return wave, flux, sigma
 
 
 def read_table_piAqr():
@@ -2035,28 +2350,28 @@ def read_table_piAqr():
     vo_list = np.genfromtxt(table, comments='#', dtype='str')
     table_name = np.copy(vo_list)
     table = flag.folder_data + str(flag.stars) + '/sed_data/' + str(table_name)
-    
+
     lbds, flxs = np.loadtxt(table).T
-    
+
     return lbds, flxs, flxs*0.03
 
 #=======================================================================
 # Read the data files
 
 def read_observables(models, lbdarr, lista_obs):
-   
+
     logF_combined = []
     dlogF_combined = []
     logF_grid_combined = []
     wave_combined = []
     box_lim_combined = []
-    
 
-    if flag.SED:     
-        
+
+    if flag.SED:
+
         u = np.where(lista_obs == 'UV')
         index = u[0][0]
-        
+
         if flag.iue:
             wave, flux, sigma = read_iue(models[index], lbdarr[index])
         else:
@@ -2069,25 +2384,25 @@ def read_observables(models, lbdarr, lista_obs):
                 wave0, flux0, sigma0 = read_table_piAqr()
             else:
                 wave0, flux0, sigma0 = read_table()
-        else:    
+        else:
             wave0, flux0, sigma0 = [], [], []
-        
-        
+
+
         wave = np.hstack([wave, wave0])
         flux = np.hstack([flux, flux0])
         sigma = np.hstack([sigma, sigma0])
         logF_UV, dlogF_UV, logF_grid_UV, wave_UV =\
             combine_sed(wave, flux, sigma/2., models[index], lbdarr[index])
         #print(dlogF_UV)
-        
+
         logF_combined.append(logF_UV)
         dlogF_combined.append(dlogF_UV)
-        logF_grid_combined.append(logF_grid_UV) 
+        logF_grid_combined.append(logF_grid_UV)
         wave_combined.append(wave_UV)
 
 
     if flag.Ha:
-        
+
         u = np.where(lista_obs == 'Ha')
         index = u[0][0]
         logF_Ha, dlogF_Ha, logF_grid_Ha, wave_Ha, box_lim_Ha =\
@@ -2095,10 +2410,10 @@ def read_observables(models, lbdarr, lista_obs):
 
         logF_combined.append(logF_Ha)
         dlogF_combined.append(dlogF_Ha)
-        logF_grid_combined.append(logF_grid_Ha) 
+        logF_grid_combined.append(logF_grid_Ha)
         wave_combined.append(wave_Ha)
         box_lim_combined.append(box_lim_Ha)
-        
+
     if flag.Hb:
 
         u = np.where(lista_obs == 'Hb')
@@ -2108,10 +2423,10 @@ def read_observables(models, lbdarr, lista_obs):
 
         logF_combined.append(logF_Hb)
         dlogF_combined.append(dlogF_Hb)
-        logF_grid_combined.append(logF_grid_Hb) 
+        logF_grid_combined.append(logF_grid_Hb)
         wave_combined.append(wave_Hb)
         box_lim_combined.append(box_lim_Hb)
-    
+
     if flag.Hd:
 
         u = np.where(lista_obs == 'Hd')
@@ -2121,10 +2436,10 @@ def read_observables(models, lbdarr, lista_obs):
 
         logF_combined.append(logF_Hd)
         dlogF_combined.append(dlogF_Hd)
-        logF_grid_combined.append(logF_grid_Hd) 
+        logF_grid_combined.append(logF_grid_Hd)
         wave_combined.append(wave_Hd)
         box_lim_combined.append(box_lim_Hd)
-    
+
     if flag.Hg:
 
         u = np.where(lista_obs == 'Hg')
@@ -2134,9 +2449,19 @@ def read_observables(models, lbdarr, lista_obs):
 
         logF_combined.append(logF_Hg)
         dlogF_combined.append(dlogF_Hg)
-        logF_grid_combined.append(logF_grid_Hg) 
+        logF_grid_combined.append(logF_grid_Hg)
         wave_combined.append(wave_Hg)
         box_lim_combined.append(box_lim_Hg)
 
-    return logF_combined, dlogF_combined, logF_grid_combined, wave_combined, box_lim_combined
+    if flag.pol:
 
+        logF_pol, dlogF_pol, logF_grid_pol, wave_pol, box_lim_pol =\
+            read_opd_pol(models)
+
+        logF_combined.append(logF_pol)
+        dlogF_combined.append(dlogF_pol)
+        logF_grid_combined.append(logF_grid_pol)
+        wave_combined.append(wave_pol)
+        box_lim_combined.append(box_lim_pol)
+
+    return logF_combined, dlogF_combined, logF_grid_combined, wave_combined, box_lim_combined

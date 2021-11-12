@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 #
 #  user_settings.py
-#  
+#
 #  Copyright 2020 Amanda Rubio <amanda.rubio@usp.br>
-#  
+#
 
 
 import numpy as np
@@ -21,9 +21,9 @@ from bemcee import read_models, create_tag, create_list, read_stellar_prior, rea
 # ==============================================================================
 def read_stars(stars_table):
     ''' Reads info in the star.txt file in data/star folder
-        
+
         Usage
-        stars, list_plx, list_sig_plx, list_vsini_obs, list_sig_vsini_obs, 
+        stars, list_plx, list_sig_plx, list_vsini_obs, list_sig_vsini_obs,
         list_pre_ebmv, incl0, sig_incl0 = read_stars(star)
     '''
     typ = (0, 1, 2, 3, 4, 5, 6, 7, 8)
@@ -34,7 +34,7 @@ def read_stars(stars_table):
                       dtype={'names': ('star', 'plx', 'sig_plx', 'vsini',
                                        'sig_vsini', 'pre_ebmv', 'inc', 'sinc', 'lbd_range'),
                              'formats': ('S9', 'f2', 'f2', 'f4',
-                                         'f4', 'f4', 'f4', 'f4', 
+                                         'f4', 'f4', 'f4', 'f4',
                                          'U40')})
 
     stars, list_plx, list_sig_plx, list_vsini_obs, list_sig_vsini_obs,\
@@ -53,12 +53,12 @@ def read_stars(stars_table):
 
 # ==============================================================================
 def find_lim():
-    ''' Defines the value of "lim", to only use the model params in the 
+    ''' Defines the value of "lim", to only use the model params in the
     interpolation
-    
+
     Usage:
     lim = find_lim()
-        
+
     '''
     if flag.SED:
         if flag.include_rv and not flag.binary_star:
@@ -69,8 +69,8 @@ def find_lim():
             lim = 3
         else:
             lim = 2
-        if flag.Ha:
-            lim = lim+3
+        #if flag.Ha and flag.model=='acol':
+        #    lim = lim+2
     else:
         if flag.binary_star:
             lim = 1
@@ -79,43 +79,43 @@ def find_lim():
                 lim = -4
             else:
                 lim= -7
-        if flag.Ha:
-            lim = lim-3
+        #if flag.Ha and flag.model=='acol':
+        #    lim = 2
     return lim
 
 # ==============================================================================
 def set_ranges(star, lista_obs, listpar):
     ''' Defines the ranges and Ndim
-    
+
     Usage:
     ranges, Ndim = set_ranges(star, lista_obs, listpar)
-        
+
     '''
     print(75 * '=')
 
 
     print('\nRunning star: %s\n' % star)
     print(75 * '=')
-    
+
 
     if flag.SED or flag.normal_spectra is False:
         if flag.include_rv:
             ebmv, rv = [[0.0, 0.8], [1., 5.8]]
         else:
             rv = 3.1
-            ebmv, rv = [[0.0, 1.8], None]
-        
+            ebmv, rv = [[0.0, 0.8], None]
+
         dist_min = file_plx - flag.Nsigma_dis * file_dplx
         dist_max = file_plx + flag.Nsigma_dis * file_dplx
-     
-        
+
+
         addlistpar = [ebmv, [dist_min, dist_max], rv]
         addlistpar = list(filter(partial(is_not, None), addlistpar))
-        
 
-    
+
+
         if flag.model == 'aeri' or flag.model == 'befavor':
-            
+
             ranges = np.array([[listpar[0][0], listpar[0][-1]],
                                 [listpar[1][0], listpar[1][-1]],
                                 [listpar[2][0], listpar[2][-1]],
@@ -123,7 +123,7 @@ def set_ranges(star, lista_obs, listpar):
                                 [dist_min, dist_max],
                                 [ebmv[0], ebmv[-1]]])
 
-                                            
+
         elif flag.model == 'aara' or flag.model == 'acol':
 
             ranges = np.array([[listpar[0][0], listpar[0][-1]],
@@ -136,7 +136,7 @@ def set_ranges(star, lista_obs, listpar):
                             [dist_min, dist_max],
                             [ebmv[0], ebmv[-1]]])
 
-            
+
         elif flag.model == 'beatlas':
 
             ranges = np.array([[listpar[0][0], listpar[0][-1]],
@@ -146,33 +146,33 @@ def set_ranges(star, lista_obs, listpar):
                             [listpar[4][0], listpar[4][-1]],
                             [dist_min, dist_max],
                             [ebmv[0], ebmv[-1]]])
-        
+
         if flag.include_rv:
             ranges = np.concatenate([ranges, [rv]])
-            
+
         if flag.binary_star:
             M2 = [listpar[0][0], listpar[0][-1]]
             ranges = np.concatenate([ranges, [M2]])
-        
-        if flag.Ha:
-            fac_e = [0.2, 0.5] #Fraction of light scattered by electrons
-            v_e = [500.0, 650.0] #Speed of electron motion
-            v_h = [10.0, 20.0] #Sound speed of the disk
-            ranges = np.concatenate([ranges, [fac_e]])
-            ranges = np.concatenate([ranges, [v_e]])
-            ranges = np.concatenate([ranges, [v_h]])
+
+        #if flag.Ha and flag.model == 'acol':
+        #    fac_e = [0.1, 0.5] #Fraction of light scattered by electrons
+        #    v_e = [400.0, 900.0] #Speed of electron motion
+        #    #v_h = [10.0, 20.0] #Sound speed of the disk
+        #    ranges = np.concatenate([ranges, [fac_e]])
+        #    ranges = np.concatenate([ranges, [v_e]])
+        #    #ranges = np.concatenate([ranges, [v_h]])
 
 
     else:
         if flag.model == 'aeri' or flag.model == 'befavor':
-            
+
             ranges = np.array([[listpar[0][0], listpar[0][-1]],
                                [listpar[1][0], listpar[1][-1]],
                                [listpar[2][0], listpar[2][-1]],
                                [listpar[3][0], listpar[3][-1]]])
 
-                           
-        elif flag.model == 'acol' or flag.model == 'aara':
+
+        elif flag.model == 'acol' or flag.model == 'aara' or flag.model == 'pol':
 
             ranges = np.array([[listpar[0][0], listpar[0][-1]],
                                [listpar[1][0], listpar[1][-1]],
@@ -182,27 +182,27 @@ def set_ranges(star, lista_obs, listpar):
                                [listpar[5][0], listpar[5][-1]],
                                [listpar[6][0], listpar[6][-1]]])
 
-                
+
         elif flag.model == 'beatlas':
-            
+
             ranges = np.array([[listpar[0][0], listpar[0][-1]],
                             [listpar[1][0], listpar[1][-1]],
                             [listpar[2][0], listpar[2][-1]],
                             [listpar[3][0], listpar[3][-1]],
                             [listpar[4][0], listpar[4][-1]]])
-        
+
         if flag.binary_star:
             M2 = [listpar[0][0], listpar[0][-1]]
             ranges = np.concatenate([ranges, [M2]])
-        
-        if flag.Ha:
-            fac_e = [0.2, 0.5] #Fraction of light scattered by electrons
-            v_e = [500.0, 650.0] #Speed of electron motion
-            v_h = [10.0, 20.0] #Sound speed of the disk
-            ranges = np.concatenate([ranges, [fac_e]])
-            ranges = np.concatenate([ranges, [v_e]])
-            ranges = np.concatenate([ranges, [v_h]])
-    
+
+        #if flag.Ha and flag.model == 'acol':
+        #    fac_e = [0.0, 0.5] #Fraction of light scattered by electrons
+        #    v_e = [100.0, 600.0] #Speed of electron motion
+        #    #v_h = [10.0, 20.0] #Sound speed of the disk
+        #    ranges = np.concatenate([ranges, [fac_e]])
+        #    ranges = np.concatenate([ranges, [v_e]])
+        #    #ranges = np.concatenate([ranges, [v_h]])
+
     if flag.box_W:
         if flag.box_W_max == 'max':
             ranges[1][0] = flag.box_W_min
@@ -210,8 +210,8 @@ def set_ranges(star, lista_obs, listpar):
             ranges[1][1] = flag.box_W_max
         else:
             ranges[1][0], ranges[1][1] = flag.box_W_min, flag.box_W_max
-    
-    
+
+
         if flag.box_i:
             if flag.model == 'aeri':
                 indx = 3
@@ -223,7 +223,7 @@ def set_ranges(star, lista_obs, listpar):
                 ranges[indx][1] = flag.box_i_max
             else:
                 ranges[indx][0], ranges[indx][1] = flag.box_i_min, flag.box_i_max
-    
+
     Ndim = len(ranges)
 
     return ranges, Ndim
@@ -239,7 +239,7 @@ list_of_stars = flag.stars + '/' + flag.stars + '.txt'
 file_plx, file_dplx, file_vsini, file_dvsini,\
 file_ebmv, file_incl, file_dincl = read_stars(list_of_stars)
 
-lista_obs = create_list() 
+lista_obs = create_list()
 
 lim = find_lim()
 
@@ -271,8 +271,8 @@ if flag.model == 'aeri':
         labels = [r'$M\,[M_\odot]$', r'$W$', r"$t/t_\mathrm{ms}$",
               r'$i[\mathrm{^o}]$']
     labels2 = labels
-    
-if flag.model == 'acol':
+
+elif flag.model == 'acol' or flag.model == 'pol':
     if flag.SED:
         labels = [r'$M\,[\mathrm{M_\odot}]$', r'$W$',
                     r"$t/t_\mathrm{ms}$",
@@ -285,7 +285,7 @@ if flag.model == 'acol':
                     r'$\log \, n_0 $',
                     r'$R_\mathrm{D}$',
                     r'$n$', r'$i$', r'$\pi$',
-                    r'E(B-V)']                
+                    r'E(B-V)']
         if flag.include_rv is True:
                 labels = labels + [r'$R_\mathrm{V}$']
                 labels2 = labels2 + [r'$R_\mathrm{V}$']
@@ -300,12 +300,12 @@ if flag.model == 'acol':
                     r'$\log \, n_0 $',
                     r'$R_\mathrm{D}$',
                     r'$n$', r'$i$']
-                    
-    if flag.Ha:
-        labels = labels + [r'F_e', r'v_e \,[km/s]', r'v_h \,[km/s]']
-        labels2 = labels2 + [r'F_e', r'v_e', r'v_h']
-        
-if flag.model == 'beatlas':
+
+    #if flag.Ha:
+    #    labels = labels + [r'$F_e$', r'$v_e \,[km/s]$']
+    #    labels2 = labels2 + [r'$F_e$', r'$v_e$']
+
+elif flag.model == 'beatlas':
     labels = [r'$M\,[\mathrm{M_\odot}]$', r'$W$',
                 r'$\Sigma_0 \, [\mathrm{g/cm^{-2}}]$',
                 r'$n$', r'$i[\mathrm{^o}]$', r'$\pi\,[\mathrm{pc}]$',
@@ -314,11 +314,11 @@ if flag.model == 'beatlas':
                 r'$\\Sigma_0 $',
                 r'$R_\mathrm{D}$',
                 r'$n$', r'$i$', r'$\pi$',
-                r'E(B-V)']                
+                r'E(B-V)']
     if flag.include_rv is True:
             labels = labels + [r'$R_\mathrm{V}$']
             labels2 = labels2 + [r'$R_\mathrm{V}$']
-        
+
 if flag.binary_star:
         labels = labels + [r'$M2\,[M_\odot]$']
         labels2 = labels2 + [r'$M2\,[M_\odot]$']
@@ -335,47 +335,47 @@ if corner_color == 'blue':
     color='xkcd:cornflower'
     color_hist='xkcd:powder blue'
     color_dens='xkcd:clear blue'
-    
+
 elif corner_color == 'dark blue':
     color='xkcd:dark teal'
     color_hist='xkcd:pale sky blue'
     color_dens='xkcd:ocean'
-    
+
 elif corner_color == 'teal':
     color='xkcd:dark sea green'
     color_hist='xkcd:pale aqua'
     color_dens='xkcd:seafoam blue'
-    
+
 elif corner_color == 'green':
     color='xkcd:forest green'
     color_hist='xkcd:light grey green'
     color_dens='xkcd:grass green'
-    
+
 elif corner_color == 'yellow':
     color='xkcd:sandstone'
     color_hist='xkcd:pale gold'
     color_dens='xkcd:sunflower'
-    
+
 elif corner_color == 'orange':
     color='xkcd:cinnamon'
     color_hist='xkcd:light peach'
     color_dens='xkcd:bright orange'
-    
+
 elif corner_color == 'red':
     color='xkcd:deep red'
     color_hist='xkcd:salmon'
     color_dens='xkcd:reddish'
-    
+
 elif corner_color == 'purple':
     color='xkcd:medium purple'
     color_hist='xkcd:soft purple'
     color_dens='xkcd:plum purple'
-    
+
 elif corner_color == 'violet':
     color='xkcd:purpley'
     color_hist='xkcd:pale violet'
     color_dens='xkcd:blue violet'
-    
+
 elif corner_color == 'pink':
     color='xkcd:pinky'
     color_hist='xkcd:light pink'
@@ -383,5 +383,3 @@ elif corner_color == 'pink':
 
 
 truth_color='k'
-
-
