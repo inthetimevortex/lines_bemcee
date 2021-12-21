@@ -137,10 +137,15 @@ def select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc):
     keep_b = find_nearest2(lbdarr, 0.6700)
     lbd_line = lbdarr[keep_a:keep_b]
     models_line = models[:, keep_a:keep_b]
+    #print(len(lbd_line), len(models_line[0][1:-1]))
     #lbdarr_line = lbd_line*1e4
-    new_models = np.zeros([len(models_line), len(models_line[0][1:-1])])
+    vl_, fx_ = lineProf(lbd_line, models_line[0], hwidth=3000., lbc=lbdc,ssize=0.5)
+    new_models = np.zeros([len(models_line), len(fx_)])
     for i,mm in enumerate(models_line):
-        vl, fx = lineProf(lbd_line, mm, hwidth=3000., lbc=lbdc)
+        #print(len(mm))
+        vl, fx = lineProf(lbd_line, mm, hwidth=3000., lbc=lbdc,ssize=0.5)
+        #print(len(vl), len(fx))
+        #print(len(new_models[0]))
         new_models[i]=fx
     c = 299792.458
     wl = c*lbdc/(c - vl) * 1e4
@@ -1317,7 +1322,7 @@ def read_line_spectra(models, lbdarr, linename):
     fluxes, waves, errors = [], [], []
 
 
-    if file_name.tolist()[-3:] == 'csv':
+    if file_name.tolist()[-3:] == 'csv' or file_name.tolist()[-3:]=='txt':
         file_ha = str(flag.folder_data) + str(flag.stars) + '/spectra/' + str(file_name)
         try:
             wl, normal_flux = np.loadtxt(file_ha, delimiter=' ').T

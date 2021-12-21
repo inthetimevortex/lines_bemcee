@@ -339,10 +339,11 @@ def lnprob(params):
                 logF_mod_Ha_unnorm = griddataBA(info.minfo, info.logF_grid[index], params[:-info.lim], info.listpar, info.dims)
                 F_mod_Ha = linfit(info.wave[index], logF_mod_Ha_unnorm)
 
-            #if flag.model == 'acol':
-            #    fac_e, v_e = params[-1], params[-3]
-            #    wave_conv, flx_conv = gaussconv(fac_e, v_e, F_mod_Ha, info.wave[index])
-            #    F_mod_Ha = griddata(wave_conv, flx_conv, info.wave[index], method='linear',fill_value=1)
+            if flag.ha_ops:
+                fac_e, v_e, v_h = params[-3], params[-2], params[-1]
+                wave_conv, flx_conv = gaussconv(fac_e, v_e, v_h, F_mod_Ha, info.wave[index])
+                print(len(wave_conv), len(flx_conv), len(info.wave[index]))
+                F_mod_Ha = griddata(wave_conv, flx_conv, info.wave[index], method='linear',fill_value=1)
 
             logF_mod.append(F_mod_Ha)
 
