@@ -10,8 +10,8 @@ include_rv =        False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
 long_process =      False  # Run with few walkers or many?
 Nsigma_dis =        2.  # Set the range of values for the distance
-model =             'aeri'  # 'beatlas', 'aeri', 'acol' or 'pol'
-
+model =             'acol'  # 'beatlas', 'aeri', 'acol' or 'pol'
+ha_ops =            True # TRYING THIS OUT
 
 if long_process is True:
     Nwalk = 600
@@ -30,8 +30,8 @@ folder_defs = '../defs/'
 folder_tables = '../tables/'
 folder_models = '../models/'
 
-#lbd_range = 'UV+VIS+NIR+MIR+FIR+MICROW+RADIO'
-lbd_range = 'UV'
+lbd_range = 'UV+VIS+NIR+MIR+FIR+MICROW+RADIO'
+#lbd_range = 'UV'
 
 vsini_prior =   False # Uses a gaussian vsini prior
 dist_prior =    True # Uses a gaussian distance prior
@@ -52,12 +52,12 @@ remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too mu
 
 # Line and continuum combination
 
-SED =           True #True if you have any kind of SED data (IUE, visible, etc)
-iue =           True
+SED =           False #True if you have any kind of SED data (IUE, visible, etc)
+iue =           False
 votable =       False
 data_table=     False
 
-Ha =            False
+Ha =            True
 Hb =            False
 Hd =            False
 Hg =            False

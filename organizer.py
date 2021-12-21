@@ -69,8 +69,8 @@ def find_lim():
             lim = 3
         else:
             lim = 2
-        #if flag.Ha and flag.model=='acol':
-        #    lim = lim+2
+        if flag.ha_ops:
+            lim = lim+3
     else:
         if flag.binary_star:
             lim = 1
@@ -79,8 +79,8 @@ def find_lim():
                 lim = -4
             else:
                 lim= -7
-        #if flag.Ha and flag.model=='acol':
-        #    lim = 2
+        if flag.ha_ops:
+            lim = 3
     return lim
 
 # ==============================================================================
@@ -154,13 +154,13 @@ def set_ranges(star, lista_obs, listpar):
             M2 = [listpar[0][0], listpar[0][-1]]
             ranges = np.concatenate([ranges, [M2]])
 
-        #if flag.Ha and flag.model == 'acol':
-        #    fac_e = [0.1, 0.5] #Fraction of light scattered by electrons
-        #    v_e = [400.0, 900.0] #Speed of electron motion
-        #    #v_h = [10.0, 20.0] #Sound speed of the disk
-        #    ranges = np.concatenate([ranges, [fac_e]])
-        #    ranges = np.concatenate([ranges, [v_e]])
-        #    #ranges = np.concatenate([ranges, [v_h]])
+        if flag.ha_ops:
+            fac_e = [0.1, 0.5] #Fraction of light scattered by electrons
+            v_e = [400.0, 900.0] #Speed of electron motion
+            v_h = [10.0, 20.0] #Sound speed of the disk
+            ranges = np.concatenate([ranges, [fac_e]])
+            ranges = np.concatenate([ranges, [v_e]])
+            ranges = np.concatenate([ranges, [v_h]])
 
 
     else:
@@ -195,13 +195,13 @@ def set_ranges(star, lista_obs, listpar):
             M2 = [listpar[0][0], listpar[0][-1]]
             ranges = np.concatenate([ranges, [M2]])
 
-        #if flag.Ha and flag.model == 'acol':
-        #    fac_e = [0.0, 0.5] #Fraction of light scattered by electrons
-        #    v_e = [100.0, 600.0] #Speed of electron motion
-        #    #v_h = [10.0, 20.0] #Sound speed of the disk
-        #    ranges = np.concatenate([ranges, [fac_e]])
-        #    ranges = np.concatenate([ranges, [v_e]])
-        #    #ranges = np.concatenate([ranges, [v_h]])
+        if flag.ha_ops:
+            fac_e = [0.0, 0.5] #Fraction of light scattered by electrons
+            v_e = [100.0, 600.0] #Speed of electron motion
+            v_h = [10.0, 20.0] #Sound speed of the disk
+            ranges = np.concatenate([ranges, [fac_e]])
+            ranges = np.concatenate([ranges, [v_e]])
+            ranges = np.concatenate([ranges, [v_h]])
 
     if flag.box_W:
         if flag.box_W_max == 'max':
@@ -301,9 +301,9 @@ elif flag.model == 'acol' or flag.model == 'pol':
                     r'$R_\mathrm{D}$',
                     r'$n$', r'$i$']
 
-    #if flag.Ha:
-    #    labels = labels + [r'$F_e$', r'$v_e \,[km/s]$']
-    #    labels2 = labels2 + [r'$F_e$', r'$v_e$']
+    if flag.ha_ops:
+        labels = labels + [r'$F_e$', r'$v_e \,[km/s]$', 'vh']
+        labels2 = labels2 + [r'$F_e$', r'$v_e$', 'vh']
 
 elif flag.model == 'beatlas':
     labels = [r'$M\,[\mathrm{M_\odot}]$', r'$W$',

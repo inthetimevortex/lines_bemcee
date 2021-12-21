@@ -8,19 +8,19 @@ a_parameter =       2.0   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
-long_process =      True  # Run with few walkers or many?
+long_process =      False  # Run with few walkers or many?
 Nsigma_dis =        2.  # Set the range of values for the distance
 model =             'aeri'  # 'beatlas', 'aeri', 'acol' or 'pol'
-
+ha_ops =            False
 
 if long_process is True:
     Nwalk = 800
     Sburn = 500
     Smcmc = 5000
 else:
-    Nwalk = 400
-    Sburn = 100
-    Smcmc = 700
+    Nwalk = 100
+    Sburn = 50
+    Smcmc = 300
 
 binary_star = False
 
@@ -36,7 +36,7 @@ lbd_range = 'UV'
 vsini_prior =   False # Uses a gaussian vsini prior
 dist_prior =    True # Uses a gaussian distance prior
 
-box_W =         True # Constrain the W lower limit, not actual a prior, but restrain the grid
+box_W =         False # Constrain the W lower limit, not actual a prior, but restrain the grid
 box_W_min, box_W_max = [0.6, 'max']
 
 box_i =         False # Constrain the i limits, not actual a prior, but restrain the grid
@@ -57,7 +57,7 @@ iue =           True
 votable =       False
 data_table=     False
 
-Ha =            False
+Ha =            True
 Hb =            False
 Hd =            False
 Hg =            False
