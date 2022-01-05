@@ -43,7 +43,7 @@ def gaussian1d(npix, fwhm, normalize=True):
 
 def gaussfold(lam, flux, fwhm):
 
-    ic(len(lam), len(flux), fwhm)
+    #ic(len(lam), len(flux), fwhm)
     lammin = min(lam)
     lammax = max(lam)
 
@@ -57,7 +57,7 @@ def gaussfold(lam, flux, fwhm):
     fwhm_pix = fwhm / dlambda
     #window = int(17 * fwhm_pix)
     window = len(interlam)
-    ic(lammin, lammax, dlambda, window)
+    #ic(lammin, lammax, dlambda, window)
     #print(len(interlam), len(interflux))
     #window = 1000
 
@@ -66,7 +66,7 @@ def gaussfold(lam, flux, fwhm):
     # Convolve input spectrum with the Gaussian profile
     fold = np.convolve(interflux, gauss, mode='same')
 
-    ic(len(interlam), len(fold))
+    #ic(len(interlam), len(fold))
 
     y = interp.interp1d(interlam, fold, kind='linear', fill_value='extrapolate')
     fluxfold = y(lam)
@@ -96,7 +96,7 @@ def gaussconv(fac_e, v_e, F_mod_Ha, wave):
 
     # vel = vel[1000:-1000]
     # flx = flx[1000:-1000]
-    ic(len(wave), len(vel), len(flx))
+    #ic(len(wave), len(vel), len(flx))
     #flx.extend(np.ones(10000))
     #Sort the junk values so that x is in numerically increasing order
     #L = sorted(zip(vel,flx), key=operator.itemgetter(0))
@@ -120,6 +120,6 @@ def gaussconv(fac_e, v_e, F_mod_Ha, wave):
     #plt.show()
 
     wave2 = const.c * 0.65628/(const.c - vel)
-    plt.plot(wave2, flux_conv, 'r')
-    plt.show()
+    #plt.plot(wave2, flux_conv, 'r')
+    #plt.show()
     return wave2[1000:-1000], flux_conv[1000:-1000]
