@@ -70,7 +70,7 @@ def find_lim():
         else:
             lim = 2
         if flag.ha_ops:
-            lim = lim+3
+            lim = lim+2
     else:
         if flag.binary_star:
             lim = 1
@@ -80,7 +80,7 @@ def find_lim():
             else:
                 lim= -7
         if flag.ha_ops:
-            lim = 3
+            lim = 2
     return lim
 
 # ==============================================================================
@@ -157,10 +157,10 @@ def set_ranges(star, lista_obs, listpar):
         if flag.ha_ops:
             fac_e = [0.1, 0.5] #Fraction of light scattered by electrons
             v_e = [400.0, 900.0] #Speed of electron motion
-            v_h = [10.0, 20.0] #Sound speed of the disk
+            #v_h = [10.0, 20.0] #Sound speed of the disk
             ranges = np.concatenate([ranges, [fac_e]])
             ranges = np.concatenate([ranges, [v_e]])
-            ranges = np.concatenate([ranges, [v_h]])
+            #ranges = np.concatenate([ranges, [v_h]])
 
 
     else:
@@ -198,10 +198,10 @@ def set_ranges(star, lista_obs, listpar):
         if flag.ha_ops:
             fac_e = [0.0, 0.5] #Fraction of light scattered by electrons
             v_e = [100.0, 600.0] #Speed of electron motion
-            v_h = [10.0, 20.0] #Sound speed of the disk
+            #v_h = [10.0, 20.0] #Sound speed of the disk
             ranges = np.concatenate([ranges, [fac_e]])
             ranges = np.concatenate([ranges, [v_e]])
-            ranges = np.concatenate([ranges, [v_h]])
+            #ranges = np.concatenate([ranges, [v_h]])
 
     if flag.box_W:
         if flag.box_W_max == 'max':
@@ -302,8 +302,8 @@ elif flag.model == 'acol' or flag.model == 'pol':
                     r'$n$', r'$i$']
 
     if flag.ha_ops:
-        labels = labels + [r'$F_e$', r'$v_e \,[km/s]$', 'vh']
-        labels2 = labels2 + [r'$F_e$', r'$v_e$', 'vh']
+        labels = labels + [r'$F_e$', r'$v_e \,[km/s]$']
+        labels2 = labels2 + [r'$F_e$', r'$v_e$']
 
 elif flag.model == 'beatlas':
     labels = [r'$M\,[\mathrm{M_\odot}]$', r'$W$',

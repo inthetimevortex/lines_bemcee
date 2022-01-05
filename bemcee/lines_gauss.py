@@ -43,6 +43,7 @@ def gaussian1d(npix, fwhm, normalize=True):
 
 def gaussfold(lam, flux, fwhm):
 
+    print(len(lam), len(flux))
     lammin = min(lam)
     lammax = max(lam)
 
@@ -55,22 +56,24 @@ def gaussfold(lam, flux, fwhm):
 
     fwhm_pix = fwhm / dlambda
     window = int(17 * fwhm_pix)
-    #print(dlambda,window)
+    #print(len(interlam), len(interflux))
     #window = 1000
 
     # Get a 1D Gaussian Profile
     gauss = gaussian1d(window, fwhm_pix)
-    #print(len(interlam), len(gauss))
+    print(len(interlam), len(gauss))
     # Convolve input spectrum with the Gaussian profile
     fold = np.convolve(interflux, gauss, mode='same')
-
+    
+    print(len(interlam), len(fold))
+    
     y = interp.interp1d(interlam, fold, kind='linear', fill_value='extrapolate')
     fluxfold = y(lam)
 
     return fluxfold
 
 
-def gaussconv(fac_e, v_e, v_h, F_mod_Ha, wave):
+def gaussconv(fac_e, v_e, F_mod_Ha, wave):
 
 
     vel, flx = spt.lineProf(wave, F_mod_Ha, lbc=0.65628, hwidth=1380)
@@ -83,12 +86,12 @@ def gaussconv(fac_e, v_e, v_h, F_mod_Ha, wave):
     #velo2ndsmal = min(n for n in vel if n!=min(vel))
     ##velocity
     ##vel = extend(np.linspace(velo2ndlarg+1,24000,10000))
-    #########vel = np.concatenate((vel, np.linspace(max(vel),6000,2000)), axis=0)
+    vel = np.concatenate((vel, np.linspace(max(vel),6000,2000)), axis=0)
     ##vel = extend(np.linspace(-24000, velo2ndsmal-1, 10000))
-    #########vel = np.concatenate((np.linspace(-6000, min(vel), 2000), vel), axis=0)
+    vel = np.concatenate((np.linspace(-6000, min(vel), 2000), vel), axis=0)
     ##flux
-    #flx = np.concatenate((flx, np.ones(2000)))
-    #flx = np.concatenate((np.ones(2000), flx))
+    flx = np.concatenate((flx, np.ones(2000)))
+    flx = np.concatenate((np.ones(2000), flx))
     #flx.extend(np.ones(10000))
     #Sort the junk values so that x is in numerically increasing order
     #L = sorted(zip(vel,flx), key=operator.itemgetter(0))
@@ -103,7 +106,8 @@ def gaussconv(fac_e, v_e, v_h, F_mod_Ha, wave):
 
     notscat_flux = [i*(1-fac_e) for i in flx]
     scat_flux = [i*fac_e for i in flx]
-    notscat_conv = gaussfold(vel, notscat_flux, v_h)
+    #print(len(notscat_flux), len(scat_flux))
+    #notscat_conv = gaussfold(vel, notscat_flux, v_h)
     scat_conv = gaussfold(vel, scat_flux, v_e)
     flux_conv = scat_conv + notscat_flux #flux after convolution
     #plt.plot(vel, flux_conv)
@@ -111,4 +115,4 @@ def gaussconv(fac_e, v_e, v_h, F_mod_Ha, wave):
     #plt.show()
 
     #wave = const.c * 0.65628/(const.c - vel)
-    return wave, flux_conv[2000:-2000]
+    return wave, flux_conv#[2000:-2000]

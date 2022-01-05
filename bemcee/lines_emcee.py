@@ -325,6 +325,7 @@ def lnprob(params):
         if flag.Ha:
             u = np.where(info.lista_obs == 'Ha')
             index = u[0][0]
+            #print('bitch the fuck')
 
             #if flag.SED:
             if flag.binary_star:
@@ -340,11 +341,13 @@ def lnprob(params):
                 F_mod_Ha = linfit(info.wave[index], logF_mod_Ha_unnorm)
 
             if flag.ha_ops:
-                fac_e, v_e, v_h = params[-3], params[-2], params[-1]
-                wave_conv, flx_conv = gaussconv(fac_e, v_e, v_h, F_mod_Ha, info.wave[index])
-                print(len(wave_conv), len(flx_conv), len(info.wave[index]))
+                fac_e, v_e  =  params[-2], params[-1]
+                wave_conv, flx_conv = gaussconv(fac_e, v_e, F_mod_Ha, info.wave[index])
+                #print('HELLO', len(wave_conv), len(flx_conv), len(info.wave[index]))
+                #print('PARAMS', fac_e, v_e)
                 F_mod_Ha = griddata(wave_conv, flx_conv, info.wave[index], method='linear',fill_value=1)
-
+            
+            #print('WHAT')
             logF_mod.append(F_mod_Ha)
 
         if flag.Hb:

@@ -52,8 +52,8 @@ remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too mu
 
 # Line and continuum combination
 
-SED =           False #True if you have any kind of SED data (IUE, visible, etc)
-iue =           False
+SED =           True #True if you have any kind of SED data (IUE, visible, etc)
+iue =           True
 votable =       False
 data_table=     False
 
@@ -78,5 +78,5 @@ npy_star = 'Walkers_500_Nmcmc_1000_af_0.28_a_1.4_rv_false+hip.npy'
 
 # ------------------------------------------------------------------------------
 # Alphacrucis' options
-acrux = True # If True, it will run in Nproc processors in the cluster
+acrux = False # If True, it will run in Nproc processors in the cluster
 Nproc = 24  # Number of processors to be used in the cluster
