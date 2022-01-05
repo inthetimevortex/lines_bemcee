@@ -18,7 +18,7 @@ import bemcee.constants as const
 from pyhdust import spectools as spt
 import operator
 import matplotlib.pyplot as plt
-
+from icecream import ic
 from __init__ import mod_name
 flag = importlib.import_module(mod_name)
 
@@ -43,7 +43,7 @@ def gaussian1d(npix, fwhm, normalize=True):
 
 def gaussfold(lam, flux, fwhm):
 
-    print(len(lam), len(flux))
+    ic(len(lam), len(flux), fwhm)
     lammin = min(lam)
     lammax = max(lam)
 
@@ -55,18 +55,19 @@ def gaussfold(lam, flux, fwhm):
 
 
     fwhm_pix = fwhm / dlambda
-    window = int(17 * fwhm_pix)
+    #window = int(17 * fwhm_pix)
+    window = len(interlam)
+    ic(lammin, lammax, dlambda, window)
     #print(len(interlam), len(interflux))
     #window = 1000
 
     # Get a 1D Gaussian Profile
     gauss = gaussian1d(window, fwhm_pix)
-    print(len(interlam), len(gauss))
     # Convolve input spectrum with the Gaussian profile
     fold = np.convolve(interflux, gauss, mode='same')
-    
-    print(len(interlam), len(fold))
-    
+
+    ic(len(interlam), len(fold))
+
     y = interp.interp1d(interlam, fold, kind='linear', fill_value='extrapolate')
     fluxfold = y(lam)
 
@@ -77,7 +78,7 @@ def gaussconv(fac_e, v_e, F_mod_Ha, wave):
 
 
     vel, flx = spt.lineProf(wave, F_mod_Ha, lbc=0.65628, hwidth=1380)
-    #print(len(vel), len(flx))
+
     ##Adding junk ones to either side of the halpha continuum
     ##other gaussfold complains about x and y not being the same
     ##length, as lammin and lammax
@@ -92,6 +93,10 @@ def gaussconv(fac_e, v_e, F_mod_Ha, wave):
     ##flux
     flx = np.concatenate((flx, np.ones(2000)))
     flx = np.concatenate((np.ones(2000), flx))
+
+    # vel = vel[1000:-1000]
+    # flx = flx[1000:-1000]
+    ic(len(wave), len(vel), len(flx))
     #flx.extend(np.ones(10000))
     #Sort the junk values so that x is in numerically increasing order
     #L = sorted(zip(vel,flx), key=operator.itemgetter(0))
@@ -110,9 +115,11 @@ def gaussconv(fac_e, v_e, F_mod_Ha, wave):
     #notscat_conv = gaussfold(vel, notscat_flux, v_h)
     scat_conv = gaussfold(vel, scat_flux, v_e)
     flux_conv = scat_conv + notscat_flux #flux after convolution
-    #plt.plot(vel, flux_conv)
-    #plt.plot(vel, flx)
+    #plt.plot(vel, flux_conv, 'r')
+    #plt.plot(vel, flx, 'b')
     #plt.show()
 
-    #wave = const.c * 0.65628/(const.c - vel)
-    return wave, flux_conv#[2000:-2000]
+    wave2 = const.c * 0.65628/(const.c - vel)
+    plt.plot(wave2, flux_conv, 'r')
+    plt.show()
+    return wave2[1000:-1000], flux_conv[1000:-1000]
