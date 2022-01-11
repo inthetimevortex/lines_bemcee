@@ -531,9 +531,9 @@ def geneva_interp_pt(Mstar, oblat, t, Zstr='014', tar=None, silent=True):
 
     # grid
     if Mstar <= 20.:
-        Mlist = _np.array([1.7, 2., 2.5, 3., 4., 5., 7., 9., 12., 15., 20.])
+        Mlist = np.array([1.7, 2., 2.5, 3., 4., 5., 7., 9., 12., 15., 20.])
     else:
-        Mlist = _np.array([20., 25., 32., 40., 60., 85., 120.])
+        Mlist = np.array([20., 25., 32., 40., 60., 85., 120.])
 
     # read tar file
     if tar is None:
@@ -562,21 +562,21 @@ def geneva_interp_pt(Mstar, oblat, t, Zstr='014', tar=None, silent=True):
             else:
                 # nearest value at left
                 Mleft = Mlist[Mlist < Mstar]
-                Mleft = Mleft[_np.abs(Mleft - Mstar).argmin()]
-                iMleft = _np.where(Mlist == Mleft)[0][0]
+                Mleft = Mleft[np.abs(Mleft - Mstar).argmin()]
+                iMleft = np.where(Mlist == Mleft)[0][0]
                 Rpolel, logLl, agel = geneva_closest(Mlist[iMleft], oblat, t,
                     tar=tar, Zstr=Zstr, silent=silent)
                 # nearest value at right
                 Mright = Mlist[Mlist > Mstar]
-                Mright = Mright[_np.abs(Mright - Mstar).argmin()]
-                iMright = _np.where(Mlist == Mright)[0][0]
+                Mright = Mright[np.abs(Mright - Mstar).argmin()]
+                iMright = np.where(Mlist == Mright)[0][0]
                 Rpoler, logLr, ager = geneva_closest(Mlist[iMright], oblat, t,
                     tar=tar, Zstr=Zstr, silent=silent)
                 # interpolate between masses
-                weight = _np.array([Mright-Mstar, Mstar-Mleft]) / (Mright-Mleft)
-                Rpole = weight.dot(_np.array([Rpolel, Rpoler]))
-                logL = weight.dot(_np.array([logLl, logLr]))
-                age = weight.dot(_np.array([agel, ager]))
+                weight = np.array([Mright-Mstar, Mstar-Mleft]) / (Mright-Mleft)
+                Rpole = weight.dot(np.array([Rpolel, Rpoler]))
+                logL = weight.dot(np.array([logLl, logLr]))
+                age = weight.dot(np.array([agel, ager]))
         else:
             if not silent:
                 print('[geneva_interp] Warning: Mstar out of available range, '
@@ -598,21 +598,21 @@ def geneva_interp_pt(Mstar, oblat, t, Zstr='014', tar=None, silent=True):
                 else:
                     # nearest value at left
                     Mleft = Mlist[Mlist < Mstar]
-                    Mleft = Mleft[_np.abs(Mleft - Mstar).argmin()]
-                    iMleft = _np.where(Mlist == Mleft)[0][0]
+                    Mleft = Mleft[np.abs(Mleft - Mstar).argmin()]
+                    iMleft = np.where(Mlist == Mleft)[0][0]
                     Rpolel, logLl, agel = geneva_closest(Mlist[iMleft], oblat, t,
                         tar=tar, Zstr=Zstr, silent=silent)
                     # nearest value at right
                     Mright = Mlist[Mlist > Mstar]
-                    Mright = Mright[_np.abs(Mright - Mstar).argmin()]
-                    iMright = _np.where(Mlist == Mright)[0][0]
+                    Mright = Mright[np.abs(Mright - Mstar).argmin()]
+                    iMright = np.where(Mlist == Mright)[0][0]
                     Rpoler, logLr, ager = geneva_closest(Mlist[iMright], oblat, t,
                         tar=tar, Zstr=Zstr, silent=silent)
                     # interpolate between masses
-                    weight = _np.array([Mright-Mstar, Mstar-Mleft]) / (Mright-Mleft)
-                    Rpole = weight.dot(_np.array([Rpolel, Rpoler]))
-                    logL = weight.dot(_np.array([logLl, logLr]))
-                    age = weight.dot(_np.array([agel, ager]))
+                    weight = np.array([Mright-Mstar, Mstar-Mleft]) / (Mright-Mleft)
+                    Rpole = weight.dot(np.array([Rpolel, Rpoler]))
+                    logL = weight.dot(np.array([logLl, logLr]))
+                    age = weight.dot(np.array([agel, ager]))
 
                     Rp.append(Rpole)
                     L_log.append(logL)
@@ -627,11 +627,11 @@ def geneva_interp_pt(Mstar, oblat, t, Zstr='014', tar=None, silent=True):
                 Rp.append(Rpole)
                 L_log.append(logL)
 
-        coeffs = _np.polyfit(_np.log10(ttms[-4:]), _np.log10(Rp[-4:]), deg=1)
-        poly = _np.poly1d(coeffs)
+        coeffs = np.polyfit(np.log10(ttms[-4:]), np.log10(Rp[-4:]), deg=1)
+        poly = np.poly1d(coeffs)
 
-        coeffs2 = _np.polyfit(ttms[-4:], L_log[-4:], deg=1)
-        poly2 = _np.poly1d(coeffs2)
+        coeffs2 = np.polyfit(ttms[-4:], L_log[-4:], deg=1)
+        poly2 = np.poly1d(coeffs2)
 
         Rpole = 10**(poly(np.log10(t)))
         logL = (poly2(t))
