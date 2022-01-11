@@ -559,42 +559,6 @@ def geneva_interp_pt(Mstar, oblat, t, Zstr='014', tar=None, silent=True):
             if (Mstar == Mlist).any():
                 Rpole, logL, age = geneva_closest(Mstar, oblat, t, tar=tar,
                     Zstr=Zstr, silent=silent)
-        else:
-            # nearest value at left
-            Mleft = Mlist[Mlist < Mstar]
-            Mleft = Mleft[_np.abs(Mleft - Mstar).argmin()]
-            iMleft = _np.where(Mlist == Mleft)[0][0]
-            Rpolel, logLl, agel = geneva_closest(Mlist[iMleft], oblat, t,
-                tar=tar, Zstr=Zstr, silent=silent)
-            # nearest value at right
-            Mright = Mlist[Mlist > Mstar]
-            Mright = Mright[_np.abs(Mright - Mstar).argmin()]
-            iMright = _np.where(Mlist == Mright)[0][0]
-            Rpoler, logLr, ager = geneva_closest(Mlist[iMright], oblat, t,
-                tar=tar, Zstr=Zstr, silent=silent)
-            # interpolate between masses
-            weight = _np.array([Mright-Mstar, Mstar-Mleft]) / (Mright-Mleft)
-            Rpole = weight.dot(_np.array([Rpolel, Rpoler]))
-            logL = weight.dot(_np.array([logLl, logLr]))
-            age = weight.dot(_np.array([agel, ager]))
-        else:
-            if not silent:
-                print('[geneva_interp] Warning: Mstar out of available range, '
-                    'taking the closest value.')
-            Rpole, logL, age = geneva_closest(Mstar, oblat, t, tar=tar, Zstr=Zstr,
-                silent=silent)
-
-        return Rpole, logL, age
-
-    if (t > 1.001):
-        for time in ttms:
-            if (Mstar >= Mlist.min()) * (Mstar <= Mlist.max()):
-                if (Mstar == Mlist).any():
-                    Rpole, logL, age = geneva_closest(Mstar, oblat, t, tar=tar,
-                        Zstr=Zstr, silent=silent)
-
-                    Rp.append(Rpole)
-                    L_log.append(logL)
             else:
                 # nearest value at left
                 Mleft = Mlist[Mlist < Mstar]
@@ -613,9 +577,45 @@ def geneva_interp_pt(Mstar, oblat, t, Zstr='014', tar=None, silent=True):
                 Rpole = weight.dot(_np.array([Rpolel, Rpoler]))
                 logL = weight.dot(_np.array([logLl, logLr]))
                 age = weight.dot(_np.array([agel, ager]))
+        else:
+            if not silent:
+                print('[geneva_interp] Warning: Mstar out of available range, '
+                    'taking the closest value.')
+            Rpole, logL, age = geneva_closest(Mstar, oblat, t, tar=tar, Zstr=Zstr,
+                silent=silent)
 
-                Rp.append(Rpole)
-                L_log.append(logL)
+        return Rpole, logL, age
+
+    if (t > 1.001):
+        for time in ttms:
+            if (Mstar >= Mlist.min()) * (Mstar <= Mlist.max()):
+                if (Mstar == Mlist).any():
+                    Rpole, logL, age = geneva_closest(Mstar, oblat, t, tar=tar,
+                        Zstr=Zstr, silent=silent)
+
+                    Rp.append(Rpole)
+                    L_log.append(logL)
+                else:
+                    # nearest value at left
+                    Mleft = Mlist[Mlist < Mstar]
+                    Mleft = Mleft[_np.abs(Mleft - Mstar).argmin()]
+                    iMleft = _np.where(Mlist == Mleft)[0][0]
+                    Rpolel, logLl, agel = geneva_closest(Mlist[iMleft], oblat, t,
+                        tar=tar, Zstr=Zstr, silent=silent)
+                    # nearest value at right
+                    Mright = Mlist[Mlist > Mstar]
+                    Mright = Mright[_np.abs(Mright - Mstar).argmin()]
+                    iMright = _np.where(Mlist == Mright)[0][0]
+                    Rpoler, logLr, ager = geneva_closest(Mlist[iMright], oblat, t,
+                        tar=tar, Zstr=Zstr, silent=silent)
+                    # interpolate between masses
+                    weight = _np.array([Mright-Mstar, Mstar-Mleft]) / (Mright-Mleft)
+                    Rpole = weight.dot(_np.array([Rpolel, Rpoler]))
+                    logL = weight.dot(_np.array([logLl, logLr]))
+                    age = weight.dot(_np.array([agel, ager]))
+
+                    Rp.append(Rpole)
+                    L_log.append(logL)
 
             else:
                 if not silent:
@@ -639,6 +639,7 @@ def geneva_interp_pt(Mstar, oblat, t, Zstr='014', tar=None, silent=True):
 
         # in this case, no age. no physical meaning!
         return Rpole, logL
+
 
 
 
