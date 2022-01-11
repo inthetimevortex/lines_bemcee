@@ -8,7 +8,7 @@ a_parameter =       2.0   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
-long_process =      False  # Run with few walkers or many?
+long_process =      True  # Run with few walkers or many?
 Nsigma_dis =        2.  # Set the range of values for the distance
 model =             'acol'  # 'beatlas', 'aeri', 'acol' or 'pol'
 ha_ops =            True # TRYING THIS OUT
@@ -30,8 +30,8 @@ folder_defs = '../defs/'
 folder_tables = '../tables/'
 folder_models = '../models/'
 
-lbd_range = 'UV+VIS+NIR+MIR+FIR+MICROW+RADIO'
-#lbd_range = 'UV'
+#lbd_range = 'UV+VIS+NIR+MIR+FIR+MICROW+RADIO'
+lbd_range = 'UV'
 
 vsini_prior =   False # Uses a gaussian vsini prior
 dist_prior =    True # Uses a gaussian distance prior
@@ -78,5 +78,5 @@ npy_star = 'Walkers_500_Nmcmc_1000_af_0.28_a_1.4_rv_false+hip.npy'
 
 # ------------------------------------------------------------------------------
 # Alphacrucis' options
-acrux = False # If True, it will run in Nproc processors in the cluster
+acrux = True # If True, it will run in Nproc processors in the cluster
 Nproc = 24  # Number of processors to be used in the cluster

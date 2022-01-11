@@ -2,7 +2,7 @@ from PyAstronomy import pyasl
 import numpy as np
 import matplotlib.pylab as plt
 from .be_theory import hfrac2tms, oblat2w
-from .utils import lineProf, beta, geneva_interp_fast, griddataBAtlas, griddataBA, linfit, jy2cgs
+from .utils import lineProf, beta, geneva_interp_fast, geneva_interp_pt, griddataBAtlas, griddataBA, linfit, jy2cgs
 import corner
 from .constants import G, Msun, Rsun, sigma, Lsun
 import seaborn as sns
@@ -63,7 +63,7 @@ def print_output(params_fit, errors_fit):
         W = params_fit[1]
         tms = params_fit[2]
         oblat = 1 + 0.5*(W**2) # Rimulo 2017
-        Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
+        Rpole, logL, _ = geneva_interp_pt(Mstar, oblat, tms, Zstr='014')
         beta_par = beta(oblat, is_ob=True)
 
         print('Oblateness: ', oblat, ' +/- ', errors_fit[1]*W)
@@ -143,7 +143,7 @@ def print_to_latex(params_fit, errors_fit, current_folder, fig_name, hpds):
     ob_max, ob_min = 1 + 0.5*(W_range[0]**2), 1 + 0.5*(W_range[1]**2)
     oblat_range = [ob_max, ob_min]
 
-    Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
+    Rpole, logL, _ = geneva_interp_pt(Mstar, oblat, tms, Zstr='014')
 
     Rpole_range = [0., 100.]
     logL_range = [0., 100000.]
@@ -151,7 +151,7 @@ def print_to_latex(params_fit, errors_fit, current_folder, fig_name, hpds):
     for mm in Mstar_range:
         for oo in oblat_range:
             for tt in tms_range:
-                Rpolet, logLt, _ = geneva_interp_fast(mm, oo, tt, Zstr='014')
+                Rpolet, logLt, _ = geneva_interp_pt(mm, oo, tt, Zstr='014')
                 if Rpolet > Rpole_range[0]:
                     Rpole_range[0] = Rpolet
                     #print('Rpole max is now = {}'.format(Rpole_range[0]))
@@ -278,7 +278,7 @@ def print_output_means(samples):
            if i == 2:
                tms = param_mean
 
-        Rpole, logL, _ = geneva_interp_fast(mass, oblat, tms, Zstr='014')
+        Rpole, logL, _ = geneva_interp_pt(mass, oblat, tms, Zstr='014')
         beta_par = beta(oblat, is_ob=True)
 
         print('Equatorial radius: ', oblat*Rpole)
@@ -506,7 +506,7 @@ def plot_line(line, par, par_list, current_folder, fig_name):
 
     ax1.set_ylabel('Normalized Flux')#,fontsize=14)
     #ax1.set_xlim(min(vl), max(vl))
-    ax1.set_xlim(-1000, +1000)
+    #ax1.set_xlim(-1000, +1000)
     #ax1.legend(loc='lower right')
     ax1.set_title(line)
     # Residuals

@@ -8,10 +8,10 @@ a_parameter =       2.0   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
-long_process =      True  # Run with few walkers or many?
+long_process =      False  # Run with few walkers or many?
 Nsigma_dis =        2.  # Set the range of values for the distance
 model =             'aeri'  # 'beatlas', 'aeri', or 'acol'
-
+ha_ops = False
 
 if long_process is True:
     Nwalk = 400

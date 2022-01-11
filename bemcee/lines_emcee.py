@@ -11,7 +11,7 @@ import matplotlib as mpl
 from matplotlib import ticker
 from matplotlib import *
 from .utils import find_nearest,griddataBAtlas, griddataBA, kde_scipy, quantile, \
-        geneva_interp_fast, linfit, jy2cgs,check_list
+        geneva_interp_fast, geneva_interp_pt, linfit, jy2cgs,check_list
 import bemcee.corner_HDR
 from .hpd import hpd_grid
 from .lines_plot import print_output, par_errors, plot_residuals, print_output_means, print_to_latex
@@ -247,7 +247,7 @@ def lnprior(params):
 
     # Vsini prior
     if flag.vsini_prior:
-        Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
+        Rpole, logL, _ = geneva_interp_pt(Mstar, oblat, tms, Zstr='014')
         wcrit = np.sqrt(8. / 27. * G * Mstar * Msun / (Rpole * Rsun)**3)
         vsini = oblat2w(oblat) * wcrit * (Rpole * Rsun * oblat) *\
                                         np.sin(np.arccos(cosi)) * 1e-5
