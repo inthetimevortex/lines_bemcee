@@ -13,18 +13,18 @@ def check_list(lista_obs, x):
         return False
     else:
         return True
-        
-                 
-                    
-                    
+
+
+
+
 #def norm_spectra(wl_c, flx_con):
 #    '''normaliza espectro
 #    '''
 #    spl_fit = UnivariateSpline(wl_c, flx_con, w=spl_weight, k=3)
 #    flx_normalized = flx_con - spl_fit(wl_c)
-#    
+#
 #    return flx_normalized
-    
+
 def jy2cgs(flux, lbd, inverse=False):
     '''
     Converts from Jy units to erg/s/cm2/micron, and vice-versa
@@ -42,7 +42,7 @@ def jy2cgs(flux, lbd, inverse=False):
     return flux_new
 
 def beta(par, is_ob=False):
-    r""" Calculate the :math:`\beta` value from Espinosa-Lara for a given 
+    r""" Calculate the :math:`\beta` value from Espinosa-Lara for a given
     rotation rate :math:`w_{\rm frac} = \Omega/\Omega_c`
 
     If ``is_ob == True``, it consider the param as ob (instead of
@@ -51,7 +51,7 @@ def beta(par, is_ob=False):
     # Ekstrom et al. 2008, Eq. 9
     if is_ob:
         wfrac = (1.5 ** 1.5) * np.sqrt(2. * (par - 1.) / par ** 3)
-    else: 
+    else:
         wfrac = par
 
     # avoid exceptions
@@ -140,7 +140,7 @@ def linfit(x, y, ssize=0.05, yerr=np.empty(0)):
         import pyhdust.spectools as spt
 
         wv = np.linspace(6500, 6600, 101)
-        flx = (np.arange(101)[::-1])/100.+1+phc.normgauss(4, x=wv, 
+        flx = (np.arange(101)[::-1])/100.+1+phc.normgauss(4, x=wv,
         xc=6562.79)*5
 
         plt.plot(wv, flx)
@@ -178,8 +178,8 @@ def linfit(x, y, ssize=0.05, yerr=np.empty(0)):
 
 def lineProf(x, flx, lbc, flxerr=np.empty(0), hwidth=1000., ssize=0.05):
     '''
-    lineProf() - retorna um array (flx) normalizado e um array x em 
-    VELOCIDADES. `lbc` deve fornecido em mesma unidade de x para conversão 
+    lineProf() - retorna um array (flx) normalizado e um array x em
+    VELOCIDADES. `lbc` deve fornecido em mesma unidade de x para conversão
     lambda -> vel. Se vetor x jah esta em vel., usar funcao linfit().
 
     x eh importante, pois y pode ser nao igualmente amostrado.
@@ -189,7 +189,7 @@ def lineProf(x, flx, lbc, flxerr=np.empty(0), hwidth=1000., ssize=0.05):
     para a media do contínuo. 'ssize' de .5 à 0 (exclusive).
 
     OUTPUT: vel (array), flx (array)
-    '''    
+    '''
     x = (x - lbc) / lbc * const.c * 1e-5  # km/s
     idx = np.where(np.abs(x) <= 1.001 * hwidth)
     if len(flxerr) == 0:
@@ -204,7 +204,7 @@ def lineProf(x, flx, lbc, flxerr=np.empty(0), hwidth=1000., ssize=0.05):
         return x[idx], flux, flxerr
 
 def readpck(n, tp, ixdr, f):
-    """ Read XDR 
+    """ Read XDR
 
     - n: length
     - tp: type ('i', 'l', 'f', 'd')
@@ -212,17 +212,17 @@ def readpck(n, tp, ixdr, f):
     - f: file-object
 
     :returns: ixdr (counter), np.array
-    """    
+    """
     sz = dict(zip(['i', 'l', 'f', 'd'], [4, 4, 4, 8]))
     s = sz[tp]
     upck = '>{0}{1}'.format(n, tp)
     return ixdr+n*s, np.array(struct.unpack(upck, f[ixdr:ixdr+n*s]))
-    
+
 
 def readXDRsed(xdrpath, quiet=False):
     """  Read a XDR with a set of models.
 
-    The models' parameters (as well as their units) are defined at XDR 
+    The models' parameters (as well as their units) are defined at XDR
     creation.
 
     INPUT: xdrpath
@@ -246,8 +246,8 @@ def readXDRsed(xdrpath, quiet=False):
     else:
         _warn.warn('# XDR {0} not completely read!\n# length '
             'difference is {1} /4'.format(xdrpath), (len(f)-ixdr) )
-    # 
-    return ( ninfo, intervals.reshape((nq, 2)), lbdarr, 
+    #
+    return ( ninfo, intervals.reshape((nq, 2)), lbdarr,
         listpar.reshape((nm, nq)), models.reshape((nm, nlbd)) )
 
 
@@ -263,35 +263,35 @@ def readBAsed(xdrpath, quiet=False):
 
     INPUT: xdrpath
 
-    | OUTPUT: listpar, lbdarr, minfo, models 
+    | OUTPUT: listpar, lbdarr, minfo, models
     | (list of mods parameters, lambda array (um), mods index, mods flux)
     """
     f = open(xdrpath, 'rb').read()
     ixdr = 0
-    # 
+    #
     npxs = 3
     upck = '>{0}l'.format(npxs)
     header = np.array(struct.unpack(upck, f[ixdr:ixdr + npxs * 4]) )
     ixdr += npxs * 4
     nq, nlb, nm = header
-    # 
+    #
     npxs = nq
     upck = '>{0}l'.format(npxs)
     header = np.array(struct.unpack(upck, f[ixdr:ixdr + npxs * 4]) )
     ixdr += npxs * 4
-    # 
+    #
     listpar = [[] for i in range(nq)]
     for i in range(nq):
         npxs = header[i]
         upck = '>{0}f'.format(npxs)
         listpar[i] = np.array(struct.unpack(upck, f[ixdr:ixdr + npxs * 4]) )
         ixdr += npxs * 4
-    # 
+    #
     npxs = nlb
     upck = '>{0}f'.format(npxs)
     lbdarr = np.array(struct.unpack(upck, f[ixdr:ixdr + npxs * 4]) )
     ixdr += npxs * 4
-    # 
+    #
     npxs = nm * (nq + nlb)
     upck = '>{0}f'.format(npxs)
     models = np.array(struct.unpack(upck, f[ixdr:ixdr + npxs * 4]) )
@@ -304,7 +304,7 @@ def readBAsed(xdrpath, quiet=False):
     else:
         _warn.warn('# XDR {0} not completely read!\n# length '
             'difference is {1}'.format(xdrpath, (len(f)-ixdr)/4) )
-    # 
+    #
     return listpar, lbdarr, models[:, 0:nq], models[:, nq:]
 
 
@@ -449,7 +449,7 @@ def find_neighbours(par, par_grid, ranges):
 
     return keep, out, inside_ranges, par_new, par_grid_new
 
-    
+
 def geneva_interp_fast(Mstar, oblat, t, Zstr='014', silent=True):
     '''
     Interpolates Geneva stellar models, from grid of
@@ -515,6 +515,133 @@ def geneva_interp_fast(Mstar, oblat, t, Zstr='014', silent=True):
     return Rpole, logL, age
 
 
+def geneva_interp_pt(Mstar, oblat, t, Zstr='014', tar=None, silent=True):
+    '''
+    Interpolates Geneva stellar models.
+
+    Usage:
+    Rpole, logL, age = geneva_interp(Mstar, oblat, t, tar=None, silent=True)
+
+    where t is given in tMS, and tar is the open tar file. The chosen
+    metallicity is according to the input tar file. If tar=None, the
+    code will take Zstr='014' by default.
+    '''
+    # oblat to Omega/Omega_c
+    # w = oblat2w(oblat)
+
+    # grid
+    if Mstar <= 20.:
+        Mlist = _np.array([1.7, 2., 2.5, 3., 4., 5., 7., 9., 12., 15., 20.])
+    else:
+        Mlist = _np.array([20., 25., 32., 40., 60., 85., 120.])
+
+    # read tar file
+    if tar is None:
+        dir0 = '{0}/refs/geneva_models/'.format(_hdtpath())
+        fmod = 'Z{:}.tar.gz'.format(Zstr)
+        tar = _tarfile.open(dir0 + fmod, 'r:gz')
+    else:
+        Zstr = tar.getnames()[0][7:10]
+
+    # interpolation
+
+    # creation of lists for polar radius and log, for extrapolation fit
+    # and the ttms list used in the linear fit originally
+
+    ttms = [0, 0.40, 0.65, 0.85, 1.00]
+    L_log = []
+    Rp = []
+
+
+    # for ages inside the original grid, nothing happens
+    if (t < 1.001) * (t >= 0.):
+		if (Mstar >= Mlist.min()) * (Mstar <= Mlist.max()):
+			if (Mstar == Mlist).any():
+				Rpole, logL, age = geneva_closest(Mstar, oblat, t, tar=tar,
+					Zstr=Zstr, silent=silent)
+        else:
+            # nearest value at left
+            Mleft = Mlist[Mlist < Mstar]
+            Mleft = Mleft[_np.abs(Mleft - Mstar).argmin()]
+            iMleft = _np.where(Mlist == Mleft)[0][0]
+            Rpolel, logLl, agel = geneva_closest(Mlist[iMleft], oblat, t,
+                tar=tar, Zstr=Zstr, silent=silent)
+            # nearest value at right
+            Mright = Mlist[Mlist > Mstar]
+            Mright = Mright[_np.abs(Mright - Mstar).argmin()]
+            iMright = _np.where(Mlist == Mright)[0][0]
+            Rpoler, logLr, ager = geneva_closest(Mlist[iMright], oblat, t,
+                tar=tar, Zstr=Zstr, silent=silent)
+            # interpolate between masses
+            weight = _np.array([Mright-Mstar, Mstar-Mleft]) / (Mright-Mleft)
+            Rpole = weight.dot(_np.array([Rpolel, Rpoler]))
+            logL = weight.dot(_np.array([logLl, logLr]))
+            age = weight.dot(_np.array([agel, ager]))
+		else:
+			if not silent:
+				print('[geneva_interp] Warning: Mstar out of available range, '
+					'taking the closest value.')
+			Rpole, logL, age = geneva_closest(Mstar, oblat, t, tar=tar, Zstr=Zstr,
+				silent=silent)
+
+		return Rpole, logL, age
+
+	if (t > 1.001):
+		for time in ttms:
+			if (Mstar >= Mlist.min()) * (Mstar <= Mlist.max()):
+				if (Mstar == Mlist).any():
+					Rpole, logL, age = geneva_closest(Mstar, oblat, t, tar=tar,
+						Zstr=Zstr, silent=silent)
+
+					Rp.append(Rpole)
+					L_log.append(logL)
+			else:
+				# nearest value at left
+				Mleft = Mlist[Mlist < Mstar]
+				Mleft = Mleft[_np.abs(Mleft - Mstar).argmin()]
+				iMleft = _np.where(Mlist == Mleft)[0][0]
+				Rpolel, logLl, agel = geneva_closest(Mlist[iMleft], oblat, t,
+					tar=tar, Zstr=Zstr, silent=silent)
+				# nearest value at right
+				Mright = Mlist[Mlist > Mstar]
+				Mright = Mright[_np.abs(Mright - Mstar).argmin()]
+				iMright = _np.where(Mlist == Mright)[0][0]
+				Rpoler, logLr, ager = geneva_closest(Mlist[iMright], oblat, t,
+					tar=tar, Zstr=Zstr, silent=silent)
+				# interpolate between masses
+				weight = _np.array([Mright-Mstar, Mstar-Mleft]) / (Mright-Mleft)
+				Rpole = weight.dot(_np.array([Rpolel, Rpoler]))
+				logL = weight.dot(_np.array([logLl, logLr]))
+				age = weight.dot(_np.array([agel, ager]))
+
+				Rp.append(Rpole)
+				L_log.append(logL)
+
+			else:
+				if not silent:
+					print('[geneva_interp] Warning: Mstar out of available range, '
+					'taking the closest value.')
+				Rpole, logL, age = geneva_closest(Mstar, oblat, t, tar=tar, Zstr=Zstr,
+					silent=silent)
+
+				Rp.append(Rpole)
+				L_log.append(logL)
+
+		coeffs = _np.polyfit(_np.log10(ttms[-4:]), _np.log10(Rp[-4:]), deg=1)
+		poly = _np.poly1d(coeffs)
+
+		coeffs2 = _np.polyfit(ttms[-4:], L_log[-4:], deg=1)
+		poly2 = _np.poly1d(coeffs2)
+
+		Rpole = 10**(poly(np.log10(t)))
+		logL = (poly2(t))
+
+
+		# in this case, no age. no physical meaning!
+		return Rpole, logL
+
+
+
 # ==============================================================================
 # def griddataBA(minfo, models, params, listpar, dims):
 #     '''
@@ -569,16 +696,16 @@ def griddataBA(minfo, models, params, listpar, dims):
         lim_vals[i] = [
             phc.find_nearest(listpar[i], params[i], bigger=False),
             phc.find_nearest(listpar[i], params[i], bigger=True)]
-        
+
         tmp = np.where((minfo[:, i] == lim_vals[i][0]) |
                        (minfo[:, i] == lim_vals[i][1]))
-        
+
         idx = np.intersect1d(idx, tmp[0])
-        
-    
+
+
     #print(idx)
     out_interp = griddata(minfo[idx], models[idx], params)[0]
-    
+
     if (np.sum(out_interp) == 0 or np.sum(np.isnan(out_interp)) > 0):
 
         mdist = np.zeros(np.shape(minfo))
@@ -627,9 +754,9 @@ def griddataBAtlas(minfo, models, params, listpar, dims, isig):
     lim_vals = len(params)*[ [], ]
     for i in [i for i in range(len(params)) if i != isig]:
         lim_vals[i] = [
-            phc.find_nearest(listpar[i], params[i], bigger=False), 
+            phc.find_nearest(listpar[i], params[i], bigger=False),
             phc.find_nearest(listpar[i], params[i], bigger=True)]
-        tmp = np.where((minfo[:, i] == lim_vals[i][0]) | 
+        tmp = np.where((minfo[:, i] == lim_vals[i][0]) |
                 (minfo[:, i] == lim_vals[i][1]))
         idx = np.intersect1d(idx, tmp)
         #
@@ -641,14 +768,14 @@ def griddataBAtlas(minfo, models, params, listpar, dims, isig):
         for i in [i for i in range(len(params)) if i != dims["sig0"]]:
             imin = lim_vals[i][0]
             if lim_vals[i][0] != np.min(listpar[i]):
-                imin = phc.find_nearest(listpar[i], lim_vals[i][0], 
+                imin = phc.find_nearest(listpar[i], lim_vals[i][0],
                     bigger=False)
             imax = lim_vals[i][1]
             if lim_vals[i][1] != np.max(listpar[i]):
-                imax = phc.find_nearest(listpar[i], lim_vals[i][1], 
+                imax = phc.find_nearest(listpar[i], lim_vals[i][1],
                     bigger=True)
             lim_vals[i] = [imin, imax]
-            tmp = np.where((minfo[:, i] >= lim_vals[i][0]) & 
+            tmp = np.where((minfo[:, i] >= lim_vals[i][0]) &
                 (minfo[:, i] <= lim_vals[i][1]))
             idx = np.intersect1d(idx, phc.flatten(tmp))
         out_interp = griddata(minfo[idx], models[idx], params)[0]
@@ -713,6 +840,3 @@ def griddataBA_new(minfo, models, params, isig, silent=True):
         model_interp = griddata(minfo[keep], models[keep], params, method='nearest')[0]
 
     return model_interp
-
-
-
