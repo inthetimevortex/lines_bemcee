@@ -136,14 +136,15 @@ def select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc):
     keep_a = find_nearest2(lbdarr, 0.6400)
     keep_b = find_nearest2(lbdarr, 0.6700)
     lbd_line = lbdarr[keep_a:keep_b]
+    #print(lbd_line)
     models_line = models[:, keep_a:keep_b]
     #print(len(lbd_line), len(models_line[0][1:-1]))
     #lbdarr_line = lbd_line*1e4
-    vl_, fx_ = lineProf(lbd_line, models_line[0], hwidth=3000., lbc=lbdc,ssize=0.5)
+    vl_, fx_ = lineProf(lbd_line, models_line[0], hwidth=5000., lbc=lbdc,ssize=0.5)
     new_models = np.zeros([len(models_line), len(fx_)])
     for i,mm in enumerate(models_line):
         #print(len(mm))
-        vl, fx = lineProf(lbd_line, mm, hwidth=3000., lbc=lbdc,ssize=0.5)
+        vl, fx = lineProf(lbd_line, mm, hwidth=5000., lbc=lbdc,ssize=0.5)
         #print(len(vl), len(fx))
         #print(len(new_models[0]))
         new_models[i]=fx
@@ -152,7 +153,8 @@ def select_xdr_part(lbdarr, models, models_combined, lbd_combined, lbdc):
     lbdarr_line = wl/(1.0 + 2.735182E-4 + 131.4182/wl**2 + 2.76249E8/wl**4)
     models_combined.append(new_models)
     lbd_combined.append(lbdarr_line*1e-4)
-
+    #print(vl)
+    #print(lbd_combined[1])
     return models_combined, lbd_combined
 
 # =============================================================================
@@ -1346,7 +1348,7 @@ def read_line_spectra(models, lbdarr, linename):
 
     if flag.Sigma_Clip:
         #gives the line profiles in velocity space
-        vl, fx = lineProf(wl, normal_flux, hwidth=3000., lbc=lbd_central)
+        vl, fx = lineProf(wl, normal_flux, hwidth=5000., lbc=lbd_central)
         vel, fluxes = Sliding_Outlier_Removal(vl, fx, 50, 8, 15)
         wl = c*lbd_central/(c - vel)
     else:
@@ -1549,7 +1551,7 @@ def read_line_spectra(models, lbdarr, linename):
     
     #limits = np.logical_and(lbdarr > 0.6541, lbdarr < 0.6585)
 
-    #print(bin_flux)
+    #print(lbdarr)
     #print(len(flux), len(lbdarr), len(novo_models[0]))
     return flux, errors, novo_models, lbdarr, box_lim
 

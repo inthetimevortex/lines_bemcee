@@ -11,7 +11,7 @@ import matplotlib as mpl
 from matplotlib import ticker
 from matplotlib import *
 from .utils import find_nearest,griddataBAtlas, griddataBA, kde_scipy, quantile, \
-        geneva_interp_fast, geneva_interp_pt, linfit, jy2cgs,check_list
+        geneva_interp_fast, geneva_interp, linfit, jy2cgs,check_list
 import bemcee.corner_HDR
 from .hpd import hpd_grid
 from .lines_plot import print_output, par_errors, plot_residuals, print_output_means, print_to_latex
@@ -48,12 +48,13 @@ def get_line_chi2(line, lname, logF_mod):
         
         wl = info.wave[index]
 
-        limits = np.logical_and(wl > 0.6541, wl < 0.6585)
+        limits = np.logical_and(wl > 0.6519, wl < 0.6606)
+        #limits = np.logical_and(wl > 0.6441, wl < 0.6685)
         
         uplim = dlogF_Ha == 0
-        kp = np.logical_not(uplim)
+        keep = np.logical_not(uplim)
 
-        keep = np.logical_and(limits, kp)
+        #keep = np.logical_and(limits, kp)
 
         chi2_Ha = np.sum(((logF_Ha[keep] - logF_mod_Ha[keep])**2 / (dlogF_Ha[keep])**2.))
 
@@ -247,7 +248,12 @@ def lnprior(params):
 
     # Vsini prior
     if flag.vsini_prior:
-        Rpole, logL, _ = geneva_interp_pt(Mstar, oblat, tms, Zstr='014')
+        if tms <= 1.:
+            Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
+        else:
+            Rpole, logL = geneva_interp(Mstar, oblat, tms, Zstr='014')
+            #print(geneva_interp(Mstar, oblat, tms, Zstr='014'))
+        #Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
         wcrit = np.sqrt(8. / 27. * G * Mstar * Msun / (Rpole * Rsun)**3)
         vsini = oblat2w(oblat) * wcrit * (Rpole * Rsun * oblat) *\
                                         np.sin(np.arccos(cosi)) * 1e-5

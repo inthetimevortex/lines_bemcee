@@ -11,16 +11,16 @@ af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
 long_process =      True  # Run with few walkers or many?
 Nsigma_dis =        2.  # Set the range of values for the distance
 model =             'acol'  # 'beatlas', 'aeri', 'acol' or 'pol'
-ha_ops =            True # TRYING THIS OUT
+ha_ops =            False # TRYING THIS OUT
 
 if long_process is True:
     Nwalk = 600
     Sburn = 300
-    Smcmc = 3000
+    Smcmc = 1000
 else:
-    Nwalk = 400
-    Sburn = 100
-    Smcmc = 700
+    Nwalk = 200
+    Sburn = 50
+    Smcmc = 200
 
 binary_star = False
 
@@ -30,8 +30,8 @@ folder_defs = '../defs/'
 folder_tables = '../tables/'
 folder_models = '../models/'
 
-#lbd_range = 'UV+VIS+NIR+MIR+FIR+MICROW+RADIO'
-lbd_range = 'UV'
+lbd_range = 'UV+VIS+NIR+MIR+FIR+MICROW+RADIO'
+#lbd_range = 'UV'
 
 vsini_prior =   False # Uses a gaussian vsini prior
 dist_prior =    True # Uses a gaussian distance prior

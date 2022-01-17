@@ -2,7 +2,7 @@ from PyAstronomy import pyasl
 import numpy as np
 import matplotlib.pylab as plt
 from .be_theory import hfrac2tms, oblat2w
-from .utils import lineProf, beta, geneva_interp_fast, geneva_interp_pt, griddataBAtlas, griddataBA, linfit, jy2cgs
+from .utils import lineProf, beta, geneva_interp_fast, geneva_interp, griddataBAtlas, griddataBA, linfit, jy2cgs
 import corner
 from .constants import G, Msun, Rsun, sigma, Lsun
 import seaborn as sns
@@ -63,7 +63,11 @@ def print_output(params_fit, errors_fit):
         W = params_fit[1]
         tms = params_fit[2]
         oblat = 1 + 0.5*(W**2) # Rimulo 2017
-        Rpole, logL, _ = geneva_interp_pt(Mstar, oblat, tms, Zstr='014')
+        if tms <= 1.:
+            Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
+        else:
+            Rpole, logL = geneva_interp(Mstar, oblat, tms, Zstr='014')
+        #Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
         beta_par = beta(oblat, is_ob=True)
 
         print('Oblateness: ', oblat, ' +/- ', errors_fit[1]*W)
@@ -143,7 +147,11 @@ def print_to_latex(params_fit, errors_fit, current_folder, fig_name, hpds):
     ob_max, ob_min = 1 + 0.5*(W_range[0]**2), 1 + 0.5*(W_range[1]**2)
     oblat_range = [ob_max, ob_min]
 
-    Rpole, logL, _ = geneva_interp_pt(Mstar, oblat, tms, Zstr='014')
+    if tms <= 1.:
+        Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
+    else:
+        Rpole, logL = geneva_interp(Mstar, oblat, tms, Zstr='014')
+    #Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
 
     Rpole_range = [0., 100.]
     logL_range = [0., 100000.]
@@ -151,7 +159,11 @@ def print_to_latex(params_fit, errors_fit, current_folder, fig_name, hpds):
     for mm in Mstar_range:
         for oo in oblat_range:
             for tt in tms_range:
-                Rpolet, logLt, _ = geneva_interp_pt(mm, oo, tt, Zstr='014')
+                if tt <= 1.:
+                    Rpolet, logLt, _ = geneva_interp_fast(mm, oo, tt, Zstr='014')
+                else:
+                    Rpolet, logLt = geneva_interp(mm,oo, tt, Zstr='014')
+                #Rpolet, logLt, _ = geneva_interp_fast(mm, oo, tt, Zstr='014')
                 if Rpolet > Rpole_range[0]:
                     Rpole_range[0] = Rpolet
                     #print('Rpole max is now = {}'.format(Rpole_range[0]))
@@ -278,7 +290,11 @@ def print_output_means(samples):
            if i == 2:
                tms = param_mean
 
-        Rpole, logL, _ = geneva_interp_pt(mass, oblat, tms, Zstr='014')
+        if tms <= 1.:
+            Rpole, logL, _ = geneva_interp_fast(mass, oblat, tms, Zstr='014')
+        else:
+            Rpole, logL = geneva_interp(mass, oblat, tms, Zstr='014')
+        #Rpole, logL, _ = geneva_interp_fast(mass, oblat, tms, Zstr='014')
         beta_par = beta(oblat, is_ob=True)
 
         print('Equatorial radius: ', oblat*Rpole)
@@ -492,21 +508,22 @@ def plot_line(line, par, par_list, current_folder, fig_name):
     #np.savetxt(current_folder + fig_name + '_new_residuals_' + line +'.dat', np.array([lbd_line, flux_mod_line]).T)
 
     # Plot
-    fig, (ax1,ax2) = plt.subplots(2,1,sharex=True,gridspec_kw={'height_ratios': [3, 1]})
+    fig, (ax1,ax2) = plt.subplots(2,1,gridspec_kw={'height_ratios': [3, 1]})
     # Plot models
     for i in range(len(par_list)):
-        vl, fx = lineProf(lbd_line, F_list[i], hwidth=3000., lbc=lbd_central)
+        vl, fx = lineProf(lbd_line, F_list[i], hwidth=5000., lbc=lbd_central)
         #ax1.plot(lbd_line, F_list[i], color='gray', alpha=0.1)
         ax1.plot(vl, fx, color='gray', alpha=0.1)
-    vl, fxx = lineProf(lbd_line, flux_line, hwidth=3000., lbc=lbd_central)
+    vl, fxx = lineProf(lbd_line, flux_line, hwidth=5000., lbc=lbd_central)
     ax1.errorbar(vl, fxx, yerr= dflux_line, ls='', marker='o', alpha=0.5, ms=5, color='k', linewidth=1)
+    #ax1.errorbar(lbd_line, flux_line, yerr= dflux_line, ls='', marker='o', alpha=0.5, ms=5, color='k', linewidth=1)
 
     # Best fit
     #ax1.plot(lbd_line, flux_mod_line, color='red', ls='-', lw=3.5, alpha=0.4, label='Best fit \n chi2 = {0:.2f}'.format(chi2_line))
 
     ax1.set_ylabel('Normalized Flux')#,fontsize=14)
     #ax1.set_xlim(min(vl), max(vl))
-    #ax1.set_xlim(-1000, +1000)
+    ax1.set_xlim(-2000, +2000)
     #ax1.legend(loc='lower right')
     ax1.set_title(line)
     # Residuals
@@ -516,7 +533,7 @@ def plot_line(line, par, par_list, current_folder, fig_name):
     ax2.set_ylabel('$(F-F_\mathrm{m})/\sigma$')#, fontsize=14)
     #ax2.set_xlabel('$\lambda\,\mathrm{[\mu m]}$')#, fontsize=14)
     ax2.set_xlabel('Velocity [km/s]')#, fontsize=14)
-    #ax2.set_xlim(min(lbd_line), max(lbd_line))
+    ax2.set_xlim(-2000, 2000)
     plt.tight_layout()
     plt.savefig(current_folder + fig_name + '_new_residuals_' + line +'.png', dpi=100)
     plt.close()

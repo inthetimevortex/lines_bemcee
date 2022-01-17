@@ -8,7 +8,7 @@ a_parameter =       2.0   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
-long_process =      False  # Run with few walkers or many?
+long_process =      True  # Run with few walkers or many?
 Nsigma_dis =        2.  # Set the range of values for the distance
 model =             'aeri'  # 'beatlas', 'aeri', 'acol' or 'pol'
 ha_ops =            False
@@ -33,7 +33,7 @@ folder_models = '../models/'
 #lbd_range = 'UV+VIS+NIR+MIR+FIR+MICROW+RADIO'
 lbd_range = 'UV'
 
-vsini_prior =   True # Uses a gaussian vsini prior
+vsini_prior =   False # Uses a gaussian vsini prior
 dist_prior =    True # Uses a gaussian distance prior
 
 box_W =         False # Constrain the W lower limit, not actual a prior, but restrain the grid
