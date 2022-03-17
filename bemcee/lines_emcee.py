@@ -48,7 +48,7 @@ def get_line_chi2(line, lname, logF_mod):
         
         wl = info.wave[index]
 
-        limits = np.logical_and(wl > 0.6519, wl < 0.6606)
+        limits = np.logical_and(wl > 0.6554, wl < 0.6571)
         #limits = np.logical_and(wl > 0.6441, wl < 0.6685)
         
         uplim = dlogF_Ha == 0
@@ -56,9 +56,9 @@ def get_line_chi2(line, lname, logF_mod):
 
         #keep = np.logical_and(limits, kp)
 
-        chi2_Ha = np.sum(((logF_Ha[keep] - logF_mod_Ha[keep])**2 / (dlogF_Ha[keep])**2.))
+        chi2_Ha = np.sum(((logF_Ha[limits] - logF_mod_Ha[limits])**2 / (dlogF_Ha[limits])**2.))
 
-        N_Ha = len(logF_Ha[keep])
+        N_Ha = len(logF_Ha[limits])
         chi2_Ha_red = chi2_Ha/N_Ha
 
 
@@ -119,13 +119,15 @@ def lnlike(params, logF_mod):
         flux_mod = pyasl.unred(info.wave[index] * 1e4, tmp_flux, ebv=-1 * ebmv, R_V=RV)
         logF_mod_UV = np.log10(flux_mod)
 
-        rms = np.array([jy2cgs(1e-3*0.1, 20000), jy2cgs(1e-3*0.1, 35000), jy2cgs(1e-3*0.1, 63000)])
-        rms = np.array([1e-3*0.1, 1e-3*0.1, 1e-3*0.1])
-        rms = np.array([1e-3*0.1, 1e-3*0.1])
-        rms = np.array([1e-3*0.1])
+        #rms = np.array([jy2cgs(1e-3*0.1, 20000), jy2cgs(1e-3*0.1, 35000), jy2cgs(1e-3*0.1, 63000)])
+        rms = np.array([1e-3*0.2, 1e-3*0.2, 1e-3*0.2])
+        #rms = np.array([1e-3*0.2, 1e-3*0.2])
+        #rms = np.array([1e-3*0.1])
         #
 
         upper_lim = jy2cgs(10**logF_UV[uplim], lbd_UV[uplim], inverse=True)
+        #print(lbd_UV[uplim], upper_lim)
+        
         mod_upper = jy2cgs(10**logF_mod_UV[uplim], lbd_UV[uplim], inverse=True)
         #ic(rms)
         #ic(10**logF_UV[uplim])
@@ -133,10 +135,10 @@ def lnlike(params, logF_mod):
         #a parte dos uplims não é em log!
         chi2_UV = np.sum(((logF_UV[keep] - logF_mod_UV[keep])**2. / (dlogF_UV[keep])**2.))
         #TESTES DOS UPLIMS
-        #if flag.model == 'acol':
-        #    chi2_uplim = - 2. * np.sum( np.log( (np.pi/2.)**0.5 * rms * (1. + erf(((upper_lim - mod_upper)/((2**0.5)*rms))))))
-        #    N_uplim = len(rms)
-        #    chi2_uplim_red = chi2_uplim/N_uplim
+        if flag.stars == 'HD37795': #and not flag.Ha:
+            chi2_uplim = - 2. * np.sum( np.log( (np.pi/2.)**0.5 * rms * (1. + erf(((upper_lim - mod_upper)/((2**0.5)*rms))))))
+            N_uplim = len(rms)
+            chi2_uplim_red = chi2_uplim/N_uplim
             #if uplim.any():
             #    if (logF_mod_UV[uplim] > logF_UV[uplim]).any():
             #        chi2_uplim_red = np.inf
@@ -144,10 +146,15 @@ def lnlike(params, logF_mod):
             #    else:
             #        chi2_uplim_red = 0.
             #        N_uplim = 0.
-        #else: 
-        #    chi2_uplim= 0.
-        #    N_uplim = 0.
-        #    chi2_uplim_red = 0.
+        else:
+            if flag.stars == 'gammaCas':
+                chi2_uplim = ((logF_UV[-1] - logF_mod_UV[-1])**2. / (dlogF_UV[-1])**2.)
+                N_uplim = 1.
+                chi2_uplim_red = chi2_uplim
+            else: 
+                chi2_uplim= 0.
+                N_uplim = 0.
+                chi2_uplim_red = 0.
         #chi2_UV = chi2_UV + chi2_uplim
         #N_UV = len(logF_UV)
 
@@ -182,8 +189,8 @@ def lnlike(params, logF_mod):
     if flag.pol:
         chi2 = np.sum((info.logF[0] - logF_mod)**2 / (info.dlogF[0])**2.)
     else:
-        chi2 = (chi2_UV_red + chi2_Ha_red + chi2_Hb_red+ chi2_Hd_red+ chi2_Hg_red)\
-        *(N_UV + N_Ha + N_Hb + N_Hd+ N_Hg)
+        chi2 = (chi2_UV_red + chi2_uplim_red + chi2_Ha_red + chi2_Hb_red+ chi2_Hd_red+ chi2_Hg_red)\
+        *(N_UV + N_uplim + N_Ha + N_Hb + N_Hd+ N_Hg)
 
 
     #ic(chi2)
@@ -266,6 +273,7 @@ def lnprior(params):
     # Distance prior
     if flag.normal_spectra is False or flag.SED is True:
         if flag.dist_prior:
+            #print("USING DIST PRIOR")
             chi2_dis = (info.file_plx - dist)**2 / info.file_dplx**2.
 
         else:
@@ -499,7 +507,7 @@ def emcee_inference(pool):
     if flag.acrux is True:
         sampler = emcee.EnsembleSampler(flag.Nwalk, info.Ndim, lnprob, pool=pool, \
            #moves=[(emcee.moves.KDEMove())])
-            moves=[(emcee.moves.StretchMove(flag.a_parameter))])
+           moves=[(emcee.moves.StretchMove(flag.a_parameter))])
     else:
         sampler = emcee.EnsembleSampler(flag.Nwalk, info.Ndim, lnprob, \
             moves=[(emcee.moves.StretchMove(flag.a_parameter))])
@@ -600,7 +608,7 @@ def emcee_inference(pool):
     print(best_pars)
 
 
-    fig_corner = corner(samples, labels=info.labels, labels2=info.labels2, \
+    fig_corner = corner(samples[-100000:], labels=info.labels, labels2=info.labels2, \
             range=new_ranges, quantiles=None, plot_contours=True, \
             show_titles=False, title_kwargs={'fontsize': 15}, \
             label_kwargs={'fontsize': 19}, truths = best_pars, hdr=True,

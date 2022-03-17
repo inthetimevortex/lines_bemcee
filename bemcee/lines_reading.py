@@ -1286,7 +1286,7 @@ def read_stellar_prior():
 def read_espadons(fname):
 
     # read fits
-    if str(flag.stars) == 'HD37795':
+    if str(flag.stars) == 'HD37795AAA':
         hdr_list = fits.open(fname)
         fits_data = hdr_list[0].data
         fits_header = hdr_list[0].header
@@ -1300,6 +1300,7 @@ def read_espadons(fname):
         flux_norm = fits_data[1, ordem]
     #vel, flux = spt.lineProf(lbd, flux_norm, lbc=lbd0)
     else :
+        print(fname)
         lbd, flux_norm, MJD, dateobs, datereduc, fitsfile = spec.loadfits(fname)
 #    plt.plot (lbd, flux_norm)
 #    plt.show()
@@ -1803,7 +1804,7 @@ def read_iue(models, lbdarr):
 
     #else: # remove observations outside the range
     wave_lim_min_iue = min(waves)
-    wave_lim_max_iue = 0.300
+    wave_lim_max_iue = 0.290
     indx = np.where(((waves >= wave_lim_min_iue) &
                      (waves <= wave_lim_max_iue)))
     waves, fluxes, errors = waves[indx], fluxes[indx], errors[indx]
@@ -1836,19 +1837,19 @@ def combine_sed(wave, flux, sigma, models, lbdarr):
         wave_lim_min = 0.13  # mum
         wave_lim_max = 0.3  # mum
     if flag.lbd_range == 'UV+VIS':
-        wave_lim_min = 0.1  # mum
+        wave_lim_min = 0.13  # mum
         wave_lim_max = 0.8  # mum
     if flag.lbd_range == 'UV+VIS+NIR':
-        wave_lim_min = 0.1  # mum
+        wave_lim_min = 0.13  # mum
         wave_lim_max = 5.0  # mum
     if flag.lbd_range == 'UV+VIS+NIR+MIR':
-        wave_lim_min = 0.1  # mum
+        wave_lim_min = 0.13  # mum
         wave_lim_max = 40.0  # mum
     if flag.lbd_range == 'UV+VIS+NIR+MIR+FIR':
-        wave_lim_min = 0.1  # mum
+        wave_lim_min = 0.13  # mum
         wave_lim_max = 350.  # mum
     if flag.lbd_range == 'UV+VIS+NIR+MIR+FIR+MICROW+RADIO':
-        wave_lim_min = 0.1  # mum
+        wave_lim_min = 0.13  # mum
         wave_lim_max = np.max(wave)  # mum
     if flag.lbd_range == 'VIS+NIR+MIR+FIR+MICROW+RADIO':
         wave_lim_min = 0.39  # mum
@@ -2086,23 +2087,39 @@ def read_votable():
     new_sigma = list(new_sigma)
 
     # Filtering null sigmas
-    #for h in range(len(new_sigma)):
-    #    if new_sigma[h] == 0.:
-    #        new_sigma[h] = 0.002 * new_flux[h]
+    for h in range(len(new_sigma)):
+        if new_sigma[h] == 0.:
+            new_sigma[h] = 0.002 * new_flux[h]
 
 
     wave = np.copy(new_wave) * 1e-4
     flux = np.copy(new_flux) * 1e4
     sigma = np.copy(new_sigma) * 1e4
-    #keep = wave > 0.34
-    #wave, flux, sigma = wave[keep], flux[keep], sigma[keep]
+    
+    for i in range(len(sigma)):
+        if sigma[i] < flux[i]*0.1:
+            print("HIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII")
+            print(wave[i], flux[i])
+            sigma[i] = flux[i]*0.1    
+
+    keep = wave > 0.34
+    wave, flux, sigma = wave[keep], flux[keep], sigma[keep]
 
     if flag.stars == 'HD37795':
-        fname = flag.folder_data + '/HD37795/alfCol_no35.txt'
+        fname = flag.folder_data + '/HD37795/alfCol.txt'
         data = np.loadtxt(fname, dtype={'names':('lbd', 'flux', 'dflux', 'source'), 'formats':(np.float, np.float, np.float, '|S20')})
         wave = np.hstack([wave, data['lbd']])
         flux = np.hstack([flux, jy2cgs(1e-3*data['flux'], data['lbd'])])
         sigma = np.hstack([sigma, jy2cgs(1e-3*data['dflux'], data['lbd'])])
+    
+    if flag.stars == 'HD58715':
+        fname = flag.folder_data + '/HD58715/bcmi_radio.dat'
+        data = np.loadtxt(fname, dtype={'names':('lbd', 'flux', 'dflux', 'source'), 'formats':(np.float, np.float, np.float, '|S20')})
+        wave = np.hstack([wave, data['lbd']])
+        flux = np.hstack([flux, jy2cgs(data['flux'], data['lbd'])])
+        sigma = np.hstack([sigma, jy2cgs(data['dflux'], data['lbd'])])
+
+
 
     return wave, flux, sigma
 
@@ -2347,7 +2364,7 @@ def read_table():
     return wave, flux, sigma
 
 
-def read_table_piAqr():
+def read_table_additional():
     table = flag.folder_data + str(flag.stars) + '/sed_data/' + 'list_sed.txt'
 
     #os.chdir(folder_data + str(star) + '/')
@@ -2357,10 +2374,15 @@ def read_table_piAqr():
     vo_list = np.genfromtxt(table, comments='#', dtype='str')
     table_name = np.copy(vo_list)
     table = flag.folder_data + str(flag.stars) + '/sed_data/' + str(table_name)
+    
+    try:
+        lbds, flxs, sigs = np.loadtxt(table).T
+    except:
+        lbds, flxs = np.loadtxt(table).T
+        sigs = flxs*0.03
 
-    lbds, flxs = np.loadtxt(table).T
+    return lbds, flxs, sigs
 
-    return lbds, flxs, flxs*0.03
 
 #=======================================================================
 # Read the data files
@@ -2387,8 +2409,8 @@ def read_observables(models, lbdarr, lista_obs):
         if flag.votable:
             wave0, flux0, sigma0 = read_votable()
         elif flag.data_table:
-            if flag.stars == 'piAqr':
-                wave0, flux0, sigma0 = read_table_piAqr()
+            if flag.stars == 'piAqr' or flag.stars == 'gammaCas':
+                wave0, flux0, sigma0 = read_table_additional()
             else:
                 wave0, flux0, sigma0 = read_table()
         else:
