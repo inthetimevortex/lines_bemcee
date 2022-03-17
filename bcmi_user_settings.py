@@ -3,8 +3,8 @@
 # ==============================================================================
 
 
-stars =             'HD37795'  # Star name
-a_parameter =       1.2   # Set internal steps of each walker
+stars =             'HD58715'  # Star name
+a_parameter =       2.0   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
@@ -15,8 +15,8 @@ ha_ops =            False # TRYING THIS OUT
 
 if long_process is True:
     Nwalk = 500
-    Sburn = 100
-    Smcmc = 500
+    Sburn = 2500
+    Smcmc = 500000
 else:
     Nwalk = 50
     Sburn = 10
@@ -34,7 +34,7 @@ folder_models = '../models/'
 lbd_range = 'UV'
 lbd_range = 'UV+VIS+NIR+MIR+FIR+MICROW+RADIO'
 
-vsini_prior =   False # Uses a gaussian vsini prior
+vsini_prior =   True # Uses a gaussian vsini prior
 dist_prior =    True # Uses a gaussian distance prior
 
 box_W =         False # Constrain the W lower limit, not actual a prior, but restrain the grid
@@ -58,7 +58,7 @@ iue =           True
 votable =       True
 data_table=     False
 
-Ha =            True
+Ha =            False
 Hb =            False
 Hd =            False
 Hg =            False
@@ -66,7 +66,7 @@ Hg =            False
 pol = False
 
 
-corner_color = '' # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
+corner_color = 'random' # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
                   # IF YOU DO NOT CHOOSE A COLOR, A RANDOM ONE WILL BE SELECTED
 
 # Plot options

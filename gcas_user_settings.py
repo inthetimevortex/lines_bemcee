@@ -11,7 +11,7 @@ af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
 long_process =      True  # Run with few walkers or many?
 Nsigma_dis =        2.  # Set the range of values for the distance
 model =             'aeri'  # 'beatlas', 'aeri', or 'acol'
-
+ha_ops = False
 
 if long_process is True:
     Nwalk = 300
@@ -20,7 +20,7 @@ if long_process is True:
 else:
     Nwalk = 70
     Sburn = 70
-    Smcmc = 300
+    Smcmc = 200
 
 binary_star = False
 
@@ -30,9 +30,9 @@ folder_defs = '../defs/'
 folder_tables = '../tables/'
 folder_models = '../models/'
 
-lbd_range = 'UV'
+lbd_range = 'UV+VIS'
 
-vsini_prior =   True # Uses a gaussian vsini prior
+vsini_prior =   False # Uses a gaussian vsini prior
 dist_prior =    True # Uses a gaussian distance prior
 
 box_W =         False # Constrain the W lower limit, not actual a prior, but restrain the grid
@@ -41,7 +41,7 @@ box_W_min, box_W_max = [0.6, 'max']
 box_i =         False # Constrain the i limits, not actual a prior, but restrain the grid
 #box_i_min, box_i_max = [np.cos(50.*np.pi/180.), 'max']
 
-incl_prior =    False # Uses a gaussian inclination prior
+incl_prior =    True # Uses a gaussian inclination prior
 
 normal_spectra =    True # True if the spectra is normalized (for lines), distance and e(b-v) are not computed
 only_wings =        False # Run emcee with only the wings
@@ -54,7 +54,7 @@ remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too mu
 SED =           True #True if you have any kind of SED data (IUE, visible, etc)
 iue =           True
 votable =       False
-data_table=     False
+data_table=     True
 
 Ha =            False
 Hb =            False
