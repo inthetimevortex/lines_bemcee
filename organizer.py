@@ -311,7 +311,7 @@ if flag.model == "aeri":
         labels = [r"$M\,[M_\odot]$", r"$W$", r"$t/t_\mathrm{ms}$", r"$i[\mathrm{^o}]$"]
     labels2 = labels
 
-elif flag.model == "acol" or flag.model == "pol":
+elif flag.model == "acol" or flag.model == "pol" or flag.model == "aara":
     if flag.SED:
         labels = [
             r"$M\,[\mathrm{M_\odot}]$",
@@ -423,7 +423,7 @@ elif corner_color == "dark blue":
 
 elif corner_color == "teal":
     color = "xkcd:dark sea green"
-    color_hist = "xkcd:pale aqua"
+    color_hist = "xkcd:aqua marine"
     color_dens = "xkcd:seafoam blue"
 
 elif corner_color == "green":

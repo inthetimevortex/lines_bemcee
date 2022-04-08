@@ -4,7 +4,7 @@
 
 
 stars =             'HD37795'  # Star name
-a_parameter =       1.2   # Set internal steps of each walker
+a_parameter =       2.0   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
 include_rv =        False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
@@ -53,9 +53,9 @@ remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too mu
 
 # Line and continuum combination
 
-SED =           True #True if you have any kind of SED data (IUE, visible, etc)
-iue =           True
-votable =       True
+SED =           False #True if you have any kind of SED data (IUE, visible, etc)
+iue =           False
+votable =       False
 data_table=     False
 
 Ha =            True
