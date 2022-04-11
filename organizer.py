@@ -458,7 +458,7 @@ elif corner_color == "violet":
 
 elif corner_color == "pink":
     color = "xkcd:pinky"
-    color_hist = "xkcd:light pink"
+    color_hist = "xkcd:rosa"
     color_dens = "xkcd:pink red"
 
 
