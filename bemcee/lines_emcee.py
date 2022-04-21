@@ -2,13 +2,12 @@ import numpy as np
 import time
 from PyAstronomy import pyasl
 import matplotlib.pyplot as plt
+from pyhdust import spectools as spec
 from .constants import G, Msun, Rsun
 from .be_theory import oblat2w, t_tms_from_Xc, obl2W, hfrac2tms
 import emcee
 from scipy.interpolate import griddata
 from .corner_HDR import corner
-import matplotlib as mpl
-from matplotlib import ticker
 from matplotlib import *
 from .utils import (
     find_nearest,
@@ -21,8 +20,8 @@ from .utils import (
     linfit,
     jy2cgs,
     check_list,
+    lineProf,
 )
-import bemcee.corner_HDR
 from .hpd import hpd_grid
 from .lines_plot import (
     print_output,
@@ -33,7 +32,6 @@ from .lines_plot import (
 )
 from .lines_convergence import plot_convergence
 from .lines_gauss import gaussconv
-from astropy.stats import SigmaClip
 import seaborn as sns
 import datetime
 from scipy.special import erf
@@ -49,6 +47,8 @@ import organizer as info
 sns.set_style("white", {"xtick.major.direction": "in", "ytick.major.direction": "in"})
 
 # ==============================================================================
+
+
 def get_line_chi2(line, lname, logF_mod):
     """Get the chi2 for the lines
 
@@ -150,13 +150,30 @@ def lnlike(params, logF_mod):
         # ic(10**logF_UV[uplim])
 
         # a parte dos uplims não é em log!
-        chi2_UV = np.sum(
-            ((logF_UV[keep] - logF_mod_UV[keep]) ** 2.0 / (dlogF_UV[keep]) ** 2.0)
+        if "UV" in flag.lbd_range:
+            onlyUV = np.logical_and(lbd_UV > 0.13, lbd_UV < 0.3)
+            chi2_onlyUV = np.sum(
+                (
+                    (logF_UV[onlyUV] - logF_mod_UV[onlyUV]) ** 2.0
+                    / (dlogF_UV[onlyUV]) ** 2.0
+                )
+            )
+            N_onlyUV = len(logF_UV[onlyUV])
+            ic(N_onlyUV)
+            chi2_onlyUV_red = chi2_onlyUV / N_onlyUV
+
+        rest = np.logical_and(lbd_UV > 0.3, keep)
+        chi2_rest = np.sum(
+            ((logF_UV[rest] - logF_mod_UV[rest]) ** 2.0 / (dlogF_UV[rest]) ** 2.0)
         )
+        N_rest = len(logF_UV[rest])
+        ic(N_rest)
+        chi2_rest_red = chi2_rest / N_rest
+
         # TESTES DOS UPLIMS
         if "RADIO" in flag.lbd_range:
             if flag.stars == "HD37795" or flag.stars == "HD158427":  # and not flag.Ha:
-                print("## using uplim chi2!! ##")
+                # print("## using uplim chi2!! ##")
                 chi2_uplim = -2.0 * np.sum(
                     np.log(
                         (np.pi / 2.0) ** 0.5
@@ -188,13 +205,14 @@ def lnlike(params, logF_mod):
             chi2_uplim = 0.0
             N_uplim = 0.0
             chi2_uplim_red = 0.0
+
         # chi2_UV = chi2_UV + chi2_uplim
         # N_UV = len(logF_UV)
 
         # print((mod_upper > upper_lim))
         # ic(chi2_uplim)
-        N_UV = len(logF_UV[keep])
-        chi2_UV_red = chi2_UV / N_UV
+        # N_UV = len(logF_UV[keep])
+        # chi2_UV_red = chi2_UV / N_UV
         # N_uplim = 3.
         # chi2_uplim_red = 0.
         # chi2_uplim_red = chi2_uplim/N_uplim
@@ -223,13 +241,14 @@ def lnlike(params, logF_mod):
         chi2 = np.sum((info.logF[0] - logF_mod) ** 2 / (info.dlogF[0]) ** 2.0)
     else:
         chi2 = (
-            chi2_UV_red
+            chi2_onlyUV_red
+            + chi2_rest_red
             + chi2_uplim_red
             + chi2_Ha_red
             + chi2_Hb_red
             + chi2_Hd_red
             + chi2_Hg_red
-        ) * (N_UV + N_uplim + N_Ha + N_Hb + N_Hd + N_Hg)
+        ) * (N_onlyUV + N_rest + N_uplim + N_Ha + N_Hb + N_Hd + N_Hg)
 
     # ic(chi2)
     # ic(chi2_UV_red)
@@ -329,7 +348,7 @@ def lnprior(params):
             * 1e-5
         )
 
-        chi2_vsi = (info.file_vsini - vsini) ** 2 / info.file_dvsini ** 2.0
+        chi2_vsi = ((info.file_vsini - vsini) / info.file_dvsini) ** 2.0
 
     else:
         chi2_vsi = 0
@@ -338,7 +357,7 @@ def lnprior(params):
     if flag.normal_spectra is False or flag.SED is True:
         if flag.dist_prior:
             # print("USING DIST PRIOR")
-            chi2_dis = (info.file_plx - dist) ** 2 / info.file_dplx ** 2.0
+            chi2_dis = ((info.file_plx - dist) / info.file_dplx) ** 2.0
 
         else:
             chi2_dis = 0
@@ -349,9 +368,25 @@ def lnprior(params):
     # Inclination prior
     if flag.incl_prior:
         incl = np.arccos(cosi) * 180.0 / np.pi  # obtaining inclination from cosi
-        chi2_incl = (info.file_incl - incl) ** 2 / info.file_dincl ** 2.0
+        chi2_incl = ((info.file_incl - incl) / info.file_dincl) ** 2.0
     else:
         chi2_incl = 0.0
+
+    if flag.Ha:
+        u = np.where(info.lista_obs == "Ha")
+        index = u[0][0]
+
+        # this is not actually log!
+        Ha_data = info.logF[index]
+        Ha_model = logF_mod[index]
+
+        wl = info.wave[index]
+
+        vl, fx = lineProf(wl, Ha_data, hwidth=5000.0, lbc=0.6562801)
+        EW_data = spec.EWcalc(vl, fx) / 10.0
+        vl, fx = lineProf(wl, Ha_model, hwidth=5000.0, lbc=0.6562801)
+        EW_model = spec.EWcalc(vl, fx) / 10.0
+        chi2_ew = ((EW_data - EW_model) / (0.1 * EW_data)) ** 2.0
 
     chi2_prior = chi2_vsi + chi2_dis + chi2_stellar_prior + chi2_incl
 

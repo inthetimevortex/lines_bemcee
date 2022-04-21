@@ -569,12 +569,20 @@ def read_aara_pol():
         else:
             tmp = tmp + 1
 
-    xdrPL = flag.folder_models + "aara_pol_comp.xdr"
+    # xdrPL = flag.folder_models + "aara_pol_comp.xdr"
+    xdrPL = flag.folder_models + "aara_pol.xdr"
+    xdrPL2 = flag.folder_models + "aara_pol_comp.xdr"
 
     listpar, lbdarr, minfo, models = readBAsed(xdrPL, quiet=False)
+    listpar2, lbdarr2, minfo2, models2 = readBAsed(xdrPL2, quiet=False)
+
+    minfo = np.concatenate((minfo, minfo2), axis=0)
+    models = np.concatenate((models, models2), axis=0)
+
+    # listpar, lbdarr, minfo, models = readBAsed(xdrPL, quiet=False)
 
     models = np.array(models) * 100.0  # in percentage
-    print(minfo)
+    # print(minfo)
     # minfo, models = minfo[3600:], models[3600:]
 
     # new_models = []
