@@ -159,7 +159,7 @@ def lnlike(params, logF_mod):
                 )
             )
             N_onlyUV = len(logF_UV[onlyUV])
-            ic(N_onlyUV)
+            # ic(N_onlyUV)
             chi2_onlyUV_red = chi2_onlyUV / N_onlyUV
 
         rest = np.logical_and(lbd_UV > 0.3, keep)
@@ -167,7 +167,7 @@ def lnlike(params, logF_mod):
             ((logF_UV[rest] - logF_mod_UV[rest]) ** 2.0 / (dlogF_UV[rest]) ** 2.0)
         )
         N_rest = len(logF_UV[rest])
-        ic(N_rest)
+        # ic(N_rest)
         chi2_rest_red = chi2_rest / N_rest
 
         # TESTES DOS UPLIMS
@@ -260,7 +260,7 @@ def lnlike(params, logF_mod):
 
 
 # ==============================================================================
-def lnprior(params):
+def lnprior(params, logF_mod):
     """ Calculates the chi2 for the priors set in user_settings
 
     Usage:
@@ -387,8 +387,10 @@ def lnprior(params):
         vl, fx = lineProf(wl, Ha_model, hwidth=5000.0, lbc=0.6562801)
         EW_model = spec.EWcalc(vl, fx) / 10.0
         chi2_ew = ((EW_data - EW_model) / (0.1 * EW_data)) ** 2.0
+    else:
+        chi2_ew = 0.0
 
-    chi2_prior = chi2_vsi + chi2_dis + chi2_stellar_prior + chi2_incl
+    chi2_prior = chi2_vsi + chi2_dis + chi2_stellar_prior + chi2_incl + chi2_ew
 
     if chi2_prior is np.nan:
         chi2_prior = -np.inf
@@ -563,7 +565,7 @@ def lnprob(params):
                 info.minfo, info.logF_grid[0], params, info.listpar, info.dims
             )
 
-        lp = lnprior(params)
+        lp = lnprior(params, logF_mod)
 
         lk = lnlike(params, logF_mod)
 
