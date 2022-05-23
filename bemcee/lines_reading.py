@@ -575,6 +575,10 @@ def read_aara_pol():
 
     listpar, lbdarr, minfo, models = readBAsed(xdrPL, quiet=False)
     listpar2, lbdarr2, minfo2, models2 = readBAsed(xdrPL2, quiet=False)
+    print(listpar)
+    print(listpar2)
+    listpar[0] = np.append(listpar[0],listpar2[0][-1])
+    print(listpar)
 
     minfo = np.concatenate((minfo, minfo2), axis=0)
     models = np.concatenate((models, models2), axis=0)

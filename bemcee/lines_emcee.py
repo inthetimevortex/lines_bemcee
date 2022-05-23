@@ -55,7 +55,7 @@ def get_line_chi2(line, lname, logF_mod):
     Usage:
     chi2 = get_line_chi2(line)
     """
-    if line:
+    if line and not flag.ewops:
         u = np.where(info.lista_obs == lname)
         index = u[0][0]
 
@@ -151,24 +151,32 @@ def lnlike(params, logF_mod):
 
         # a parte dos uplims não é em log!
         if "UV" in flag.lbd_range:
+            # TIRANDO O LOG!!!!
             onlyUV = np.logical_and(lbd_UV > 0.13, lbd_UV < 0.3)
             chi2_onlyUV = np.sum(
                 (
-                    (logF_UV[onlyUV] - logF_mod_UV[onlyUV]) ** 2.0
-                    / (dlogF_UV[onlyUV]) ** 2.0
+                    (10 ** logF_UV[onlyUV] - 10 ** flux_mod) ** 2.0
+                    / (10 ** logF_UV[onlyUV] * dlogF_UV[onlyUV]) ** 2.0
                 )
             )
             N_onlyUV = len(logF_UV[onlyUV])
             # ic(N_onlyUV)
             chi2_onlyUV_red = chi2_onlyUV / N_onlyUV
+        else:
+            chi2_onlyUV_red = 0.0
+            N_onlyUV = 0.0
 
-        rest = np.logical_and(lbd_UV > 0.3, keep)
-        chi2_rest = np.sum(
-            ((logF_UV[rest] - logF_mod_UV[rest]) ** 2.0 / (dlogF_UV[rest]) ** 2.0)
-        )
-        N_rest = len(logF_UV[rest])
-        # ic(N_rest)
-        chi2_rest_red = chi2_rest / N_rest
+        if flag.lbd_range != "UV":
+            rest = np.logical_and(lbd_UV > 0.3, keep)
+            chi2_rest = np.sum(
+                ((logF_UV[rest] - logF_mod_UV[rest]) ** 2.0 / (dlogF_UV[rest]) ** 2.0)
+            )
+            N_rest = len(logF_UV[rest])
+            # ic(N_rest)
+            chi2_rest_red = chi2_rest / N_rest
+        else:
+            chi2_rest_red = 0.0
+            N_rest = 0.0
 
         # TESTES DOS UPLIMS
         if "RADIO" in flag.lbd_range:
@@ -183,12 +191,12 @@ def lnlike(params, logF_mod):
                 )
                 N_uplim = len(rms)
                 chi2_uplim_red = chi2_uplim / N_uplim
-            elif flag.stars == "gammaCas":
-                chi2_uplim = (logF_UV[-1] - logF_mod_UV[-1]) ** 2.0 / (
-                    dlogF_UV[-1]
-                ) ** 2.0
-                N_uplim = 1.0
-                chi2_uplim_red = chi2_uplim
+            # elif flag.stars == "gammaCas":
+            #     chi2_uplim = (logF_UV[-1] - logF_mod_UV[-1]) ** 2.0 / (
+            #         dlogF_UV[-1]
+            #     ) ** 2.0
+            #     N_uplim = 1.0
+            #     chi2_uplim_red = chi2_uplim
             else:
                 chi2_uplim = 0.0
                 N_uplim = 0.0
@@ -220,8 +228,10 @@ def lnlike(params, logF_mod):
         # print(upper_lim-mod_upper)
         # print('chi2_uplim = {:.2f}'.format(chi2_uplim))
     else:
-        chi2_UV_red = 0.0
-        N_UV = 0.0
+        chi2_onlyUV_red = 0.0
+        N_onlyUV = 0.0
+        chi2_rest_red = 0.0
+        N_rest = 0.0
         chi2_uplim_red = 0.0
         N_uplim = 0.0
 
@@ -337,7 +347,7 @@ def lnprior(params, logF_mod):
             Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr="014")
         else:
             Rpole, logL = geneva_interp(Mstar, oblat, tms, Zstr="014")
-            # print(geneva_interp(Mstar, oblat, tms, Zstr='014'))
+            # print(geneva_interp(Mstar, oblat, tms, Zstr='014'))o
         # Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
         wcrit = np.sqrt(8.0 / 27.0 * G * Mstar * Msun / (Rpole * Rsun) ** 3)
         vsini = (
@@ -383,10 +393,16 @@ def lnprior(params, logF_mod):
         wl = info.wave[index]
 
         vl, fx = lineProf(wl, Ha_data, hwidth=5000.0, lbc=0.6562801)
-        EW_data = spec.EWcalc(vl, fx) / 10.0
+        if flag.stars == "HD37795":
+            EW_data = -29.15
+            EW_err = 2.80
+        elif flag.stars == "HD58715":
+            EW_data = 1.0
+            EW_err = 1.0
+        # EW_data = spec.EWcalc(vl, fx) / 10.0
         vl, fx = lineProf(wl, Ha_model, hwidth=5000.0, lbc=0.6562801)
         EW_model = spec.EWcalc(vl, fx) / 10.0
-        chi2_ew = ((EW_data - EW_model) / (0.1 * EW_data)) ** 2.0
+        chi2_ew = ((EW_data - EW_model) / EW_err) ** 2.0
     else:
         chi2_ew = 0.0
 
