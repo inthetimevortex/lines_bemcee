@@ -155,7 +155,7 @@ def lnlike(params, logF_mod):
             onlyUV = np.logical_and(lbd_UV > 0.13, lbd_UV < 0.3)
             chi2_onlyUV = np.sum(
                 (
-                    (10 ** logF_UV[onlyUV] - 10 ** flux_mod) ** 2.0
+                    (10 ** logF_UV[onlyUV] - 10 ** flux_mod[onlyUV]) ** 2.0
                     / (10 ** logF_UV[onlyUV] * dlogF_UV[onlyUV]) ** 2.0
                 )
             )
