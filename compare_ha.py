@@ -1,14 +1,13 @@
 import numpy as np
 import matplotlib.pylab as plt
-from bemcee.corner_HDR import corner
 import sys
 import importlib
 import organizer as info
-from bemcee.be_theory import obl2W, hfrac2tms
 from bemcee.hpd import hpd_grid
-from PyAstronomy import pyasl
-from bemcee.utils import griddataBAtlas, griddataBA, linfit, lineProf
-from bemcee.lines_reading import read_espadons
+from bemcee.utils import griddataBA, linfit, lineProf
+from bemcee.hpd import hpd_grid
+from convo import gauss_conv
+from pyhdust import spectools as spec
 
 mod_name = sys.argv[1] + "_" + "user_settings"
 flag = importlib.import_module(mod_name)
@@ -19,9 +18,10 @@ Nwalk = 500
 nint_mcmc = 5000
 
 if sys.argv[1] == "acol":
-    af = "0.27"
-    date = "22-03-13-233220"
-    tag = "+acol_SigmaClipData_vsiniPrior_distPrior+votable+iue"
+    # "22-04-28-030932Walkers_500_Nmcmc_5000_af_0.28_a_2.0+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha.npy"
+    af = "0.28"
+    date = "22-04-28-030932"
+    tag = "+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha"
 elif sys.argv[1] == "bcmi":
     af = "0.22"
     date = "22-03-17-050958"
@@ -64,8 +64,30 @@ flatchain_1 = chain.reshape((-1, chain.shape[-1]))
 
 
 samples = np.copy(flatchain_1)[-100000:]
+best_pars = []
+best_errs = []
+hpds = []
 
+for i in range(info.Ndim):
+    # print(samples[:,i])
+    hpd_mu, x_mu, y_mu, modes_mu = hpd_grid(samples[:, i], alpha=0.32)
+    # mode_val = mode1(np.round(samples[:,i], decimals=2))
+    bpars = []
+    epars = []
+    hpds.append(hpd_mu)
+    for (x0, x1) in hpd_mu:
+        # qvalues = hpd(samples[:,i], alpha=0.32)
+        cut = samples[samples[:, i] > x0, i]
+        cut = cut[cut < x1]
+        median_val = np.median(cut)
 
+        bpars.append(median_val)
+        epars.append([x1 - median_val, median_val - x0])
+
+    best_errs.append(epars)
+    best_pars.append(bpars)
+
+print(best_pars)
 # for i in range(len(samples)):
 #     if flag.model == "acol":
 #         samples[i][1] = obl2W(samples[i][1])
@@ -146,11 +168,30 @@ for i, params in enumerate(par_list):
 
 fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={"height_ratios": [3, 1]})
 # Plot models
+EWlist1 = []
+EWlist2 = []
 for i in range(len(par_list)):
     vl, fx = lineProf(lbd_data, F_list[i], hwidth=5000.0, lbc=lbd_central)
+    EWlist1.append(spec.EWcalc(vl, fx) / 10.0)
+    fconv = gauss_conv([271.15218108136514, 0.6571001973998917], vl, fx)
+    EWlist2.append(spec.EWcalc(vl, fconv) / 10.0)
     # ax1.plot(lbd_line, F_list[i], color='gray', alpha=0.1)
-    ax1.plot(vl, fx, color="gray", alpha=0.1)
+    if i == len(par_list) - 1:
+        ax1.plot(
+            vl,
+            fconv,
+            color="gray",
+            alpha=0.1,
+            label="EW = {:.2f}".format(np.mean(EWlist2)),
+        )
+        ax1.plot(
+            vl, fx, color="b", alpha=0.1, label="EW = {:.2f}".format(np.mean(EWlist1))
+        )
+    else:
+        ax1.plot(vl, fconv, color="gray", alpha=0.1)
+        ax1.plot(vl, fx, color="b", alpha=0.1)
 vel_data, fx_data = lineProf(lbd_data, flux_data, hwidth=5000.0, lbc=lbd_central)
+EW = spec.EWcalc(vel_data, fx_data) / 10.0
 ax1.errorbar(
     vel_data,
     fx_data,
@@ -161,12 +202,13 @@ ax1.errorbar(
     ms=5,
     color="k",
     linewidth=1,
+    label="EW = {:.2f}".format(EW),
 )
-
+ax1.legend()
 ax1.set_ylabel("Normalized Flux")
 # ax1.set_xlim(min(vl), max(vl))
-ax1.set_xlim(-700, +700)
-# ax1.set_ylim(-0.05, 4)
+ax1.set_xlim(-600, +600)
+ax1.set_ylim(0.6, 5)
 # ax3.set_title(line)
 
 ax2.plot(vl, (fx_data - fx) / dflux_data, marker="o", color="k", alpha=0.5)
@@ -178,4 +220,4 @@ ax1.tick_params(axis="both", which="major")
 ax2.tick_params(axis="both", which="major")
 
 
-plt.show()
+plt.savefig("acol_compare_Ha.png")

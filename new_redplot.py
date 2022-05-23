@@ -44,7 +44,7 @@ def plot_residuals(par, npy, current_folder, fig_name):
                 rv = par[6][0]
             else:
                 rv = 3.1
-        elif flag.model == "acol":
+        elif flag.model == "acol" or flag.model == "aara":
             dist = par[7][0]
             ebv = par[8][0]
             if flag.include_rv:
@@ -277,16 +277,32 @@ def plot_line(line, par, par_list):
     return
 
 
-Nwalk = 300
+Nwalk = 500
 nint_mcmc = 5000
 
 # 22-03-23-183504Walkers_300_Nmcmc_5000_af_0.21_a_2.0+aeri_distPrior_inclPrior+iue.npy
 # af = "0.27"
 # date = "22-03-13-233220"
 # tag = "+acol_SigmaClipData_vsiniPrior_distPrior+votable+iue"
-af = "0.21"
-date = "22-03-23-183504"
-tag = "+aeri_distPrior_inclPrior+iue"
+# 22-04-28-030932Walkers_500_Nmcmc_5000_af_0.28_a_2.0+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha
+# 22-05-04-145412Walkers_500_Nmcmc_5000_af_0.20_a_1.6+aara_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO.npy
+# AARA
+af = "0.20"
+date = "22-05-04-145412"
+tag = "+aara_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO"
+
+#
+# # BCMI
+# # 22-05-12-011643Walkers_900_Nmcmc_5000_af_0.27_a_1.2+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha.npy
+# af = "0.27"
+# date = "22-05-12-011643"
+# tag = "+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha"
+#
+# # ACOL
+# # 22-04-28-030932Walkers_500_Nmcmc_5000_af_0.28_a_2.0+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha.npy
+# af = "0.28"
+# date = "22-04-28-030932"
+# tag = "+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha"
 
 current_folder = str(flag.folder_fig) + str(flag.stars) + "/"
 fig_name = (
@@ -326,18 +342,20 @@ samples = np.copy(flatchain_1)[-100000:]
 
 
 for i in range(len(samples)):
-    if flag.model == "acol":
+    if flag.model == "acol" or flag.model == "aara":
         samples[i][1] = obl2W(samples[i][1])
         samples[i][2] = hfrac2tms(samples[i][2])
         samples[i][6] = (np.arccos(samples[i][6])) * (180.0 / np.pi)
 
-    if flag.model == "aeri":
+    elif flag.model == "aeri":
         samples[i][3] = (np.arccos(samples[i][3])) * (180.0 / np.pi)
 
-    if flag.model == "beatlas":
+    elif flag.model == "beatlas":
         samples[i][1] = obl2W(samples[i][1])
         samples[i][4] = (np.arccos(samples[i][4])) * (180.0 / np.pi)
 
+    if flag.model == "aara":
+        samples[i][5] = samples[i][5] + 1.5
 
 new_ranges = []
 for i in range(info.Ndim):
@@ -348,7 +366,7 @@ best_errs = []
 hpds = []
 
 for i in range(info.Ndim):
-    print('## ' + info.labels[i])
+    print("## " + info.labels[i])
     # print(samples[:,i])
     hpd_mu, x_mu, y_mu, modes_mu = hpd_grid(samples[:, i], alpha=0.32)
     # mode_val = mode1(np.round(samples[:,i], decimals=2))
@@ -363,12 +381,16 @@ for i in range(info.Ndim):
 
         bpars.append(median_val)
         epars.append([x1 - median_val, median_val - x0])
-        print('{0:.3f} + {1:.3f} - {2:.3f}'.format(median_val, x1 - median_val, median_val - x0))
+        print(
+            "{0:.3f} + {1:.3f} - {2:.3f}".format(
+                median_val, x1 - median_val, median_val - x0
+            )
+        )
 
     best_errs.append(epars)
     best_pars.append(bpars)
 
-#print(best_pars)
+print(best_pars)
 
 
 fig_corner = corner(
@@ -393,8 +415,8 @@ fig_corner = corner(
     combined=True,
 )
 
-b = SpectralElement.from_filter('johnson_b')
-v = SpectralElement.from_filter('johnson_v')
+# b = SpectralElement.from_filter("johnson_b")
+# v = SpectralElement.from_filter("johnson_v")
 
 plot_residuals(best_pars, file_npy, current_folder, fig_name)
 

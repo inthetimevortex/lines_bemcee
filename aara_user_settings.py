@@ -4,7 +4,7 @@
 
 
 stars = "HD158427"  # Star name
-a_parameter = 2.0  # Set internal steps of each walker
+a_parameter = 1.6  # Set internal steps of each walker
 extension = ".png"  # Figure flag.extension to be saved
 include_rv = False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter = False  # Remove walkers outside the range 0.2 < af < 0.5
@@ -14,9 +14,9 @@ model = "aara"  # 'beatlas', 'aeri', 'acol' or 'pol'
 ha_ops = False  # TRYING THIS OUT
 
 if long_process is True:
-    Nwalk = 200
-    Sburn = 50
-    Smcmc = 500
+    Nwalk = 500
+    Sburn = 500
+    Smcmc = 5000
 else:
     Nwalk = 50
     Sburn = 10
@@ -66,7 +66,7 @@ Hg = False
 pol = False
 
 
-corner_color = ""  # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
+corner_color = "red"  # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
 # IF YOU DO NOT CHOOSE A COLOR, A RANDOM ONE WILL BE SELECTED
 
 # Plot options
