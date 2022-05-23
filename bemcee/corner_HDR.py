@@ -409,7 +409,22 @@ def corner(
                     np.array(truths[i]).any() is not None
                     and np.array(truths[j]).any() is not None
                 ):
-                    ax.plot(truths[j], truths[i], "s", color=truth_color)
+                    print(truths[j])
+                    print(truths[i])
+
+                    if isinstance(truths[j], list):
+                        for truj in truths[j]:
+                            if isinstance(truths[i], list):
+                                for trui in truths[i]:
+                                    ax.plot(truj, trui, "s", color=truth_color)
+                            else:
+                                ax.plot(truj, truths[i], "s", color=truth_color)
+                    elif isinstance(truths[i], list):
+                        for trui in truths[i]:
+                            ax.plot(truths[j], trui, "s", color=truth_color)
+                    # else:
+                #        ax.plot(truths[j], truths[i], "s", color=truth_color)
+
                 if np.array(truths[j]).any() is not None:
                     if isinstance(truths[j], list):
                         for truj in truths[j]:

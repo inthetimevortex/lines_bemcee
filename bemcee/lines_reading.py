@@ -575,10 +575,10 @@ def read_aara_pol():
 
     listpar, lbdarr, minfo, models = readBAsed(xdrPL, quiet=False)
     listpar2, lbdarr2, minfo2, models2 = readBAsed(xdrPL2, quiet=False)
-    print(listpar)
-    print(listpar2)
-    listpar[0] = np.append(listpar[0],listpar2[0][-1])
-    print(listpar)
+    # print(listpar)
+    # print(listpar2)
+    listpar[0] = np.append(listpar[0], listpar2[0][-1])
+    # print(listpar)
 
     minfo = np.concatenate((minfo, minfo2), axis=0)
     models = np.concatenate((models, models2), axis=0)
@@ -677,7 +677,7 @@ def read_aara_pol():
     #     new_models.append(np.array([Uf, Bf, Vf, Rf, If]))
     # models = np.copy(new_models)
     # else:
-    models = np.load(flag.folder_models + "models_pol_aara.npy")
+    models = np.load(flag.folder_models + "NEWmodels_pol_aara.npy")
     lbdarr = np.array([0.3656, 0.4353, 0.5477, 0.6349, 0.8797])
     # models = np.copy(new_models)
     # if doconvpol is True:
@@ -1105,7 +1105,7 @@ def read_iue(models, lbdarr):
         if sigma[i] < flux[i] * 0.01:
             sigma[i] = flux[i] * 0.01
 
-    ic(sigma / flux)
+    # ic(sigma / flux)
 
     return wave, flux, sigma
 

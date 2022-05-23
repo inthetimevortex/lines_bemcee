@@ -8,7 +8,7 @@ from scipy.stats import gaussian_kde
 import struct as struct
 import tarfile as _tarfile
 import bemcee.constants as const
-import warnings as _warn
+import warnings as warn
 from scipy.interpolate import UnivariateSpline
 
 
