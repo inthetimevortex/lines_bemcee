@@ -6,9 +6,9 @@
 stars =             'gammaCas'  # Star name
 a_parameter =       2.0   # Set internal steps of each walker
 extension =         '.png'  # Figure flag.extension to be saved
-include_rv =        True  # If False: fix Rv = 3.1, else Rv will be inferead
+include_rv =        False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter =         False  # Remove walkers outside the range 0.2 < af < 0.5
-long_process =      True  # Run with few walkers or many?
+long_process =      False  # Run with few walkers or many?
 Nsigma_dis =        2.  # Set the range of values for the distance
 model =             'aeri'  # 'beatlas', 'aeri', or 'acol'
 ha_ops = False
@@ -18,9 +18,9 @@ if long_process is True:
     Sburn = 500
     Smcmc = 5000
 else:
-    Nwalk = 70
-    Sburn = 70
-    Smcmc = 200
+    Nwalk = 20
+    Sburn = 20
+    Smcmc = 70
 
 binary_star = False
 
@@ -30,7 +30,7 @@ folder_defs = '../defs/'
 folder_tables = '../tables/'
 folder_models = '../models/'
 
-lbd_range = 'UV+VIS'
+lbd_range = 'UV'
 
 vsini_prior =   False # Uses a gaussian vsini prior
 dist_prior =    True # Uses a gaussian distance prior
@@ -53,8 +53,8 @@ remove_partHa =     False # Remove a lbd interval in flag.Halpha that has too mu
 
 SED =           True #True if you have any kind of SED data (IUE, visible, etc)
 iue =           True
-votable =       False
-data_table=     True
+votable =       True
+data_table=     False
 
 Ha =            False
 Hb =            False
@@ -63,7 +63,7 @@ Hg =            False
 
 pol = False
 
-corner_color = '' # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
+corner_color = 'pink' # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
                   # IF YOU DO NOT CHOOSE A COLOR, A RANDOM ONE WILL BE SELECTED
 
 # Plot options

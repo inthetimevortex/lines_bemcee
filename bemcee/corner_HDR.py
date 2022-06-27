@@ -20,13 +20,13 @@ __all__ = ["corner", "hist2d", "quantile"]
 import seaborn as sns
 import matplotlib.ticker as ticker
 
-sfmt = ticker.ScalarFormatter(useMathText=True)
+# sfmt = ticker.ScalarFormatter(useMathText=True)
 # sfmt.set_powerlimits((0, 0))
-sfmt.set_scientific(True)
-sfmt.set_powerlimits((-2, 3))
+# sfmt.set_scientific(True)
+# sfmt.set_powerlimits((-2, 3))
 
-# sns.set(style="ticks", context='paper')
-sns.set_style("white", {"xtick.major.direction": "in", "ytick.major.direction": "in"})
+sns.set(style="ticks")
+# sns.set_style("white", {"xtick.major.direction": "in", "ytick.major.direction": "in"})
 
 
 def corner(
@@ -330,7 +330,7 @@ def corner(
                 # Compute the quantiles for the title. This might redo
                 # unneeded computation but who cares.
                 q_16, q_84 = hpd(
-                    x, alpha=0.32
+                    x, alpha=0.05
                 )  # quantile(x, [0.16, 0.5, 0.84], weights=weights)
                 q_m, q_p = truths[i] - q_16, q_84 - truths[i]  # q_50-q_16, q_84-q_50
 
@@ -409,8 +409,8 @@ def corner(
                     np.array(truths[i]).any() is not None
                     and np.array(truths[j]).any() is not None
                 ):
-                    print(truths[j])
-                    print(truths[i])
+                    # print(truths[j])
+                    # print(truths[i])
 
                     if isinstance(truths[j], list):
                         for truj in truths[j]:

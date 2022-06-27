@@ -155,7 +155,7 @@ def lnlike(params, logF_mod):
             onlyUV = np.logical_and(lbd_UV > 0.13, lbd_UV < 0.3)
             chi2_onlyUV = np.sum(
                 (
-                    (10 ** logF_UV[onlyUV] - 10 ** flux_mod[onlyUV]) ** 2.0
+                    (10 ** logF_UV[onlyUV] - flux_mod[onlyUV]) ** 2.0
                     / (10 ** logF_UV[onlyUV] * dlogF_UV[onlyUV]) ** 2.0
                 )
             )
@@ -396,17 +396,32 @@ def lnprior(params, logF_mod):
         if flag.stars == "HD37795":
             EW_data = -29.15
             EW_err = 2.80
+            FWHM_data = 237.36943
+            FWHM_err = 237.36943 * 0.01
         elif flag.stars == "HD58715":
-            EW_data = 1.0
-            EW_err = 1.0
+            EW_data = -15.18
+            EW_err = 1.15
+            FWHM_data = 272.71297
+            FWHM_err = 272.71297 * 0.01
         # EW_data = spec.EWcalc(vl, fx) / 10.0
         vl, fx = lineProf(wl, Ha_model, hwidth=5000.0, lbc=0.6562801)
         EW_model = spec.EWcalc(vl, fx) / 10.0
+        hm = (spec.ECcalc(vl, fx)[0] - 1) / 2 + 1
+        FWHM_model = np.abs(
+            vl[vl < 0][find_nearest(fx[vl < 0], hm)[1]]
+            - vl[vl > 0][find_nearest(fx[vl > 0], hm)[1]]
+        )
         chi2_ew = ((EW_data - EW_model) / EW_err) ** 2.0
+        chi2_fwhm = ((FWHM_data - FWHM_model) / FWHM_err) ** 2
     else:
         chi2_ew = 0.0
+        chi2_fwhm = 0.0
 
-    chi2_prior = chi2_vsi + chi2_dis + chi2_stellar_prior + chi2_incl + chi2_ew
+    # ic(chi2_ew)
+    # ic(chi2_fwhm)
+    chi2_prior = (
+        chi2_vsi + chi2_dis + chi2_stellar_prior + chi2_incl + chi2_ew + chi2_fwhm
+    )
 
     if chi2_prior is np.nan:
         chi2_prior = -np.inf

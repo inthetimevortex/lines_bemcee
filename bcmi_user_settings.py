@@ -4,7 +4,7 @@
 
 
 stars = "HD58715"  # Star name
-a_parameter = 1.2  # Set internal steps of each walker
+a_parameter = 1.8  # Set internal steps of each walker
 extension = ".png"  # Figure flag.extension to be saved
 include_rv = False  # If False: fix Rv = 3.1, else Rv will be inferead
 af_filter = False  # Remove walkers outside the range 0.2 < af < 0.5
@@ -58,7 +58,7 @@ iue = True
 votable = True
 data_table = False
 
-Ha = True
+Ha = False
 Hb = False
 Hd = False
 Hg = False

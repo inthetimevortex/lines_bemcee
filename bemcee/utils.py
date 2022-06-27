@@ -8,7 +8,7 @@ from scipy.stats import gaussian_kde
 import struct as struct
 import tarfile as _tarfile
 import bemcee.constants as const
-import warnings as warn
+import warnings as _warn
 from scipy.interpolate import UnivariateSpline
 
 
@@ -917,7 +917,7 @@ def griddataBAtlas(minfo, models, params, listpar, dims, isig):
     out_interp = griddata(minfo[idx], models[idx], params)[0]
     #
     if np.sum(out_interp) == 0 or np.sum(np.isnan(out_interp)) > 0:
-        print("# Houve um problema na grade. Tentando arrumadar...")
+        # print("# Houve um problema na grade. Tentando arrumadar...")
         idx = np.arange(len(minfo))
         for i in [i for i in range(len(params)) if i != dims["sig0"]]:
             imin = lim_vals[i][0]
@@ -933,8 +933,8 @@ def griddataBAtlas(minfo, models, params, listpar, dims, isig):
             idx = np.intersect1d(idx, phc.flatten(tmp))
         out_interp = griddata(minfo[idx], models[idx], params)[0]
     #
-    if np.sum(out_interp) == 0 or np.sum(np.isnan(out_interp)) > 0:
-        print("# Houve um problema na grade e eu nao conseguir arrumar...")
+    # if (np.sum(out_interp) == 0 or np.sum(np.isnan(out_interp)) > 0):
+    #        print("# Houve um problema na grade e eu nao conseguir arrumar...")
     #
     return out_interp
 

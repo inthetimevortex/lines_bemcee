@@ -58,7 +58,7 @@ iue = True
 votable = True
 data_table = False
 
-Ha = False
+Ha = True
 Hb = False
 Hd = False
 Hg = False

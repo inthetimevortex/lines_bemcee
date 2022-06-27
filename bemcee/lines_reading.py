@@ -337,7 +337,7 @@ def read_beatlas_xdr(lista_obs):
     listpar[-1][0] = 0.0
 
     listpar[2] = np.round(listpar[2], decimals=3)
-
+    print(listpar)
     return ctrlarr, minfo, [models], [lbdarr], listpar, dims, isig
 
 

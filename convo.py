@@ -104,11 +104,11 @@ def log_prior(params, ranges, vmod, fmod):
         ranges[0, 0] < v_e < ranges[0, 1]
         and ranges[1, 0] < fac_e < ranges[1, 1]
     ):
-        fconv = gauss_conv(params, vmod, fmod)
-        EW_mod = spec.EWcalc(vmod, fconv) / 10.0
-        chi2_ew = ((EW_data - EW_mod) / (0.1 * EW_data)) ** 2.0
+        # fconv = gauss_conv(params, vmod, fmod)
+        # EW_mod = spec.EWcalc(vmod, fconv) / 10.0
+        # chi2_ew = ((EW_data - EW_mod) / (0.1 * EW_data)) ** 2.0
         # print(chi2_ew)
-        return chi2_ew
+        return 0.0
     return -np.inf
 
 
@@ -136,16 +136,19 @@ if __name__ == "__main__":
 
     ctrlarr, minfo, models, lbdarr, listpar, dims, isig = read_acol_Ha_xdr(lista_obs)
 
-    M = 4.675
-    W = 0.906
+    M = 4.7727121
+    W = 0.85899054
     ob = W2oblat(W)
-    ttms = 0.92
+    # ob = 1.367282138
+    ttms = 0.9903534984
     Hfrac = hfrac2tms(ttms, inverse=True)
-    sig0 = 11.987
-    Rd = 17.04
-    mr = 2.494
-    i = 31.04
+    # Hfrac = 0.1023499
+    sig0 = 11.86051131
+    Rd = 16.5923432784
+    mr = 2.355036862
+    i = 43.54239333115
     cosi = np.cos(i)
+    # cosi = 0.820833
 
     mod_pars = [M, ob, Hfrac, sig0, Rd, mr, cosi]
     # u = np.where(lista_obs == "Ha")
@@ -206,7 +209,7 @@ if __name__ == "__main__":
     state = sampler.run_mcmc(p0, 200, progress=True)
     sampler.reset()
 
-    sampler.run_mcmc(state, 10000, progress=True)
+    sampler.run_mcmc(state, 5000, progress=True)
 
     flat_samples = sampler.get_chain(discard=200, thin=15, flat=True)
 

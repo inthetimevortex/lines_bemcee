@@ -1,0 +1,20 @@
+\begin{table} 
+\centering 
+\begin{tabular}{lll} 
+\hline 
+Parameter  & Value & Type \\ 
+\hline 
+$M\,[M_\odot]$& $12.552^{+0.391}_{-0.387}$ & Free \\ 
+$W$& $0.803^{+0.028}_{-0.026}$ & Free \\ 
+$t/t_\mathrm{ms}$& $1.020^{+0.066}_{-0.062}$ & Free \\ 
+$i[\mathrm{^o}]$& $86.926^{+3.026}_{-3.897}$ & Free \\ 
+$\pi\,[mas]$& $5.947^{+0.112}_{-0.108}$ & Free \\ 
+E(B-V)& $0.037^{+0.003}_{-0.002}$ & Free \\ 
+$R_{\rm eq}/R_{\rm p}$ & $1.32^{+0.02}_{-0.02}$ & Derived  \\ 
+$R_{\rm eq}\,[R_\odot]$ & $10.77^{+0.82}_{-0.43}$ & Derived  \\ 
+$\log(L)\,[L_\odot]$ & $4.46^{+0.08}_{-0.07}$ & Derived  \\ 
+$v \sin i\,\rm[km/s]$ & $312.87^{+76.72}_{--46.03}$ & Derived  \\ 
+$T_{\rm eff}$ & $24140.52^{+556.60}_{-774.40}$ & Derived  \\ 
+\hline 
+\end{tabular} 
+\end{table} 

@@ -115,10 +115,10 @@ def set_ranges(star, lista_obs, listpar):
 
     if flag.SED or flag.normal_spectra is False:
         if flag.include_rv:
-            ebmv, rv = [[0.0, 0.8], [1.0, 5.8]]
+            ebmv, rv = [[0.0, 0.2], [1.0, 5.8]]
         else:
             rv = 3.1
-            ebmv, rv = [[0.0, 0.8], None]
+            ebmv, rv = [[0.0, 0.2], None]
 
         dist_min = file_plx - flag.Nsigma_dis * file_dplx
         dist_max = file_plx + flag.Nsigma_dis * file_dplx

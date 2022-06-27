@@ -4,11 +4,29 @@ from bemcee.corner_HDR import corner
 import sys
 import importlib
 import organizer as info
-from bemcee.be_theory import obl2W, hfrac2tms
+from bemcee.be_theory import obl2W, hfrac2tms, W2oblat
 from bemcee.hpd import hpd_grid
 from PyAstronomy import pyasl
-from bemcee.utils import griddataBAtlas, griddataBA, linfit, lineProf
-from synphot import units, SourceSpectrum, SpectralElement, Observation
+from bemcee.utils import (
+    griddataBAtlas,
+    griddataBA,
+    linfit,
+    lineProf,
+    geneva_interp_fast,
+    geneva_interp,
+    beta,
+    oblat2w,
+)
+from bemcee.lines_reading import read_BAphot2_xdr
+from PyAstronomy import pyasl
+import seaborn as sns
+import matplotlib.ticker as ticker
+from konoha.constants import Msun, Rsun, sigma, G, Lsun
+
+# plt.rc("xtick", labelsize=7.5)
+# plt.rc("ytick", labelsize=7)
+
+# from synphot import units, SourceSpectrum, SpectralElement, Observation
 
 mod_name = sys.argv[1] + "_" + "user_settings"
 flag = importlib.import_module(mod_name)
@@ -27,7 +45,9 @@ def plot_residuals(par, npy, current_folder, fig_name):
     """
     # plt.rc("xtick", labelsize="x-large")
     # plt.rc("ytick", labelsize="x-large")
-
+    sns.set_style("ticks")
+    sfmt = ticker.ScalarFormatter(useMathText=True)
+    sfmt.set_scientific(True)
     chain = np.load(npy)
     par_list = []
     flat_samples = chain.reshape((-1, info.Ndim))
@@ -137,12 +157,12 @@ def plot_residuals(par, npy, current_folder, fig_name):
             )
             ax1.plot(lbd_UV, F_temp, color="gray", alpha=0.1, lw=0.6)
 
-        ax2.plot(lbd_UV, (flux_UV - F_temp) / dflux, "ks", ms=8, alpha=0.2)
+        ax2.plot(lbd_UV, (flux_UV - F_temp) / dflux, "ks", ms=6, alpha=0.2)
         # ax2.set_ylim(-10,10)
         if flag.votable or flag.data_table:
             # ax2.set_xscale('log')
             ax1.set_xscale("log")
-            ax1.set_yscale("log")
+            # ax1.set_yscale("log")
             ax2.set_xscale("log")
 
         # Plot Data
@@ -154,24 +174,25 @@ def plot_residuals(par, npy, current_folder, fig_name):
             ls="",
             marker="o",
             alpha=0.5,
-            ms=8,
+            ms=6,
             color="k",
             linewidth=1,
         )
-        ax2.axhline(y=0.0, ls=(0, (5, 10)), lw=0.5, color="gray")
-        ax2.set_xlabel(r"$\lambda\,\mathrm{[\mu m]}$", fontsize=18)
+        ax2.axhline(y=0.0, ls=(0, (5, 10)), lw=0.7, color="k")
+        ax2.set_xlabel(r"$\lambda\,\mathrm{[\mu m]}$", fontsize=16)
         ax1.set_ylabel(
             r"$F_{\lambda}\,\mathrm{[erg\, s^{-1}\, cm^{-2}\, \mu m^{-1}]}$",
-            fontsize=18,
+            fontsize=16,
         )
-        ax2.set_ylabel(r"$(F-F_\mathrm{m})/\sigma$", fontsize=18)
+        ax2.set_ylabel(r"$(F-F_\mathrm{m})/\sigma$", fontsize=16)
         ax2.sharex(ax1)
-        ax1.tick_params(axis="both", which="major", labelsize=19)
-        ax2.tick_params(axis="both", which="major", labelsize=19)
+        plt.ticklabel_format(axis="y", style="sci", scilimits=(-7, 0))
+        # ax1.tick_params(axis="both", reset=True, which="major", labelsize=16)
+        # ax2.tick_params(axis="both", reset=True, which="major", labelsize=16)
 
-        if flag.Ha:
-            line = "Ha"
-            plot_line(line, par, par_list)
+        # if flag.Ha:
+        #        line = "Ha"
+        #        plot_line(line, par, par_list)
 
         return
 
@@ -277,8 +298,301 @@ def plot_line(line, par, par_list):
     return
 
 
-Nwalk = 500
-nint_mcmc = 5000
+def print_to_latex(params_fit, errors_fit):
+    """
+    Prints results in latex table format
+
+    Usage:
+    params_to_print = print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels, hpds)
+    """
+    # params_fit = []
+    # errors_fit = []
+    # for i in range(len(errs_fit)):
+    #     errors_fit.append(errs_fit[i][0])
+    #     params_fit.append(par_fit[i][0])
+    fname = "gcas.txt"
+
+    if flag.model == "aeri":
+        names = ["Mstar", "W", "t/tms", "i", "Dist", "E(B-V)"]
+        if flag.include_rv:
+            names = names + ["RV"]
+        if flag.binary_star:
+            names = names + ["M2"]
+    if flag.model == "acol":
+        names = ["Mstar", "W", "t/tms", "logn0", "Rd", "n", "i", "Dist", "E(B-V)"]
+        if flag.include_rv:
+            names = names + ["RV"]
+        if flag.binary_star:
+            names = names + ["M2"]
+    if flag.model == "beatlas":
+        names = ["Mstar", "W", "Sig0", "n", "i", "Dist", "E(B-V)"]
+        if flag.include_rv:
+            names = names + ["RV"]
+        if flag.binary_star:
+            names = names + ["M2"]
+
+    file1 = open(fname, "w")
+    L = [
+        r"\begin{table}" + " \n",
+        "\centering \n",
+        r"\begin{tabular}{lll}" + " \n",
+        "\hline \n",
+        "Parameter  & Value & Type \\\ \n",
+        "\hline \n",
+    ]
+    file1.writelines(L)
+
+    params_to_print = []
+    # print(errors_fit[0][1])
+    for i in range(len(params_fit)):
+        params_to_print.append(
+            names[i]
+            + "= {0:.3f} +{1:.3f} -{2:.3f}".format(
+                params_fit[i], errors_fit[i][0], errors_fit[i][1]
+            )
+        )
+        file1.writelines(
+            info.labels[i]
+            + "& ${0:.3f}^{{+{1:.3f}}}_{{-{2:.3f}}}$ & Free \\\ \n".format(
+                params_fit[i], errors_fit[i][0], errors_fit[i][1]
+            )
+        )
+
+    # if len(hpds[0]) > 1:
+
+    Mstar = params_fit[0]
+    Mstar_range = [Mstar + errors_fit[0][0], Mstar - errors_fit[0][1]]
+
+    W = params_fit[1]
+    W_range = [W + errors_fit[1][0], W - errors_fit[1][1]]
+
+    tms = params_fit[2]
+    tms_range = [tms + errors_fit[2][0], tms - errors_fit[2][1]]
+
+    cosi = params_fit[3]
+    cosi_range = [cosi + errors_fit[3][0], cosi - errors_fit[3][1]]
+
+    oblat = W2oblat(W)
+    ob_max, ob_min = W2oblat(W_range[0]), W2oblat(W_range[1])
+    oblat_range = [ob_max, ob_min]
+    print(oblat_range, oblat)
+
+    if tms <= 1.0:
+        Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr="014")
+    else:
+        Rpole, logL = geneva_interp(Mstar, oblat, tms, Zstr="014")
+    # Rpole, logL, _ = geneva_interp_fast(Mstar, oblat, tms, Zstr='014')
+
+    Rpole_range = [0.0, 100.0]
+    logL_range = [0.0, 100000.0]
+
+    for mm in Mstar_range:
+        for oo in oblat_range:
+            for tt in tms_range:
+                if tt <= 1.0:
+                    Rpolet, logLt, _ = geneva_interp_fast(mm, oo, tt, Zstr="014")
+                else:
+                    Rpolet, logLt = geneva_interp(mm, oo, tt, Zstr="014")
+                # Rpolet, logLt, _ = geneva_interp_fast(mm, oo, tt, Zstr='014')
+                if Rpolet > Rpole_range[0]:
+                    Rpole_range[0] = Rpolet
+                    # print('Rpole max is now = {}'.format(Rpole_range[0]))
+                if Rpolet < Rpole_range[1]:
+                    Rpole_range[1] = Rpolet
+                    # print('Rpole min is now = {}'.format(Rpole_range[1]))
+                if logLt > logL_range[0]:
+                    logL_range[0] = logLt
+                    # print('logL max is now = {}'.format(logL_range[0]))
+                if logLt < logL_range[1]:
+                    logL_range[1] = logLt
+                    # print('logL min is now = {}'.format(logL_range[1]))
+
+    # beta_range = [beta(oblat_range[0], is_ob=True), beta(oblat_range[1], is_ob=True)]
+    #
+    # beta_par = beta(oblat, is_ob=True)
+
+    Req = oblat * Rpole
+    Req_max, Req_min = oblat_range[0] * Rpole_range[0], oblat_range[1] * Rpole_range[1]
+
+    wcrit = np.sqrt(8.0 / 27.0 * G * Mstar * Msun / (Rpole * Rsun) ** 3)
+    vsini = W * wcrit * (Req * Rsun) * np.sin(cosi * np.pi / 180.0) * 1e-5
+
+    w_ = oblat2w(oblat)
+    A_roche = (
+        4.0
+        * np.pi
+        * (Rpole * Rsun) ** 2
+        * (
+            1.0
+            + 0.19444 * w_ ** 2
+            + 0.28053 * w_ ** 4
+            - 1.9014 * w_ ** 6
+            + 6.8298 * w_ ** 8
+            - 9.5002 * w_ ** 10
+            + 4.6631 * w_ ** 12
+        )
+    )
+
+    Teff = ((10.0 ** logL) * Lsun / sigma / A_roche) ** 0.25
+
+    Teff_range = [0.0, 50000.0]
+    # for oo in oblat_range:
+    #     for rr in Rpole_range:
+    #         for ll in logL_range:
+    #
+    #             w_ = oblat2w(oo)
+    #             A_roche = (
+    #                 4.0
+    #                 * np.pi
+    #                 * (rr * Rsun) ** 2
+    #                 * (
+    #                     1.0
+    #                     + 0.19444 * w_ ** 2
+    #                     + 0.28053 * w_ ** 4
+    #                     - 1.9014 * w_ ** 6
+    #                     + 6.8298 * w_ ** 8
+    #                     - 9.5002 * w_ ** 10
+    #                     + 4.6631 * w_ ** 12
+    #                 )
+    #             )
+    #
+    #             Teff_ = ((10.0 ** ll) * Lsun / sigma / A_roche) ** 0.25
+    #             if Teff_ > Teff_range[0]:
+    #                 Teff_range[0] = Teff_
+    #                 # print('Teff max is now = {}'.format(Teff_range[0]))
+    #             if Teff_ < Teff_range[1]:
+    #                 Teff_range[1] = Teff_
+    #                 # print('Teff min is now = {}'.format(Teff_range[1]))
+
+    vsini_range = [0.0, 10000.0]
+    for mm in Mstar_range:
+        for oo in oblat_range:
+            for tt in tms_range:
+                for ii in cosi_range:
+                    if tt <= 1.0:
+                        rr, ll, _ = geneva_interp_fast(mm, oo, tt, Zstr="014")
+                    else:
+                        rr, ll = geneva_interp(mm, oo, tt, Zstr="014")
+                    wcrit = np.sqrt(8.0 / 27.0 * G * mm * Msun / (rr * Rsun) ** 3)
+                    print(rr, oo)
+                    w_ = oblat2w(oo)
+                    vsinit = (
+                        w_
+                        * wcrit
+                        * (oo * rr * Rsun)
+                        * np.sin(ii * np.pi / 180.0)
+                        * 1e-5
+                    )
+                    if vsinit > vsini_range[0]:
+                        vsini_range[0] = vsinit
+                        print("vsini max is now = {}".format(vsini_range[0]))
+
+                    if vsinit < vsini_range[1]:
+                        vsini_range[1] = vsinit
+                        print("vsini min is now = {}".format(vsini_range[1]))
+                    A_roche = (
+                        4.0
+                        * np.pi
+                        * (rr * Rsun) ** 2
+                        * (
+                            1.0
+                            + 0.19444 * w_ ** 2
+                            + 0.28053 * w_ ** 4
+                            - 1.9014 * w_ ** 6
+                            + 6.8298 * w_ ** 8
+                            - 9.5002 * w_ ** 10
+                            + 4.6631 * w_ ** 12
+                        )
+                    )
+
+                    Teff_ = ((10.0 ** ll) * Lsun / sigma / A_roche) ** 0.25
+                    if Teff_ > Teff_range[0]:
+                        Teff_range[0] = Teff_
+                        # print('Teff max is now = {}'.format(Teff_range[0]))
+                    if Teff_ < Teff_range[1]:
+                        Teff_range[1] = Teff_
+                        # print('Teff min is now = {}'.format(Teff_range[1]))
+
+    file1.writelines(
+        r"$R_{\rm eq}/R_{\rm p}$"
+        + " & ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Derived  \\\ \n".format(
+            oblat, oblat_range[0] - oblat, oblat - oblat_range[1]
+        )
+    )
+    params_to_print.append(
+        "Oblateness = {0:.2f} +{1:.2f} -{2:.2f}".format(
+            oblat, oblat_range[0] - oblat, oblat - oblat_range[1]
+        )
+    )
+    file1.writelines(
+        r"$R_{\rm eq}\,[R_\odot]$"
+        + " & ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Derived  \\\ \n".format(
+            Req, Req_max - Req, Req - Req_min
+        )
+    )
+    params_to_print.append(
+        "Equatorial radius = {0:.2f} +{1:.2f} -{2:.2f}".format(
+            Req, Req_max - Req, Req - Req_min
+        )
+    )
+    file1.writelines(
+        r"$\log(L)\,[L_\odot]$"
+        + " & ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Derived  \\\ \n".format(
+            logL, logL_range[0] - logL, logL - logL_range[1]
+        )
+    )
+    params_to_print.append(
+        "Log Luminosity  = {0:.2f} +{1:.2f} -{2:.2f}".format(
+            logL, logL_range[0] - logL, logL - logL_range[1]
+        )
+    )
+    # file1.writelines(
+    #     r"$\beta$"
+    #     + " & ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Derived \\\ \n".format(
+    #         beta_par, beta_range[1] - beta_par, beta_par - beta_range[0]
+    #     )
+    # )
+    # params_to_print.append(
+    #     "Beta  = {0:.2f} +{1:.2f} -{2:.2f}".format(
+    #         beta_par, beta_range[1] - beta_par, beta_par - beta_range[0]
+    #     )
+    # )
+    file1.writelines(
+        r"$v \sin i\,\rm[km/s]$"
+        + " & ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Derived  \\\ \n".format(
+            vsini, vsini_range[0] - vsini, vsini - vsini_range[1]
+        )
+    )
+    params_to_print.append(
+        "vsini = {0:.2f} +{1:.2f} -{2:.2f}".format(
+            vsini, vsini_range[0] - vsini, vsini - vsini_range[1]
+        )
+    )
+    file1.writelines(
+        r"$T_{\rm eff}$"
+        + " & ${0:.2f}^{{+{1:.2f}}}_{{-{2:.2f}}}$ & Derived  \\\ \n".format(
+            Teff, Teff_range[0] - Teff, Teff - Teff_range[1]
+        )
+    )
+    params_to_print.append(
+        "Teff = {0:.2f} +{1:.2f} -{2:.2f}".format(
+            Teff, Teff_range[0] - Teff, Teff - Teff_range[1]
+        )
+    )
+
+    L = ["\hline \n", "\end{tabular} \n" "\end{table} \n"]
+
+    file1.writelines(L)
+
+    file1.close()
+
+    params_print = " \n".join(map(str, params_to_print))
+
+    return params_to_print
+
+
+Nwalk = 300
+nint_mcmc = 7000
 
 # 22-03-23-183504Walkers_300_Nmcmc_5000_af_0.21_a_2.0+aeri_distPrior_inclPrior+iue.npy
 # af = "0.27"
@@ -287,22 +601,37 @@ nint_mcmc = 5000
 # 22-04-28-030932Walkers_500_Nmcmc_5000_af_0.28_a_2.0+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha
 # 22-05-04-145412Walkers_500_Nmcmc_5000_af_0.20_a_1.6+aara_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO.npy
 # AARA
-af = "0.20"
-date = "22-05-04-145412"
+# 22-06-04-131513Walkers_1000_Nmcmc_7000_af_0.15_a_1.4+aara_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO.npy
+af = "0.15"
+date = "22-06-04-131513"
 tag = "+aara_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO"
 
 #
 # # BCMI
 # # 22-05-12-011643Walkers_900_Nmcmc_5000_af_0.27_a_1.2+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha.npy
-# af = "0.27"
-# date = "22-05-12-011643"
+# 22-05-25-142921Walkers_500_Nmcmc_5000_af_0.25_a_1.8+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha.npy
+# 22-06-03-131900Walkers_600_Nmcmc_6000_af_0.29_a_1.8+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha.npy
+# af = "0.29"
+# date = "22-06-03-131900"
 # tag = "+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha"
 #
 # # ACOL
 # # 22-04-28-030932Walkers_500_Nmcmc_5000_af_0.28_a_2.0+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha.npy
-# af = "0.28"
-# date = "22-04-28-030932"
-# tag = "+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha"
+# 22-05-25-122141Walkers_500_Nmcmc_5000_af_0.19_a_2.0+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha.npy
+# 22-06-03-021252Walkers_700_Nmcmc_6000_af_0.19_a_2.0+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha.npy
+# 22-06-15-194229Walkers_300_Nmcmc_5000_af_0.25_a_2.0+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha.npy
+af = "0.25"
+date = "22-06-15-194229"
+tag = "+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha"
+
+# # GCAS
+# 22-06-22-100634Walkers_300_Nmcmc_7000_af_0.30_a_2.0+aeri_vsiniPrior_distPrior_inclPriorUV.npy
+# 22-06-25-072903Walkers_300_Nmcmc_7000_af_0.34_a_2.0+aeri_vsiniPrior_distPrior_inclPriorUV.npy
+# 22-06-27-065631Walkers_300_Nmcmc_7000_af_0.28_a_2.0+aeri_vsiniPrior_distPriorUV.npy
+af = "0.28"
+date = "22-06-27-065631"
+tag = "+aeri_vsiniPrior_distPriorUV"
+
 
 current_folder = str(flag.folder_fig) + str(flag.stars) + "/"
 fig_name = (
@@ -368,7 +697,7 @@ hpds = []
 for i in range(info.Ndim):
     print("## " + info.labels[i])
     # print(samples[:,i])
-    hpd_mu, x_mu, y_mu, modes_mu = hpd_grid(samples[:, i], alpha=0.32)
+    hpd_mu, x_mu, y_mu, modes_mu = hpd_grid(samples[:, i], alpha=0.32, roundto=3)
     # mode_val = mode1(np.round(samples[:,i], decimals=2))
     bpars = []
     epars = []
@@ -382,7 +711,7 @@ for i in range(info.Ndim):
         bpars.append(median_val)
         epars.append([x1 - median_val, median_val - x0])
         print(
-            "{0:.3f} + {1:.3f} - {2:.3f}".format(
+            "{0:.5f} + {1:.5f} - {2:.5f}".format(
                 median_val, x1 - median_val, median_val - x0
             )
         )
@@ -415,10 +744,60 @@ fig_corner = corner(
     combined=True,
 )
 
-# b = SpectralElement.from_filter("johnson_b")
-# v = SpectralElement.from_filter("johnson_v")
-
 plot_residuals(best_pars, file_npy, current_folder, fig_name)
 
+params_to_print = print_to_latex([a[0] for a in best_pars], [a[0] for a in best_errs])
 
 plt.savefig(current_folder + fig_name + "REDONE.png", dpi=100)
+
+Mass = best_pars[0][0]
+W = best_pars[1][0]
+ttms = best_pars[2][0]
+incl = best_pars[3][0]
+dist = best_pars[4][0]
+ebmv = best_pars[5][0]
+
+oblat = W2oblat(W)
+omega = oblat2w(oblat)
+if ttms <= 1.0:
+    Rpole, logL, age = geneva_interp_fast(Mass, oblat, ttms, Zstr="014")
+else:
+    Rpole, logL = geneva_interp(Mass, oblat, ttms, Zstr="014")
+# Beta = beta(oblat, is_ob=True)
+
+print(oblat, Rpole, logL)
+wcrit = np.sqrt(8.0 / 27.0 * G * Mass * Msun / (Rpole * Rsun) ** 3)
+
+cosi = np.cos(incl * np.pi / 180)
+vsini = oblat2w(oblat) * wcrit * (Rpole * Rsun * oblat) * np.sin(incl) * 1e-5
+print("the vsini")
+print(vsini)
+
+params = [Mass, W, ttms, np.cos(np.deg2rad(incl))]
+
+ctrlarr, minfo, models, lbdarr, listpar, dims, isig = read_BAphot2_xdr(["UV+VIS"])
+mod = griddataBA(minfo, models[0], params, listpar, dims)  # erg/s/cm2/micron
+lbdarr = lbdarr[0]
+dista = 1e3 / dist
+norma = (10 / dista) ** 2
+mod = mod * norma
+flux_mod = pyasl.unred(lbdarr * 1e4, mod, ebv=-1 * ebmv, R_V=3.1)
+
+
+# tcs = pyasl.TransmissionCurves()
+# wvl = np.linspace(3000, 10000, 10000)
+# Ufilt = tcs.getTransCurve("Johnson U")
+# Uband = Ufilt(wvl)
+# Ubs = tcs.convolveWith(lbdarr * 1e4, flux_mod * 1e-4, "Johnson U")
+# Uval = np.trapz(Ubs)
+#
+# Bfilt = tcs.getTransCurve("Johnson B")
+# Bband = Bfilt(wvl)
+# Bbs = tcs.convolveWith(lbdarr * 1e4, flux_mod * 1e-4, "Johnson B")
+# Bval = np.trapz(Bbs)
+#
+#
+# Vfilt = tcs.getTransCurve("Johnson V")
+# Vband = Vfilt(wvl)
+# Vbs = tcs.convolveWith(lbdarr * 1e4, flux_mod * 1e-4, "Johnson V")
+# Vval = np.trapz(Vbs)

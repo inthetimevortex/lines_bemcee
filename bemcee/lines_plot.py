@@ -94,11 +94,11 @@ def print_to_latex(params_fit, errors_fit, current_folder, fig_name, hpds):
     Usage:
     params_to_print = print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels, hpds)
     """
-    params_fit = []
-    errors_fit = []
-    for i in range(len(errs_fit)):
-        errors_fit.append(errs_fit[i][0])
-        params_fit.append(par_fit[i][0])
+    # params_fit = []
+    # errors_fit = []
+    # for i in range(len(errs_fit)):
+    #     errors_fit.append(errs_fit[i][0])
+    #     params_fit.append(par_fit[i][0])
     fname = current_folder + fig_name + ".txt"
 
     if flag.model == "aeri":

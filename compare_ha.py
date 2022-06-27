@@ -14,13 +14,14 @@ flag = importlib.import_module(mod_name)
 
 lines_dict = {"Ha": 0.6562801}
 
-Nwalk = 500
-nint_mcmc = 5000
+Nwalk = 700
+nint_mcmc = 6000
 
 if sys.argv[1] == "acol":
     # "22-04-28-030932Walkers_500_Nmcmc_5000_af_0.28_a_2.0+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha.npy"
-    af = "0.28"
-    date = "22-04-28-030932"
+    # 22-06-03-021252Walkers_700_Nmcmc_6000_af_0.19_a_2.0+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha.npy
+    af = "0.19"
+    date = "22-06-03-021252"
     tag = "+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha"
 elif sys.argv[1] == "bcmi":
     af = "0.22"
@@ -173,7 +174,7 @@ EWlist2 = []
 for i in range(len(par_list)):
     vl, fx = lineProf(lbd_data, F_list[i], hwidth=5000.0, lbc=lbd_central)
     EWlist1.append(spec.EWcalc(vl, fx) / 10.0)
-    fconv = gauss_conv([271.15218108136514, 0.6571001973998917], vl, fx)
+    fconv = gauss_conv([678.4131975, 0.729948320], vl, fx)
     EWlist2.append(spec.EWcalc(vl, fconv) / 10.0)
     # ax1.plot(lbd_line, F_list[i], color='gray', alpha=0.1)
     if i == len(par_list) - 1:
