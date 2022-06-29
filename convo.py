@@ -10,8 +10,9 @@ from bemcee.be_theory import W2oblat, hfrac2tms
 from bemcee.utils import griddataBA, lineProf
 from astropy.io import fits
 from scipy.interpolate import interp1d
-from bemcee.hpd import hpd_grid
+from konoha.hpd import hpd_grid
 import pyhdust.spectools as spec
+from get_results_from_chain import get_result
 
 # #def gfunc(a, b, c, x):
 #     return a * np.exp(-((x - b) ** 2) / (2.0 * (c ** 2)))
@@ -132,22 +133,26 @@ def log_like(params, vmod, flux, dflux, fmod):
 if __name__ == "__main__":
     # the model
     # ["M", "ob", "Hfrac", "sig0", "Rd", "mr", "cosi"]
-    lista_obs = np.array(["UV", "Ha"])
+    lista_obs = np.array(["UV+VIS+NIR+MIR+FIR+MICROW+RADIO", "Ha"])
 
     ctrlarr, minfo, models, lbdarr, listpar, dims, isig = read_acol_Ha_xdr(lista_obs)
-
-    M = 4.7727121
-    W = 0.85899054
+    star = "HD37795"
+    nchain = "22-06-24-183819Walkers_500_Nmcmc_5000_af_0.22_a_2.0+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha.npy"
+    pars, errs = get_result(nchain, star)
+    print(pars)
+    M, W, ttms, sig0, Rd, mr, i, dist, ebmv = [a[0] for a in pars]
+    # M = 4.7727121
+    # W = 0.85899054
     ob = W2oblat(W)
     # ob = 1.367282138
-    ttms = 0.9903534984
+    # ttms = 0.9903534984
     Hfrac = hfrac2tms(ttms, inverse=True)
     # Hfrac = 0.1023499
-    sig0 = 11.86051131
-    Rd = 16.5923432784
-    mr = 2.355036862
-    i = 43.54239333115
-    cosi = np.cos(i)
+    # sig0 = 11.86051131
+    # Rd = 16.5923432784
+    # mr = 2.355036862
+    # i = 43.54239333115
+    cosi = np.cos(np.deg2rad(i))
     # cosi = 0.820833
 
     mod_pars = [M, ob, Hfrac, sig0, Rd, mr, cosi]
@@ -209,7 +214,7 @@ if __name__ == "__main__":
     state = sampler.run_mcmc(p0, 200, progress=True)
     sampler.reset()
 
-    sampler.run_mcmc(state, 5000, progress=True)
+    sampler.run_mcmc(state, 3000, progress=True)
 
     flat_samples = sampler.get_chain(discard=200, thin=15, flat=True)
 
@@ -252,6 +257,8 @@ if __name__ == "__main__":
     labels = [r"$v_e$", r"$\mathrm{fac}_e$"]
     fig = corner(flat_samples, labels=labels, hdr=True, truths=best_pars)
     plt.savefig("convo_corner.png")
+    plt.close()
+    fig2 = plt.figure(2)
     plt.plot(vmod, flux, "o", alpha=0.5, label="EW = {:.2f}".format(EW_data))
     bflux = gauss_conv([best_pars[0][0], best_pars[1][0]], vmod, fmod)
     bEW = spec.EWcalc(vmod, bflux) / 10.0

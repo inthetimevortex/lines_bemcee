@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import math
 from konoha.utils import readBAsed
+from alive_progress import alive_bar
+from joblib import Parallel, delayed
 
 
 def read_acol_Ha_xdr():
@@ -68,19 +70,82 @@ def read_acol_Ha_xdr():
     return ctrlarr, minfo, models, lbdarr, listpar, dims
 
 
+def extrapol(minfs, minfo, incl_, cosi, i):
+    minfs = [mm, oo, hh, lnn, rr, nn]
+    cond = [np.all(a[:-1] == minfs) for a in minfo]
+    mods = models[cond]
+    # cond2 = [np.all(a == np.append(minfs, incl)) for a in minfo]
+    # mod_incl = models[cond2][0]
+    # for m in mods:
+    # plt.plot(lbdarr[i], m[i] / mod_incl[i])
+
+    coeffs = np.polyfit(incl_, mods[:, i], deg=1)
+    poly = np.poly1d(coeffs)
+    new_val = poly(cosi)
+    # new_flux.append(new_val)
+    return new_val
+
+
 ctrlarr, minfo, models, lbdarr, listpar, dims = read_acol_Ha_xdr()
 
-# incls = np.arccos(listpar[-1]) * 180/np.pi
+mass_ = listpar[0]
+oblat_ = listpar[1]
+hfrac_ = listpar[2]
+ln0_ = listpar[3]
+rd_ = listpar[4]
+n_ = listpar[5]
+incl_ = listpar[6]  # these are cosine values!
 
-for i in range(len(lbdarr)):
-    #for incl in listpar[-1]:
-        incl = listpar[-1][2]
-        minfs = minfo[0, :-1]
-        cond = [np.all(a[:-1] == minfs) for a in minfo]
-        mods = models[cond]
-        cond2 = [np.all(a == np.append(minfs, incl)) for a in minfo]
-        mod_incl = models[cond2][0]
-        for m in mods:
-            plt.plot(lbdarr[i], m[i] / mod_incl[i])
-        coeffs = np.polyfit(listpar[-1], , deg=1)
-        # plt.xscale("log")
+cosi = np.cos(60.0 * np.pi / 180)
+
+print("  M  # Oblt # Hfrc # logn0 # Rdisk #  n  ")
+for mm in mass_:
+    for oo in oblat_:
+        for hh in hfrac_:
+            for lnn in ln0_:
+                for rr in rd_:
+                    for nn in n_:
+                        print(
+                            "{0:.2f} # {1:.2f} # {2:.2f} # {3:.2f} # {4:.2f} # {5:.2f}".format(
+                                mm, oo, hh, lnn, rr, nn
+                            )
+                        )
+                        # with alive_bar(100, bar="filling") as bar:
+                        minfs = [mm, oo, hh, lnn, rr, nn]
+                        new_flux = Parallel(n_jobs=4)(
+                            delayed(extrapol)(minfs, minfo, incl_, cosi, i)
+                            for i in range(len(lbdarr))
+                        )
+                        # bar()
+                        # for i in range(len(lbdarr)):
+                        #     # for ii in incl_:
+                        #     # incl = listpar[-1][2]
+                        #     minfs = [mm, oo, hh, lnn, rr, nn]
+                        #     cond = [np.all(a[:-1] == minfs) for a in minfo]
+                        #     mods = models[cond]
+                        #     # cond2 = [np.all(a == np.append(minfs, incl)) for a in minfo]
+                        #     # mod_incl = models[cond2][0]
+                        #     # for m in mods:
+                        #     # plt.plot(lbdarr[i], m[i] / mod_incl[i])
+                        #
+                        #     coeffs = np.polyfit(incl_, mods[:, i], deg=1)
+                        #     poly = np.poly1d(coeffs)
+                        #     new_val = poly(cosi)
+                        #     new_flux.append(new_val)
+                        # print(new_flux)
+                        # bar()
+                        # print(m[i])
+                        # plt.plot(incl_, mods[:, i], "o")
+                        # plt.plot(cosi, new_val, "*")
+                        # for mod in mods:
+                        #     plt.plot(lbdarr, mod)
+                        # plt.plot(lbdarr, new_flux, "k", lw=2)
+                        # plt.xscale("log")
+                        # plt.yscale("log")
+                        # # plt.title(
+                        # #     "{0:.2f}, {1:.2f}, {2:.2f}, {3:.2f}, {4:.2f}, {5:.2f}".format(
+                        # #         mm, oo, hh, lnn, rr, nn
+                        # #     )
+                        # # )
+                        # plt.show()
+    # plt.xscale("log")

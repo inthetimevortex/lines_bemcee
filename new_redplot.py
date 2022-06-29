@@ -7,6 +7,7 @@ import organizer as info
 from bemcee.be_theory import obl2W, hfrac2tms, W2oblat
 from bemcee.hpd import hpd_grid
 from PyAstronomy import pyasl
+import pyhdust as hdt
 from bemcee.utils import (
     griddataBAtlas,
     griddataBA,
@@ -18,10 +19,13 @@ from bemcee.utils import (
     oblat2w,
 )
 from bemcee.lines_reading import read_BAphot2_xdr
-from PyAstronomy import pyasl
+
+# from PyAstronomy import pyasl
 import seaborn as sns
 import matplotlib.ticker as ticker
 from konoha.constants import Msun, Rsun, sigma, G, Lsun
+from PT_makemag import convolution_Johnsons, convolution_JohnsonsZP
+import os
 
 # plt.rc("xtick", labelsize=7.5)
 # plt.rc("ytick", labelsize=7)
@@ -298,19 +302,17 @@ def plot_line(line, par, par_list):
     return
 
 
-def print_to_latex(params_fit, errors_fit):
+def print_to_latex(params_fit, errors_fit, date):
     """
     Prints results in latex table format
 
-    Usage:
-    params_to_print = print_to_latex(params_fit, errors_fit, current_folder, fig_name, labels, hpds)
     """
     # params_fit = []
     # errors_fit = []
     # for i in range(len(errs_fit)):
     #     errors_fit.append(errs_fit[i][0])
     #     params_fit.append(par_fit[i][0])
-    fname = "gcas.txt"
+    fname = date + "gcas.txt"
 
     if flag.model == "aeri":
         names = ["Mstar", "W", "t/tms", "i", "Dist", "E(B-V)"]
@@ -369,8 +371,8 @@ def print_to_latex(params_fit, errors_fit):
     tms = params_fit[2]
     tms_range = [tms + errors_fit[2][0], tms - errors_fit[2][1]]
 
-    cosi = params_fit[3]
-    cosi_range = [cosi + errors_fit[3][0], cosi - errors_fit[3][1]]
+    incl = params_fit[3]
+    incl_range = [incl + errors_fit[3][0], incl - errors_fit[3][1]]
 
     oblat = W2oblat(W)
     ob_max, ob_min = W2oblat(W_range[0]), W2oblat(W_range[1])
@@ -414,73 +416,45 @@ def print_to_latex(params_fit, errors_fit):
     Req = oblat * Rpole
     Req_max, Req_min = oblat_range[0] * Rpole_range[0], oblat_range[1] * Rpole_range[1]
 
+    omega = oblat2w(oblat)
     wcrit = np.sqrt(8.0 / 27.0 * G * Mstar * Msun / (Rpole * Rsun) ** 3)
-    vsini = W * wcrit * (Req * Rsun) * np.sin(cosi * np.pi / 180.0) * 1e-5
+    vsini = omega * wcrit * (Req * Rsun) * np.sin(np.deg2rad(incl)) * 1e-5
 
-    w_ = oblat2w(oblat)
     A_roche = (
         4.0
         * np.pi
         * (Rpole * Rsun) ** 2
         * (
             1.0
-            + 0.19444 * w_ ** 2
-            + 0.28053 * w_ ** 4
-            - 1.9014 * w_ ** 6
-            + 6.8298 * w_ ** 8
-            - 9.5002 * w_ ** 10
-            + 4.6631 * w_ ** 12
+            + 0.19444 * omega ** 2
+            + 0.28053 * omega ** 4
+            - 1.9014 * omega ** 6
+            + 6.8298 * omega ** 8
+            - 9.5002 * omega ** 10
+            + 4.6631 * omega ** 12
         )
     )
 
     Teff = ((10.0 ** logL) * Lsun / sigma / A_roche) ** 0.25
 
     Teff_range = [0.0, 50000.0]
-    # for oo in oblat_range:
-    #     for rr in Rpole_range:
-    #         for ll in logL_range:
-    #
-    #             w_ = oblat2w(oo)
-    #             A_roche = (
-    #                 4.0
-    #                 * np.pi
-    #                 * (rr * Rsun) ** 2
-    #                 * (
-    #                     1.0
-    #                     + 0.19444 * w_ ** 2
-    #                     + 0.28053 * w_ ** 4
-    #                     - 1.9014 * w_ ** 6
-    #                     + 6.8298 * w_ ** 8
-    #                     - 9.5002 * w_ ** 10
-    #                     + 4.6631 * w_ ** 12
-    #                 )
-    #             )
-    #
-    #             Teff_ = ((10.0 ** ll) * Lsun / sigma / A_roche) ** 0.25
-    #             if Teff_ > Teff_range[0]:
-    #                 Teff_range[0] = Teff_
-    #                 # print('Teff max is now = {}'.format(Teff_range[0]))
-    #             if Teff_ < Teff_range[1]:
-    #                 Teff_range[1] = Teff_
-    #                 # print('Teff min is now = {}'.format(Teff_range[1]))
-
     vsini_range = [0.0, 10000.0]
     for mm in Mstar_range:
         for oo in oblat_range:
             for tt in tms_range:
-                for ii in cosi_range:
+                for ii in incl_range:
                     if tt <= 1.0:
                         rr, ll, _ = geneva_interp_fast(mm, oo, tt, Zstr="014")
                     else:
                         rr, ll = geneva_interp(mm, oo, tt, Zstr="014")
                     wcrit = np.sqrt(8.0 / 27.0 * G * mm * Msun / (rr * Rsun) ** 3)
-                    print(rr, oo)
-                    w_ = oblat2w(oo)
+                    # print(rr, oo)
+                    omega_ = oblat2w(oo)
                     vsinit = (
-                        w_
+                        omega_
                         * wcrit
                         * (oo * rr * Rsun)
-                        * np.sin(ii * np.pi / 180.0)
+                        * np.sin(np.deg2rad(ii))
                         * 1e-5
                     )
                     if vsinit > vsini_range[0]:
@@ -496,12 +470,12 @@ def print_to_latex(params_fit, errors_fit):
                         * (rr * Rsun) ** 2
                         * (
                             1.0
-                            + 0.19444 * w_ ** 2
-                            + 0.28053 * w_ ** 4
-                            - 1.9014 * w_ ** 6
-                            + 6.8298 * w_ ** 8
-                            - 9.5002 * w_ ** 10
-                            + 4.6631 * w_ ** 12
+                            + 0.19444 * omega_ ** 2
+                            + 0.28053 * omega_ ** 4
+                            - 1.9014 * omega_ ** 6
+                            + 6.8298 * omega_ ** 8
+                            - 9.5002 * omega_ ** 10
+                            + 4.6631 * omega_ ** 12
                         )
                     )
 
@@ -628,9 +602,9 @@ tag = "+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha"
 # 22-06-22-100634Walkers_300_Nmcmc_7000_af_0.30_a_2.0+aeri_vsiniPrior_distPrior_inclPriorUV.npy
 # 22-06-25-072903Walkers_300_Nmcmc_7000_af_0.34_a_2.0+aeri_vsiniPrior_distPrior_inclPriorUV.npy
 # 22-06-27-065631Walkers_300_Nmcmc_7000_af_0.28_a_2.0+aeri_vsiniPrior_distPriorUV.npy
-af = "0.28"
-date = "22-06-27-065631"
-tag = "+aeri_vsiniPrior_distPriorUV"
+af = "0.30"
+date = "22-06-22-100634"
+tag = "+aeri_vsiniPrior_distPrior_inclPriorUV"
 
 
 current_folder = str(flag.folder_fig) + str(flag.stars) + "/"
@@ -746,7 +720,9 @@ fig_corner = corner(
 
 plot_residuals(best_pars, file_npy, current_folder, fig_name)
 
-params_to_print = print_to_latex([a[0] for a in best_pars], [a[0] for a in best_errs])
+params_to_print = print_to_latex(
+    [a[0] for a in best_pars], [a[0] for a in best_errs], date
+)
 
 plt.savefig(current_folder + fig_name + "REDONE.png", dpi=100)
 
@@ -769,7 +745,7 @@ print(oblat, Rpole, logL)
 wcrit = np.sqrt(8.0 / 27.0 * G * Mass * Msun / (Rpole * Rsun) ** 3)
 
 cosi = np.cos(incl * np.pi / 180)
-vsini = oblat2w(oblat) * wcrit * (Rpole * Rsun * oblat) * np.sin(incl) * 1e-5
+vsini = omega * wcrit * (Rpole * Rsun * oblat) * np.sin(np.deg2rad(incl)) * 1e-5
 print("the vsini")
 print(vsini)
 
@@ -783,6 +759,16 @@ norma = (10 / dista) ** 2
 mod = mod * norma
 flux_mod = pyasl.unred(lbdarr * 1e4, mod, ebv=-1 * ebmv, R_V=3.1)
 
+vega_path = os.path.join(hdt.hdtpath(), "refs/stars/", "vega.dat")
+vega = np.loadtxt(vega_path)
+wv_vg = vega[:, 0]  # will be in \AA
+fx_vg = vega[:, 1]  # erg s-1 cm-2 \AA-1
+fU, fB, fV, fR, fI = convolution_JohnsonsZP(wv_vg, fx_vg)  # zero points magnitudes.
+
+mU, mB, mV, mR, mI = convolution_Johnsons(
+    lbdarr * 1e4, flux_mod * 1e-4, fU, fB, fV, fR, fI
+)
+print(mU, mB, mV, mR, mI)
 
 # tcs = pyasl.TransmissionCurves()
 # wvl = np.linspace(3000, 10000, 10000)

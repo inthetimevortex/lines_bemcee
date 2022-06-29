@@ -63,7 +63,7 @@ Hg =            False
 
 pol = False
 
-corner_color = 'pink' # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
+corner_color = 'orange' # OPTIONS ARE: blue, dark blue, teal, green, yellow, orange, red, purple, violet, pink.
                   # IF YOU DO NOT CHOOSE A COLOR, A RANDOM ONE WILL BE SELECTED
 
 # Plot options
