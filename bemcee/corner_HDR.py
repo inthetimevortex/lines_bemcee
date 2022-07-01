@@ -20,13 +20,15 @@ __all__ = ["corner", "hist2d", "quantile"]
 import seaborn as sns
 import matplotlib.ticker as ticker
 
-# sfmt = ticker.ScalarFormatter(useMathText=True)
+sfmt = ticker.ScalarFormatter(useMathText=True)
 # sfmt.set_powerlimits((0, 0))
-# sfmt.set_scientific(True)
-# sfmt.set_powerlimits((-2, 3))
+sfmt.set_scientific(True)
+sfmt.set_powerlimits((-2, 3))
 
-sns.set(style="ticks")
-# sns.set_style("white", {"xtick.major.direction": "in", "ytick.major.direction": "in"})
+# sns.set(style="ticks")
+sns.set_style(
+    "white"
+)  # , {"xtick.major.direction": "in", "ytick.major.direction": "in"})
 
 
 def corner(

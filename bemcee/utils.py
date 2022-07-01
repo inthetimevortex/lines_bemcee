@@ -510,46 +510,47 @@ def readBAsed(xdrpath, quiet=False):
     | OUTPUT: listpar, lbdarr, minfo, models
     | (list of mods parameters, lambda array (um), mods index, mods flux)
     """
-    f = open(xdrpath, "rb").read()
-    ixdr = 0
-    #
-    npxs = 3
-    upck = ">{0}l".format(npxs)
-    header = np.array(struct.unpack(upck, f[ixdr : ixdr + npxs * 4]))
-    ixdr += npxs * 4
-    nq, nlb, nm = header
-    #
-    npxs = nq
-    upck = ">{0}l".format(npxs)
-    header = np.array(struct.unpack(upck, f[ixdr : ixdr + npxs * 4]))
-    ixdr += npxs * 4
-    #
-    listpar = [[] for i in range(nq)]
-    for i in range(nq):
-        npxs = header[i]
-        upck = ">{0}f".format(npxs)
-        listpar[i] = np.array(struct.unpack(upck, f[ixdr : ixdr + npxs * 4]))
+    with open(xdrpath, "rb") as fi:
+        f = fi.read()
+        ixdr = 0
+        #
+        npxs = 3
+        upck = ">{0}l".format(npxs)
+        header = np.array(struct.unpack(upck, f[ixdr : ixdr + npxs * 4]))
         ixdr += npxs * 4
-    #
-    npxs = nlb
-    upck = ">{0}f".format(npxs)
-    lbdarr = np.array(struct.unpack(upck, f[ixdr : ixdr + npxs * 4]))
-    ixdr += npxs * 4
-    #
-    npxs = nm * (nq + nlb)
-    upck = ">{0}f".format(npxs)
-    models = np.array(struct.unpack(upck, f[ixdr : ixdr + npxs * 4]))
-    ixdr += npxs * 4
-    models = models.reshape((nm, -1))
-    # this will check if the XDR is finished.
-    if ixdr == len(f):
-        if not quiet:
-            print("# XDR {0} completely read!".format(xdrpath))
-    else:
-        _warn.warn(
-            "# XDR {0} not completely read!\n# length "
-            "difference is {1}".format(xdrpath, (len(f) - ixdr) / 4)
-        )
+        nq, nlb, nm = header
+        #
+        npxs = nq
+        upck = ">{0}l".format(npxs)
+        header = np.array(struct.unpack(upck, f[ixdr : ixdr + npxs * 4]))
+        ixdr += npxs * 4
+        #
+        listpar = [[] for i in range(nq)]
+        for i in range(nq):
+            npxs = header[i]
+            upck = ">{0}f".format(npxs)
+            listpar[i] = np.array(struct.unpack(upck, f[ixdr : ixdr + npxs * 4]))
+            ixdr += npxs * 4
+        #
+        npxs = nlb
+        upck = ">{0}f".format(npxs)
+        lbdarr = np.array(struct.unpack(upck, f[ixdr : ixdr + npxs * 4]))
+        ixdr += npxs * 4
+        #
+        npxs = nm * (nq + nlb)
+        upck = ">{0}f".format(npxs)
+        models = np.array(struct.unpack(upck, f[ixdr : ixdr + npxs * 4]))
+        ixdr += npxs * 4
+        models = models.reshape((nm, -1))
+        # this will check if the XDR is finished.
+        if ixdr == len(f):
+            if not quiet:
+                print("# XDR {0} completely read!".format(xdrpath))
+        else:
+            _warn.warn(
+                "# XDR {0} not completely read!\n# length "
+                "difference is {1}".format(xdrpath, (len(f) - ixdr) / 4)
+            )
     #
     return listpar, lbdarr, models[:, 0:nq], models[:, nq:]
 

@@ -48,8 +48,8 @@ def gaussian1d(npix, fwhm, normalize=True):
 
 def gaussfold(lam, flux, fwhm):
 
-    lammin = -1500
-    lammax = 1500
+    lammin = -2500
+    lammax = 2500
 
     dlambda = fwhm / float(17)
     interlam = lammin + dlambda * np.arange(float((lammax - lammin) / dlambda + 1))
@@ -115,12 +115,13 @@ def log_prior(params, ranges, vmod, fmod):
 
 def log_like(params, vmod, flux, dflux, fmod):
     # v_h, v_e, fac_e = params
-    fconv = gauss_conv(params, vmod, fmod)
     limits = np.logical_and(vmod > -600, vmod < 600)
+    fconv = gauss_conv(params, vmod[limits], fmod[limits])
+    # limits = np.logical_and(vmod > -600, vmod < 600)
     # blimits = np.logical_or(vmod < -75.0, vmod > 75.0)
     # limits = np.logical_and(alimits, blimits)
 
-    chi2 = np.sum((flux[limits] - fconv[limits]) ** 2 / (dflux[limits]) ** 2.0)
+    chi2 = np.sum((flux[limits] - fconv) ** 2 / (dflux[limits]) ** 2.0)
     # plt.plot(vmod[limits], flux[limits], "r")
     # plt.plot(vmod[limits], fconv[limits], "b")
     # plt.show()
@@ -139,6 +140,7 @@ if __name__ == "__main__":
     star = "HD37795"
     nchain = "22-06-24-183819Walkers_500_Nmcmc_5000_af_0.22_a_2.0+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha.npy"
     pars, errs = get_result(nchain, star)
+    np.savez("for_acol", pars=pars, errs=errs)
     print(pars)
     M, W, ttms, sig0, Rd, mr, i, dist, ebmv = [a[0] for a in pars]
     # M = 4.7727121
@@ -211,10 +213,10 @@ if __name__ == "__main__":
         nwalkers, ndim, log_prob, args=[vmod, flux, dflux, ranges, fmod]
     )
 
-    state = sampler.run_mcmc(p0, 200, progress=True)
+    state = sampler.run_mcmc(p0, 100, progress=True)
     sampler.reset()
 
-    sampler.run_mcmc(state, 3000, progress=True)
+    sampler.run_mcmc(state, 1000, progress=True)
 
     flat_samples = sampler.get_chain(discard=200, thin=15, flat=True)
 
@@ -259,8 +261,10 @@ if __name__ == "__main__":
     plt.savefig("convo_corner.png")
     plt.close()
     fig2 = plt.figure(2)
-    plt.plot(vmod, flux, "o", alpha=0.5, label="EW = {:.2f}".format(EW_data))
+    plt.plot(vel, flux, "o", alpha=0.5, label="EW = {:.2f}".format(EW_data))
     bflux = gauss_conv([best_pars[0][0], best_pars[1][0]], vmod, fmod)
     bEW = spec.EWcalc(vmod, bflux) / 10.0
     plt.plot(vmod, bflux, label="EW = {:.2f}".format(bEW))
+    plt.legend()
+    plt.xlim(-1000, 1000)
     plt.savefig("convo_fit.png")

@@ -602,21 +602,34 @@ tag = "+acol_vsiniPrior_distPriorUV+VIS+NIR+MIR+FIR+MICROW+RADIO+Ha"
 # 22-06-22-100634Walkers_300_Nmcmc_7000_af_0.30_a_2.0+aeri_vsiniPrior_distPrior_inclPriorUV.npy
 # 22-06-25-072903Walkers_300_Nmcmc_7000_af_0.34_a_2.0+aeri_vsiniPrior_distPrior_inclPriorUV.npy
 # 22-06-27-065631Walkers_300_Nmcmc_7000_af_0.28_a_2.0+aeri_vsiniPrior_distPriorUV.npy
-af = "0.30"
-date = "22-06-22-100634"
+# 22-06-29-082543Walkers_300_Nmcmc_7000_af_0.31_a_2.0+aeri_vsiniPrior_distPrior_inclPriorUV.npy
+# 22-06-29-060044Walkers_300_Nmcmc_7000_af_0.29_a_2.0+aeri_distPrior_inclPriorUV.npy
+af = "0.31"
+date = "22-06-29-082543"
 tag = "+aeri_vsiniPrior_distPrior_inclPriorUV"
 
+nchain = (
+    "22-06-29-060044Walkers_300_Nmcmc_7000_af_0.29_a_2.0+aeri_distPrior_inclPriorUV"
+)
+
+date = nchain.split("Walkers")[0]
+Nwalk = nchain.split("Walkers")[1].split("_")[1]
+Nmcmc = nchain.split("Walkers")[1].split("_")[3]
+af = nchain.split("Walkers")[1].split("_")[5]
+apar = nchain.split("Walkers")[1].split("+")[0][-3:]
+tag = "+" + nchain.split("Walkers")[1].split("+")[-1]
+model = nchain.split("Walkers")[1].split("+")[1].split("_")[0]
 
 current_folder = str(flag.folder_fig) + str(flag.stars) + "/"
 fig_name = (
     "Walkers_"
     + str(Nwalk)
     + "_Nmcmc_"
-    + str(nint_mcmc)
+    + str(Nmcmc)
     + "_af_"
     + str(af)
     + "_a_"
-    + str(flag.a_parameter)
+    + str(apar)
     + tag
 )
 file_npy = (
@@ -627,11 +640,11 @@ file_npy = (
     + "Walkers_"
     + str(Nwalk)
     + "_Nmcmc_"
-    + str(nint_mcmc)
+    + str(Nmcmc)
     + "_af_"
     + str(af)
     + "_a_"
-    + str(flag.a_parameter)
+    + str(apar)
     + tag
     + ".npy"
 )
@@ -645,19 +658,19 @@ samples = np.copy(flatchain_1)[-100000:]
 
 
 for i in range(len(samples)):
-    if flag.model == "acol" or flag.model == "aara":
+    if model == "acol" or model == "aara":
         samples[i][1] = obl2W(samples[i][1])
         samples[i][2] = hfrac2tms(samples[i][2])
         samples[i][6] = (np.arccos(samples[i][6])) * (180.0 / np.pi)
 
-    elif flag.model == "aeri":
+    elif model == "aeri":
         samples[i][3] = (np.arccos(samples[i][3])) * (180.0 / np.pi)
 
-    elif flag.model == "beatlas":
+    elif model == "beatlas":
         samples[i][1] = obl2W(samples[i][1])
         samples[i][4] = (np.arccos(samples[i][4])) * (180.0 / np.pi)
 
-    if flag.model == "aara":
+    if model == "aara":
         samples[i][5] = samples[i][5] + 1.5
 
 new_ranges = []

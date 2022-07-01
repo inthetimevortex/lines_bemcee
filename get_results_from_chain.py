@@ -32,7 +32,7 @@ def get_result(nchain, star):
     flatchain_1 = chain.reshape((-1, chain.shape[-1]))
     Ndim = chain.shape[-1]
 
-    samples = np.copy(flatchain_1)[-300000:]
+    samples = np.copy(flatchain_1)  # [-300000:]
 
     for i in range(len(samples)):
         if model == "acol" or model == "aara":

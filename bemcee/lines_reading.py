@@ -374,7 +374,7 @@ def read_acol_Ha_xdr(lista_obs):
             if minfo[i][j] < 0:
                 minfo[i][j] = 0.0
 
-    for i in range(np.shape(listpar)[0]):
+    for i in range(len(listpar)):
         for j in range(len(listpar[i])):
             if listpar[i][j] < 0:
                 listpar[i][j] = 0.0
